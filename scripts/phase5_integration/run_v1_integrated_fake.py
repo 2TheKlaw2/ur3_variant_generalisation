@@ -132,8 +132,9 @@ def load_arm(path, multiplier, max_allowed_step):
 
 
 class FakeController(Node):
-    def __init__(self):
+    def __init__(self, automatic=False):
         super().__init__("v1_integrated_mock_only")
+        self.automatic = automatic
 
         self.arm = None
         self.gripper = None
@@ -361,7 +362,9 @@ class FakeController(Node):
             f"{data['times'][-1]:.3f} seconds"
         )
 
-        if input(
+        if self.automatic:
+            print(f"AUTO: proceeding with fake {name} after safety checks")
+        elif input(
             f"Type {label} for fake {name}: "
         ).strip() != label:
             raise RuntimeError(f"Cancelled: {name}")
@@ -436,7 +439,9 @@ class FakeController(Node):
 
         print(f"\n{name}: RG2 target = {width_mm} mm")
 
-        if input(
+        if self.automatic:
+            print(f"AUTO: proceeding with fake {name} after safety checks")
+        elif input(
             f"Type {name} to continue: "
         ).strip() != name:
             raise RuntimeError(f"Cancelled: {name}")
@@ -485,6 +490,12 @@ def main():
         help="Run the guarded sequence",
     )
 
+    parser.add_argument(
+        "--auto",
+        action="store_true",
+        help="Continuous V1 sequence (FAKE HARDWARE ONLY)",
+    )
+
     args = parser.parse_args()
 
     print("\n========== V1 INTEGRATED SIMULATION ==========")
@@ -524,7 +535,7 @@ def main():
             )
 
     rclpy.init()
-    node = FakeController()
+    node = FakeController(automatic=args.auto)
 
     try:
         node.guard()
@@ -533,12 +544,15 @@ def main():
 
         print("\nFAKE HARDWARE VERIFIED")
 
-        if not args.run:
+        if not (args.run or args.auto):
             print("PREFLIGHT PASS")
             print("NO ROBOT MOVEMENT")
             return
 
-        if input(
+        if args.auto:
+            print("\nAUTO MODE ENABLED — FAKE HARDWARE ONLY")
+            print("All stages will run without individual confirmations.")
+        elif input(
             "\nType START to begin guarded V1 simulation: "
         ).strip() != "START":
             raise RuntimeError("Cancelled before movement")
@@ -564,11 +578,26 @@ def main():
         print("\nSTAGE 1 — HOME")
 
         # Reuse the existing guarded HOME script.
-        subprocess.run(
-            [sys.executable, str(home), "--home"],
-            cwd=str(ROOT),
-            check=True,
-        )
+        def guarded_home():
+            node.guard()
+            node.refresh()
+
+            options = (
+                {"input": "HOME\n", "text": True}
+                if args.auto else {}
+            )
+
+            subprocess.run(
+                [sys.executable, str(home), "--home"],
+                cwd=str(ROOT),
+                check=True,
+                **options,
+            )
+
+            node.guard()
+            node.refresh()
+
+        guarded_home()
 
         node.refresh()
 
@@ -584,6 +613,21 @@ def main():
 
         print("\nFINAL STAGE — RELEASE")
         node.gripper_stage("RELEASE", 20)
+
+        if args.auto:
+            node.guard()
+            node.refresh()
+
+            expected, tolerance = node.gripper_target(20)
+
+            if abs(node.gripper - expected) > tolerance:
+                raise RuntimeError(
+                    "Gripper has not reached RELEASE width"
+                )
+
+            print("\nFINAL STAGE — RETURN HOME")
+            guarded_home()
+            print("RETURN HOME: PASS")
 
         print("\n========== COMPLETE ==========")
         print("Full V1 command sequence: PASS")
