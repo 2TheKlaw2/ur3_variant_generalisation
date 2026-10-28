@@ -1,0 +1,29 @@
+{
+  "source": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/processed/phase3_transport/v1_transport_cdmp_baseline_moveit.csv",
+  "candidate": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/processed/phase3_transport/v1_transport_cdmp_initial_lift_guard_CANDIDATE.csv",
+  "type": "C1 monotone geometry-constrained initial lift + original learned CDMP suffix",
+  "training": "unchanged",
+  "robot_execution_authorised": false,
+  "original_min_z_mm": 34.339,
+  "candidate_min_z_mm": 36.536,
+  "start_z_mm": 36.536,
+  "join_index": 106,
+  "join_time_s": 2.12,
+  "join_lift_mm": 50.418,
+  "max_z_correction_mm": 12.195,
+  "original_max_z_step_mm": 1.317,
+  "candidate_max_z_step_mm": 1.317,
+  "vertical_lift_mm_at_xy_displacement_mm": {
+    "5": 20.345,
+    "10": 39.17,
+    "20": 70.309,
+    "30": 79.797,
+    "50": 141.518
+  },
+  "limitations": [
+    "TCP clearance is NOT component/fixture clearance",
+    "Only Cartesian Z was corrected; IK, joint continuity, dynamics and collision model not yet validated",
+    "Trajectory is a hybrid: learned CDMP with a geometry-constrained initial lift",
+    "A separate small start-pose mismatch to actual saved grip remains and needs handling"
+  ]
+}

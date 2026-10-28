@@ -97,5 +97,13 @@ if(NOT UR3_VARIANT_STANDALONE)
   install(TARGETS align_to_grip_plan_only
     RUNTIME DESTINATION lib/${PROJECT_NAME})
 
+  # V1 insertion alignment (SIM, PLAN ONLY; no motion execution)
+  add_executable(align_to_insertion_plan_only src/align_to_insertion_plan_only.cpp)
+  ament_target_dependencies(align_to_insertion_plan_only
+    rclcpp geometry_msgs moveit_ros_planning_interface moveit_core moveit_msgs)
+  target_link_libraries(align_to_insertion_plan_only yaml-cpp)
+  install(TARGETS align_to_insertion_plan_only
+    RUNTIME DESTINATION lib/${PROJECT_NAME})
+
   ament_package()
 endif()

@@ -1,0 +1,72 @@
+{
+  "experiment": "V1 insertion and rotation learned separately from one physical assembly demonstration",
+  "raw_demo": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/raw/v1_assembly_full_001.csv",
+  "raw_sha256": "bbbc6847fdb6c3365d102abb81aac697b6343f5810f8745a2eee64b8f8dbb6c8",
+  "source_raw_row_ranges_inclusive": {
+    "insert": [
+      400,
+      725
+    ],
+    "rotate": [
+      725,
+      1150
+    ]
+  },
+  "split_boundary_identical_in_source": true,
+  "base_frame": "base",
+  "tool_frame": "gripper_tcp",
+  "generated_skill_handoff_position_mm": 0.008854974242518425,
+  "generated_skill_handoff_orientation_deg": 0.0017256621963552437,
+  "rollouts": {
+    "insert": {
+      "input": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/processed/v1_insert_001_motion.csv",
+      "input_sha256": "c77d6b585cccd5565183db5e31cb3d5e03ead07c3ff1aa1a73a3f645d0a43316",
+      "demo_samples": 326,
+      "demo_duration_s": 6.499457654,
+      "tau": 2.0,
+      "cdmp_points": 651,
+      "cdmp_duration_s": 12.998915307999882,
+      "start_error_mm": 0.0,
+      "endpoint_position_error_mm": 0.008854974242518425,
+      "endpoint_orientation_error_deg": 0.0017256621963552437,
+      "phase_matched_RMS_position_mm": 0.1401763137989142,
+      "phase_matched_max_position_mm": 0.67894107426792,
+      "phase_matched_max_orientation_deg": 0.1047026308070894,
+      "demo_min_z_mm": 40.0661212012,
+      "cdmp_min_z_mm": 39.83678117196965,
+      "cdmp_end_z_mm": 40.10058292500767,
+      "demo_end_z_mm": 40.0952729291,
+      "cdmp_max_xy_drift_from_start_mm": 2.0671515331989614,
+      "cdmp_max_rotation_from_start_deg": 0.641713493830656,
+      "nominal_rollout_only": true,
+      "reproduced_demonstration_without_goal_adaptation": true,
+      "not_validated_for_motion_execution": true
+    },
+    "rotate": {
+      "input": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/processed/v1_rotate_001_motion.csv",
+      "input_sha256": "d2a6956599061c07aaf49c16d5b4038d3c132aab77615d34c6868bf781134dff",
+      "demo_samples": 426,
+      "demo_duration_s": 8.499055681,
+      "tau": 2.0,
+      "cdmp_points": 851,
+      "cdmp_duration_s": 16.998111362000042,
+      "start_error_mm": 0.0,
+      "endpoint_position_error_mm": 0.0133620644530486,
+      "endpoint_orientation_error_deg": 0.005789397987149183,
+      "phase_matched_RMS_position_mm": 0.012021707015620286,
+      "phase_matched_max_position_mm": 0.08075658206473196,
+      "phase_matched_max_orientation_deg": 0.9189137874561142,
+      "demo_min_z_mm": 40.0900421205,
+      "cdmp_min_z_mm": 40.091839269868565,
+      "cdmp_end_z_mm": 40.306026988945014,
+      "demo_end_z_mm": 40.3092995347,
+      "cdmp_max_xy_drift_from_start_mm": 0.29729414418354816,
+      "cdmp_max_rotation_from_start_deg": 24.499179839890793,
+      "nominal_rollout_only": true,
+      "reproduced_demonstration_without_goal_adaptation": true,
+      "not_validated_for_motion_execution": true
+    }
+  },
+  "no_robot_movement": true,
+  "not_execution_approval": true
+}

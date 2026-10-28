@@ -1,0 +1,12 @@
+{
+  "metric_type": "phase_normalized_offline_DMP_fit_NOT_same_time_tracking",
+  "demo_duration_s": 12.399829443,
+  "cdmp_duration_s": 24.799658886,
+  "rms_position_path_difference_mm": 1.4689013021677484,
+  "max_position_path_difference_mm": 4.6286034743507996,
+  "rms_orientation_path_difference_deg": 0.23556452794684574,
+  "max_orientation_path_difference_deg": 1.2509063657200075,
+  "endpoint_position_difference_mm": 0.12077001940925496,
+  "endpoint_orientation_difference_deg": 0.07369277156944377,
+  "note": "Time scale differs by design; controller execution timing must be measured separately."
+}

@@ -1,0 +1,54 @@
+{
+  "purpose": "Candidate modified initial TCP motion; not raw recorded joints",
+  "original_demo_sha256": "c77d6b585cccd5565183db5e31cb3d5e03ead07c3ff1aa1a73a3f645d0a43316",
+  "raw_demo_sha256": "bbbc6847fdb6c3365d102abb81aac697b6343f5810f8745a2eee64b8f8dbb6c8",
+  "original_insert_raw_range": [
+    400,
+    725
+  ],
+  "rotate_raw_range": [
+    725,
+    1150
+  ],
+  "join_original_s": 1.499863624,
+  "modified_time_range_s": [
+    0.0,
+    1.499863624
+  ],
+  "preserves_start_pose": true,
+  "preserves_exact_original_demo_at_and_after_join": true,
+  "preserves_insert_rotate_boundary": true,
+  "max_XY_drift_original_demo_mm": 2.058938397466648,
+  "max_XY_drift_refined_demo_mm": 0.5916358035364491,
+  "max_XY_drift_refined_CDMP_mm": 0.498933670390708,
+  "learned_CDMP_min_Z_mm": 39.834813956692784,
+  "refined_demo_min_Z_mm": 40.0661212012,
+  "extra_learned_depth_mm": 0.23130724450721313,
+  "generated_to_rotate_start_handoff_mm": 0.0088269220587362,
+  "generated_to_rotate_start_handoff_deg": 0.0017174293021558103,
+  "cdmp_fidelity": {
+    "input": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/processed/phase4_assembly/v1_insert_refined_tcp_training.csv",
+    "input_sha256": "ea32e559745729bb55453cccdd5b6874d60d4f881fc091c60a26ee03dc465d9d",
+    "demo_samples": 326,
+    "demo_duration_s": 6.499457654,
+    "tau": 2.0,
+    "cdmp_points": 651,
+    "cdmp_duration_s": 12.998915307999882,
+    "start_error_mm": 0.0,
+    "endpoint_position_error_mm": 0.008826922061873584,
+    "endpoint_orientation_error_deg": 0.0017174276044328277,
+    "phase_matched_RMS_position_mm": 0.11749449338445793,
+    "phase_matched_max_position_mm": 0.6797235732544258,
+    "phase_matched_max_orientation_deg": 0.08990547960861439,
+    "demo_min_z_mm": 40.066121200999994,
+    "cdmp_min_z_mm": 39.834813956692784,
+    "cdmp_end_z_mm": 40.100569189697886,
+    "demo_end_z_mm": 40.095272929000004,
+    "cdmp_max_xy_drift_from_start_mm": 0.498933670390708,
+    "cdmp_max_rotation_from_start_deg": 0.6430726575813128,
+    "nominal_rollout_only": true,
+    "reproduced_demonstration_without_goal_adaptation": true,
+    "not_validated_for_motion_execution": true
+  },
+  "not_execution_approval": true
+}

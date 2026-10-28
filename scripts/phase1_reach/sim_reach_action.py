@@ -139,7 +139,7 @@ def main():
 
         print('Mode:', 'FAKE HOME' if a.home else 'FAKE FULL V1 REACH')
         print('This program WILL move the virtual robot state, not physical hardware.')
-        phrase='CONFIRM_FAKE_HOME' if a.home else 'CONFIRM_FAKE_V1_REACH'
+        phrase='HOME' if a.home else 'REACH'
         if input('Type '+phrase+' to simulate movement: ').strip()!=phrase:
             raise RuntimeError('Not confirmed')
         verify_fake_only(node)

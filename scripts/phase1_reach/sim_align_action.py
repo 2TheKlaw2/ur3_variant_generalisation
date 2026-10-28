@@ -134,7 +134,7 @@ def main():
         if not action.wait_for_server(timeout_sec=7):
             raise RuntimeError('Fake joint trajectory action unavailable')
         print('This action WILL move only the virtual UR3e joint states.')
-        if input('Type CONFIRM_FAKE_ALIGN to simulate alignment: ').strip() != 'CONFIRM_FAKE_ALIGN':
+        if input('Type ALIGN to simulate alignment: ').strip() != 'ALIGN':
             raise RuntimeError('No confirmation; no movement')
 
         verify_fake_only(node)

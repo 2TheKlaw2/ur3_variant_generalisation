@@ -1,0 +1,43 @@
+{
+  "method": "Time-domain bounded curvature-minimizing positive vertical correction; NOT DMP learning",
+  "original_source": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/processed/phase4_assembly/v1_insert_cdmp_refined_CANDIDATE.csv",
+  "original_sha256": "8f53dd4b7cc8f9e7e41d011348cb73dc3a6402d9012d9406e1e889b7f37458dc",
+  "floor_source": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/processed/phase4_assembly/v1_insert_refined_tcp_training.csv",
+  "floor_m": 0.040066121201,
+  "before": {
+    "max_z_step_mm": 0.10424535600000312,
+    "max_abs_v_m_s": 0.00521270253939191,
+    "max_abs_a_m_s2": 0.012873205429771781,
+    "max_abs_jerk_m_s3": 0.06502883759618384
+  },
+  "accepted": {
+    "curvature_weight": 20000.0,
+    "optimizer_success": true,
+    "optimizer_message": "CONVERGENCE: REL_REDUCTION_OF_F_<=_FACTR*EPSMCH",
+    "violation_mm": 0.0,
+    "max_correction_mm": 0.2313072439999999,
+    "minimum_margin_mm": 0.0,
+    "max_z_step_mm": 0.10424534136464075,
+    "max_abs_v_m_s": 0.005212701807562757,
+    "max_abs_a_m_s2": 0.01287320130632073,
+    "max_abs_jerk_m_s3": 0.06292951631502824
+  },
+  "trials": [
+    {
+      "curvature_weight": 20000.0,
+      "optimizer_success": true,
+      "optimizer_message": "CONVERGENCE: REL_REDUCTION_OF_F_<=_FACTR*EPSMCH",
+      "violation_mm": 0.0,
+      "max_correction_mm": 0.2313072439999999,
+      "minimum_margin_mm": 0.0,
+      "max_z_step_mm": 0.10424534136464075,
+      "max_abs_v_m_s": 0.005212701807562757,
+      "max_abs_a_m_s2": 0.01287320130632073,
+      "max_abs_jerk_m_s3": 0.06292951631502824
+    }
+  ],
+  "start_end_preserved": true,
+  "XY_and_orientation_preserved": true,
+  "collision_validated": false,
+  "execution_approved": false
+}
