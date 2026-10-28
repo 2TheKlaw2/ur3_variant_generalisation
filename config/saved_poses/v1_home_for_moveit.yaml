@@ -1,0 +1,24 @@
+# Stationary TCP + joints, measurement ONLY (not a controller command)
+name: v1_lab_home_20261027_112208
+robot: ur3e
+robot_ip: 192.168.0.192
+base_frame: base
+tool_frame: tool0
+arm:
+  joint_names:
+    - shoulder_pan_joint
+    - shoulder_lift_joint
+    - elbow_joint
+    - wrist_1_joint
+    - wrist_2_joint
+    - wrist_3_joint
+  positions_rad:
+    - -0.675926510488
+    - -1.34777768076
+    - -0.527696251869
+    - -2.8273965321
+    - 1.55948805809
+    - -3.87329799334
+tcp:
+  position_m: [-0.00813583074704, -0.163155867083, 0.501698830218]
+  quaternion_xyzw: [0.687758909012, 0.725913366567, -0.00429554099123, 0.00436069273242]

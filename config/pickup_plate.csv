@@ -1,0 +1,6 @@
+variant_id,offset_mm,height_offset_mm,yaw_deg
+V1,0,0,0
+V2,40,0,0
+V3,80,5,0
+V4,120,5,0
+V5,160,5,0

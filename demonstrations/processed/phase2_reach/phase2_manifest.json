@@ -1,0 +1,133 @@
+{
+  "experiment": "V1 single-demonstration CDMP Cartesian goal and temporal adaptation",
+  "source_demo": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/processed/v1_reach_001_motion.csv",
+  "source_demo_sha256": "42d8fa7a47f36c680075c35e886a08b33f6446ee62ad825716b8449a19e78e34",
+  "saved_grip_pose": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/config/saved_poses/v1_grip_pose.yaml",
+  "saved_grip_pose_sha256": "3d780fec3dcc2a5338420564b374816507bdf09e4270f8e97130b685e03bf5c7",
+  "base_frame": "base",
+  "tool_frame": "gripper_tcp",
+  "translation_goal_offset_mm": [
+    -2.2168700929999785,
+    -5.707047091000006,
+    -5.381190736199998
+  ],
+  "orientation_goal_offset_deg": 6.047737810709085,
+  "learned_weights_reused_across_all_trials": true,
+  "goal_settling_method": "same learned CDMP, continued exponentially decaying canonical phase",
+  "goal_thresholds": {
+    "position_mm": 2.0,
+    "orientation_deg": 0.5
+  },
+  "max_additional_settling_fraction_of_nominal_duration": 1.5,
+  "rollouts": [
+    {
+      "trial": "baseline_tau2",
+      "adapted": false,
+      "tau_scale": 2.0,
+      "samples": 2645,
+      "duration_s": 52.878940691515496,
+      "nominal_cdmp_duration_s": 31.87936137,
+      "additional_goal_settling_s": 20.999579321515494,
+      "start_m": [
+        -0.00806067073699,
+        -0.165811786607,
+        0.283712423644
+      ],
+      "goal_requested_m": [
+        0.230627306367,
+        -0.340996233184,
+        0.0412698734933
+      ],
+      "goal_reached_m": [
+        0.23186244263056532,
+        -0.342455157531409,
+        0.04185023878712113
+      ],
+      "goal_position_error_mm": 1.9977101179372578,
+      "goal_orientation_error_deg": 0.3605034489898754,
+      "output_csv": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/processed/phase2_reach/v1_reach_baseline_tau2_moveit.csv"
+    },
+    {
+      "trial": "adapted_tau2",
+      "adapted": true,
+      "tau_scale": 2.0,
+      "samples": 2645,
+      "duration_s": 52.878940691515496,
+      "nominal_cdmp_duration_s": 31.87936137,
+      "additional_goal_settling_s": 20.999579321515494,
+      "start_m": [
+        -0.00806067073699,
+        -0.165811786607,
+        0.283712423644
+      ],
+      "goal_requested_m": [
+        0.228410436274,
+        -0.346703280275,
+        0.0358886827571
+      ],
+      "goal_reached_m": [
+        0.22964579423038045,
+        -0.3481616339027544,
+        0.036469586184087514
+      ],
+      "goal_position_error_mm": 1.9975868880883836,
+      "goal_orientation_error_deg": 0.34911474239302437,
+      "output_csv": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/processed/phase2_reach/v1_reach_adapted_tau2_moveit.csv"
+    },
+    {
+      "trial": "adapted_tau1",
+      "adapted": true,
+      "tau_scale": 1.0,
+      "samples": 1323,
+      "duration_s": 26.439470345759467,
+      "nominal_cdmp_duration_s": 15.939680685,
+      "additional_goal_settling_s": 10.499789660759467,
+      "start_m": [
+        -0.00806067073699,
+        -0.165811786607,
+        0.283712423644
+      ],
+      "goal_requested_m": [
+        0.228410436274,
+        -0.346703280275,
+        0.0358886827571
+      ],
+      "goal_reached_m": [
+        0.22964569867459803,
+        -0.3481619112344838,
+        0.036469672761392534
+      ],
+      "goal_position_error_mm": 1.9977554553507293,
+      "goal_orientation_error_deg": 0.34906765975664156,
+      "output_csv": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/processed/phase2_reach/v1_reach_adapted_tau1_moveit.csv"
+    },
+    {
+      "trial": "adapted_tau3",
+      "adapted": true,
+      "tau_scale": 3.0,
+      "samples": 3967,
+      "duration_s": 79.31841103727054,
+      "nominal_cdmp_duration_s": 47.819042055000004,
+      "additional_goal_settling_s": 31.499368982270532,
+      "start_m": [
+        -0.00806067073699,
+        -0.165811786607,
+        0.283712423644
+      ],
+      "goal_requested_m": [
+        0.228410436274,
+        -0.346703280275,
+        0.0358886827571
+      ],
+      "goal_reached_m": [
+        0.22964582689974183,
+        -0.3481615421437788,
+        0.03646955911008807
+      ],
+      "goal_position_error_mm": 1.997532230920366,
+      "goal_orientation_error_deg": 0.34913098335189174,
+      "output_csv": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/processed/phase2_reach/v1_reach_adapted_tau3_moveit.csv"
+    }
+  ],
+  "physical_execution": false
+}

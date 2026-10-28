@@ -1,0 +1,6 @@
+[INFO] [1793062722.823510132] [demo_recorder]: Demo recorder ready.
+[INFO] [1793062722.824083529] [demo_recorder]: Output file: /home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/raw/v1_assembly_full_001.csv
+[INFO] [1793062722.824110470] [demo_recorder]: TF: base -> gripper_tcp
+[INFO] [1793062738.407966357] [demo_recorder]: RECORDING STARTED
+[INFO] [1793062768.463136115] [demo_recorder]: Saved 1502 samples to /home/enriques/ros2_ws/src/ur3_variant_generalisation/demonstrations/raw/v1_assembly_full_001.csv
+[INFO] [1793062768.639227394] [rclcpp]: signal_handler(SIGINT/SIGTERM)

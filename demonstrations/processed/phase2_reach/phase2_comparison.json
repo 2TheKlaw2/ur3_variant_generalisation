@@ -1,0 +1,40 @@
+{
+  "goal_offset_mm": [
+    -2.2168700929999785,
+    -5.707047091000006,
+    -5.381190736199998
+  ],
+  "goal_orientation_offset_deg": 6.047737810709085,
+  "durations_s": {
+    "baseline_tau2": 52.878940692,
+    "adapted_tau2": 52.878940692,
+    "adapted_tau1": 26.439470346,
+    "adapted_tau3": 79.318411037
+  },
+  "baseline_to_adapted_phase_matched_path_distance_mm": {
+    "start": 0.0,
+    "middle": 7.93719536749885,
+    "end": 8.150388036898661,
+    "maximum": 8.150388036898661
+  },
+  "max_phase_matched_position_difference_across_tau_settings_mm": 0.5168713551466538,
+  "trial_goal_errors": {
+    "baseline_tau2": {
+      "position_mm": 1.9977101179372578,
+      "orientation_deg": 0.3605034489898754
+    },
+    "adapted_tau2": {
+      "position_mm": 1.9975868880883836,
+      "orientation_deg": 0.34911474239302437
+    },
+    "adapted_tau1": {
+      "position_mm": 1.9977554553507293,
+      "orientation_deg": 0.34906765975664156
+    },
+    "adapted_tau3": {
+      "position_mm": 1.997532230920366,
+      "orientation_deg": 0.34913098335189174
+    }
+  },
+  "disclaimer": "This is offline learned-path comparison, not robot tracking/collision validation."
+}

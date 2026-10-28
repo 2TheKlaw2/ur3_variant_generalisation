@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ur3_variant_generalisation</name>
+  <version>0.1.0</version>
+  <description>C++ CDMP variant adaptation and read-only V1 teaching capture for UR3e guided-slot assembly.</description>
+  <maintainer email="enrique@example.com">Enrique</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>ur3_lfd</depend>
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <export><build_type>ament_cmake</build_type></export>
+  <depend>moveit_ros_planning_interface</depend>
+  <depend>moveit_core</depend>
+  <depend>moveit_msgs</depend>
+  <depend>yaml_cpp_vendor</depend>
+</package>

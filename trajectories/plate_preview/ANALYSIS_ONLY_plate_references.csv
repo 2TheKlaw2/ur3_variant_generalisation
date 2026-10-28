@@ -1,0 +1,11 @@
+plate,variant_id,plate_local_x_m,plate_local_y_m,plate_local_z_m,plate_local_yaw_rad,note
+pickup_local,V1,0,0,0,0,REFERENCE_ONLY_NOT_GRASP_POSE
+pickup_local,V2,0.04,0,0,0,REFERENCE_ONLY_NOT_GRASP_POSE
+pickup_local,V3,0.08,0,0.005,0,REFERENCE_ONLY_NOT_GRASP_POSE
+pickup_local,V4,0.12,0,0.005,0,REFERENCE_ONLY_NOT_GRASP_POSE
+pickup_local,V5,0.16,0,0.005,0,REFERENCE_ONLY_NOT_GRASP_POSE
+placement_local,V1,0,0,0,0,REFERENCE_ONLY_NOT_GRASP_POSE
+placement_local,V2,0.05,0,0,0,REFERENCE_ONLY_NOT_GRASP_POSE
+placement_local,V3,0.1,0,0.005,0,REFERENCE_ONLY_NOT_GRASP_POSE
+placement_local,V4,0.15,0,0.005,0,REFERENCE_ONLY_NOT_GRASP_POSE
+placement_local,V5,0.2,0,0.005,0,REFERENCE_ONLY_NOT_GRASP_POSE

@@ -1,0 +1,6 @@
+variant_id,insertion_depth_mm,rotation_deg,rotation_drop_mm,top_offset_mm,fixture_center_x_mm,fixture_center_y_mm,fixture_yaw_deg
+V1,5,-10,0,0,,,
+V2,5,10,0,0,,,
+V3,10,-10,0,5,,,
+V4,10,10,0,5,,,
+V5,5,-10,5,5,,,
