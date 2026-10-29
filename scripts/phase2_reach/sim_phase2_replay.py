@@ -133,7 +133,7 @@ def main():
         if not client.wait_for_server(timeout_sec=8):
             raise RuntimeError('Sim-only action server unavailable')
         print('\nThis action will move ONLY FAKE ROS hardware in isolated domain 73.')
-        if input('Type CONFIRM_FAKE_ADAPTED_REACH: ').strip()!='CONFIRM_FAKE_ADAPTED_REACH':
+        if input('Type ADAPT: ').strip()!='ADAPT':
             raise RuntimeError('Execution not authorized')
         verify_fake_only(node)
         current=node.fresh()

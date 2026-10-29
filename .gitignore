@@ -11,3 +11,7 @@ __pycache__/
 *.before_*
 *.backup_*
 *.backup
+
+# Generated experiment logs
+/results/physical/
+/results/simulation/
