@@ -34,6 +34,6 @@ The robot uses the lab calibration (`config/ur3e_lab_calibration.yaml`). Joints 
 - **Known, accepted:** revised V4/V5 tabs (5.18 mm) are wider than the pickup pocket notches (4.90 mm), ~0.14 mm overlap per side. Pocket collisions for V4/V5 are out of scope.
 
 ## Known limits
-- Trolley mesh (from ur3_lfd, read-only) is shown by default at `0 -0.2 -1.047` in `base`. Turn it off with `show_trolley:=false`.
+- Trolley mesh (from ur3_lfd, read-only) is off by default; `show_trolley:=true` shows it at `0 -0.2 -1.047` in `base`.
 - Scene objects are not yet in the MoveIt planning scene. That is the next step, with attach/detach and an ACM for resting and seating contacts.
 - `config/pickup_plate.csv` / `placement_plate.csv` still list V5 at +5 mm. The CAD and confirmed geometry give +15 mm. They are left unchanged because the C++ tests read them.
