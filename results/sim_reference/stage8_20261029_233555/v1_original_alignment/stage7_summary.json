@@ -1,0 +1,175 @@
+{
+  "type": "KINEMATIC SIMULATION (fake hardware) - not a physical result",
+  "stages": {
+    "REACH": {
+      "samples": 19338,
+      "endpoint_err_rad": 0.0,
+      "timing": "x2.0 of recorded file (evenly retimed; not CDMP timing)"
+    },
+    "ALIGN_PICKUP": {
+      "samples": 791,
+      "endpoint_err_rad": 0.0,
+      "timing": "x2.0 of recorded file (evenly retimed; not CDMP timing)"
+    },
+    "BRIDGE": {
+      "join_row": 24,
+      "join_rise_mm": 33.17647698642156,
+      "max_learned_rise_mm": 159.0031651565181,
+      "moveit_cartesian_fraction": 1.0,
+      "ik_samples": 302,
+      "segment_durations_s": [
+        3.208490408384391,
+        2.791509591615609
+      ],
+      "join_gap_rad": 4.440892098500626e-15,
+      "min_height_mm": 29.99999986859214,
+      "max_fk_dev_mm": 9.881900494710665e-07,
+      "peak_joint_speed_rad_s": 0.07940453705746847,
+      "wraps": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "states_checked": 302,
+      "endpoint_err_rad": 0.0,
+      "timing": "SIM 6.0 s min-jerk per segment (physical: MoveIt, >= 6 s)"
+    },
+    "TRANSPORT": {
+      "rows": "24..245",
+      "samples": 222,
+      "duration_s": 33.131760222000004,
+      "time_scale": 1.5,
+      "transport_sha256": "f4335b3ef675147d95dabb5e07fe2c33d833af9765acd993490b706cddd8e8a1",
+      "peak_joint_speed_rad_s": 0.1277395783066675,
+      "states_checked": 679,
+      "endpoint_err_rad": 0.0
+    },
+    "ALIGN_INSERT": {
+      "file": "config/trajectories/v1/v1_align_to_insertion_joint_plan_001.csv",
+      "multiplier": 2.0,
+      "samples": 10,
+      "duration_s": 1.452737882,
+      "states_checked": 10,
+      "collisions": [],
+      "executed": true
+    }
+  },
+  "attach": {
+    "T_tcp_to_V1_xyz_mm": [
+      1.4307,
+      1.8611,
+      34.8479
+    ],
+    "T_tcp_to_V1_quat_xyzw": [
+      -0.7042124,
+      0.7096149,
+      0.0133937,
+      -0.0187668
+    ],
+    "tf_vs_fk_mm": 2.1898779786837934e-13,
+    "jump_mm": 6.887201757200159e-14,
+    "jump_deg": 0.0,
+    "touch_links": [
+      "gripper_tcp",
+      "left_inner_finger",
+      "right_inner_finger",
+      "left_inner_knuckle",
+      "right_inner_knuckle",
+      "left_outer_knuckle",
+      "right_outer_knuckle"
+    ],
+    "acm": "pickup_V1<->pickup_plate allowed during LIFT (resting contact in 2 mm pocket)"
+  },
+  "lift": {
+    "geometry_source": "run_v1_lift_bridge_transport_staged.py (+30 mm base Z, constant orientation, 15 waypoints)",
+    "timing": {
+      "profile": "minimum-jerk on path length",
+      "sim_duration_s": 3.0,
+      "physical_reference": "MoveIt-timed, >= 5 s (not comparable)"
+    },
+    "moveit_cartesian_fraction": 1.0,
+    "moveit_cartesian_points": 5,
+    "ik_samples": 151,
+    "ik_sample_dt_s": 0.02,
+    "ik_max_fk_deviation_mm": 9.403066315380215e-07,
+    "samples": 151,
+    "wrist_wraps": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "peak_joint_step_rad": 0.0016995349339146149,
+    "peak_joint_speed_rad_s": 0.08497674669573067,
+    "V1_rise_mm_fk": 30.00000000000016,
+    "V1_rise_mm_tf": 30.00000000000054,
+    "V1_max_xy_drift_mm": 7.591952921268599e-05,
+    "V1_max_tilt_deg": 0.0,
+    "endpoint_joint_err_rad": 0.0,
+    "others_max_move_mm": 0.0,
+    "final_state_contacts": []
+  },
+  "pickup_lift_checks": {
+    "attach jump < 0.01 mm": true,
+    "grasp transform unchanged through LIFT (< 0.01 mm)": true,
+    "V1 rise 30 +/- 0.5 mm (FK of executed joints)": true,
+    "V1 rise 30 +/- 0.5 mm (TF at STOP)": true,
+    "V1 xy drift < 0.5 mm": true,
+    "V1 tilt < 0.5 deg": true,
+    "LIFT endpoint joint error < 0.002 rad": true,
+    "V2-V5, plates, fittings unchanged": true,
+    "no planned-state collisions (every timed sample)": true,
+    "final state valid with V1<->plate checked again": true
+  },
+  "alignment_at_stop": {
+    "source": "executed joints (TF/FK)",
+    "V1_relative_to_fitting_V1": {
+      "lateral_offset_mm": [
+        1.0743,
+        2.3656
+      ],
+      "lateral_offset_abs_mm": 2.5981,
+      "v1_bottom_above_fitting_base_mm": 7.7028,
+      "tab_to_slot_yaw_error_deg": 0.3511,
+      "tilt_deg": 3.8075
+    },
+    "TCP_relative_to_fitting_V1": {
+      "lateral_offset_mm": [
+        0.078,
+        0.288
+      ],
+      "lateral_offset_abs_mm": 0.2983
+    },
+    "planned_vs_executed_lateral_mm": 0.0,
+    "reference_clearances": {
+      "radial_mm": 0.25,
+      "tab_slot_half_angle_deg": 1.0
+    },
+    "within_lateral_and_yaw_clearance": false,
+    "min_distance_V1_to_fitting_V1_mm": 0.5272,
+    "straight_down_insertion_probe": {
+      "first_contact_descent_mm": 0.75,
+      "first_contact_pairs": [
+        "fitting_V1<->pickup_V1"
+      ],
+      "first_contact_v1_bottom_above_fitting_base_mm": 6.9528,
+      "probe_max_descent_mm": 6.0
+    },
+    "fitting_registration_note": "fitting_V1 xy = v1_insertion_end TCP (assumes TCP on V1 axis); PROVISIONAL"
+  },
+  "checks": {
+    "BRIDGE joins learned transport (<= 0.0055 rad)": true,
+    "BRIDGE stays >= 28 mm above pickup": true,
+    "BRIDGE collision-free (samples + interpolated)": true,
+    "TRANSPORT collision-free (samples + interpolated)": true,
+    "ALIGN_INSERT collision-free (samples + interpolated)": true,
+    "V2-V5, plates, fittings unchanged": true,
+    "V1 still attached at STOP": true
+  },
+  "result": "PASS"
+}

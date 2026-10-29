@@ -1,0 +1,108 @@
+{
+  "experiment": "B2",
+  "initial": {
+    "centre_offset_mm": 2.598108498302734,
+    "lateral_mm": [
+      1.0742684623744059,
+      2.3656109231445095
+    ],
+    "tilt_deg": 3.8074921073590224,
+    "yaw_deg": 0.35112835947282406,
+    "bottom_z_mm": 7.702761072629414
+  },
+  "stages": {
+    "CORRECTION": {
+      "duration_s": 2.0,
+      "samples": 101,
+      "after": {
+        "centre_offset_mm": 7.251010961358081e-11,
+        "tilt_deg": 0.0,
+        "yaw_deg": -1.1937117960769683e-12,
+        "bottom_z_mm": 7.702761072662298
+      },
+      "timing": "SIM 2.0 s min-jerk"
+    },
+    "INSERT": {
+      "cdmp_duration_s": 12.998915308,
+      "samples_commanded": 651,
+      "samples_feasible": 651,
+      "handoff_mm": 6.922404221572587e-11,
+      "commanded_descent_mm": 5.416718620000004,
+      "max_unused_commanded_descent_mm": 0.0,
+      "seated": false
+    },
+    "ROTATE": {
+      "status": "NOT_EXECUTED"
+    }
+  },
+  "first_unacceptable": null,
+  "final": {
+    "stage": "INSERT",
+    "centre_offset_mm": 9.734615285664884e-12,
+    "tilt_deg": 0.0,
+    "yaw_deg": -0.025212144526335578,
+    "lowest_z_mm": 2.2860424526301175,
+    "seating_error_mm": 0.2860424526301175
+  },
+  "max_insertion_depth_mm": 4.748405536373804,
+  "min_clearance_mm": 0.24944428006622887,
+  "max_penetration_mm": 0.0,
+  "contact_samples": 0,
+  "outcome": "FAIL",
+  "outcome_criteria": {
+    "no_unacceptable_contact": true,
+    "seated": false,
+    "rotate_completed": false,
+    "final_cw_rotation_in_range": false,
+    "rotation_range_deg": [
+      23.5,
+      26.5
+    ]
+  },
+  "executed": {
+    "stages": {
+      "CORRECTION": {
+        "samples": 101,
+        "duration_s": 2.0,
+        "elapsed_s": 2.055,
+        "endpoint_err_rad": 0.0
+      },
+      "INSERT": {
+        "samples": 651,
+        "duration_s": 12.998915308,
+        "elapsed_s": 13.059,
+        "endpoint_err_rad": 0.0
+      }
+    },
+    "end_state_from_tf": {
+      "centre_offset_mm": 9.705845903580499e-12,
+      "tilt_deg": 0.0,
+      "yaw_deg": -0.025212144526335578,
+      "lowest_z_mm": 2.286042452630169,
+      "seating_error_mm": 0.28604245263016903,
+      "contact_status": "clear",
+      "penetration_mm": 0.0
+    },
+    "planned_vs_executed_end_mm": 5.1514348342607263e-14,
+    "moveit_fk_agreement_mm": 2.561053526745152e-13,
+    "other_collisions": []
+  },
+  "type": "KINEMATIC SIMULATION (fake hardware) - not a physical result",
+  "timing": {
+    "cdmp_insert_duration_s": 12.998915308,
+    "cdmp_rotate_duration_s": null,
+    "correction_time_s": 2.0,
+    "note": "CDMP timestamps preserved; correction uses NEW 2.0 s min-jerk sim timing"
+  },
+  "tolerances": {
+    "contact_tol_mm": 0.02,
+    "floor_tol_mm": 0.05,
+    "rotation_stop_from_deg": 25.5,
+    "radial_clearance_mm": 0.25,
+    "pass_cw_rotation_deg": [
+      23.5,
+      26.5
+    ]
+  },
+  "fitting_registration_note": "fitting_V1 registered from v1_insertion_end TCP (assumes TCP on V1 axis); PROVISIONAL"
+}
