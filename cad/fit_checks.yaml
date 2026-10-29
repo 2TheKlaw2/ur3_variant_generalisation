@@ -1,0 +1,335 @@
+1:
+  bore_depth_mm: 5.0
+  checks:
+  - yaw_deg: 0
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: 0
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.952
+    collision: false
+  - yaw_deg: -10
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: -10
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -20
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: -20
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -25
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: -25
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -26
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: -26
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -27
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -27
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -30
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -30
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: 10
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: 10
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+2:
+  bore_depth_mm: 5.0
+  checks:
+  - yaw_deg: 0
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: 0
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.952
+    collision: false
+  - yaw_deg: -10
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -10
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -20
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -20
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -25
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -25
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -26
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -26
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -27
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -27
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -30
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -30
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: 10
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: 10
+    part_bottom_mm: 7.5
+    min_dist_mm: 0.5
+    collision: false
+3:
+  bore_depth_mm: 10.0
+  checks:
+  - yaw_deg: 0
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: 0
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.936
+    collision: false
+  - yaw_deg: -10
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: -10
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -20
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: -20
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -25
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: -25
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -26
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: -26
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -27
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -27
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: -30
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -30
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.5
+    collision: false
+  - yaw_deg: 10
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: 10
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.5
+    collision: false
+4:
+  bore_depth_mm: 10.0
+  checks:
+  - yaw_deg: 0
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: 0
+    part_bottom_mm: 12.5
+    min_dist_mm: 1.32
+    collision: false
+  - yaw_deg: -10
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -10
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.509
+    collision: false
+  - yaw_deg: -20
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: -20
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.509
+    collision: false
+  - yaw_deg: -25
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.05
+    collision: false
+  - yaw_deg: -25
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.51
+    collision: false
+  - yaw_deg: -26
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -26
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.51
+    collision: false
+  - yaw_deg: -27
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -27
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.51
+    collision: false
+  - yaw_deg: -30
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -30
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.511
+    collision: false
+  - yaw_deg: 10
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: 10
+    part_bottom_mm: 12.5
+    min_dist_mm: 0.508
+    collision: false
+5:
+  bore_depth_mm: 20.0
+  checks:
+  - yaw_deg: 0
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: 0
+    part_bottom_mm: 22.5
+    min_dist_mm: 1.32
+    collision: false
+  - yaw_deg: -10
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -10
+    part_bottom_mm: 22.5
+    min_dist_mm: 0.509
+    collision: false
+  - yaw_deg: -20
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -20
+    part_bottom_mm: 22.5
+    min_dist_mm: 0.509
+    collision: false
+  - yaw_deg: -25
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -25
+    part_bottom_mm: 22.5
+    min_dist_mm: 0.51
+    collision: false
+  - yaw_deg: -26
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -26
+    part_bottom_mm: 22.5
+    min_dist_mm: 0.51
+    collision: false
+  - yaw_deg: -27
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -27
+    part_bottom_mm: 22.5
+    min_dist_mm: 0.51
+    collision: false
+  - yaw_deg: -30
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: -30
+    part_bottom_mm: 22.5
+    min_dist_mm: 0.511
+    collision: false
+  - yaw_deg: 10
+    part_bottom_mm: 2.05
+    min_dist_mm: 0.0
+    collision: true
+  - yaw_deg: 10
+    part_bottom_mm: 22.5
+    min_dist_mm: 0.508
+    collision: false
