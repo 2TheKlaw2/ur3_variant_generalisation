@@ -2,7 +2,7 @@
 """Load the V1-V5 scene into MoveIt's planning scene (fake hardware, ROS_DOMAIN_ID=73).
 
   python3 scripts/phase6_pickup_sim/planning_scene_tools.py --load     # add/replace all 12 objects
-  python3 scripts/phase6_pickup_sim/planning_scene_tools.py --reset    # detach V1, restore it to its pocket
+  python3 scripts/phase6_pickup_sim/planning_scene_tools.py --reset    # detach any part, restore all to their pockets
   python3 scripts/phase6_pickup_sim/planning_scene_tools.py --clear    # remove everything this tool added
 
 Objects come from scene_model.scene_objects() (same poses as the RViz URDF scene).
@@ -160,8 +160,8 @@ class SceneClient:
         sc = self.get(PlanningSceneComponents.ROBOT_STATE_ATTACHED_OBJECTS)
         return {a.object.id: a for a in sc.robot_state.attached_collision_objects}
 
-    def attach_v1(self, T_grasp, mesh_path, link="gripper_tcp"):
-        """Attach pickup_V1 to `link` at the fixed grasp transform.
+    def attach_part(self, obj_id, T_grasp, mesh_path, link="gripper_tcp"):
+        """Attach a moving part (pickup_V<i>) to `link` at the fixed grasp transform.
 
         MoveIt removes the same-named world object itself when it is attached, so the
         diff contains only the attached object (an extra world REMOVE is rejected).
@@ -169,27 +169,31 @@ class SceneClient:
         from moveit_msgs.msg import AttachedCollisionObject, PlanningScene
         aco = AttachedCollisionObject()
         aco.link_name = link
-        aco.object = collision_object("pickup_V1", T_grasp, mesh_path, frame=link)
+        aco.object = collision_object(obj_id, T_grasp, mesh_path, frame=link)
         aco.touch_links = list(sm.RG2_TOUCH_LINKS)
         ps = PlanningScene()
         ps.robot_state.attached_collision_objects = [aco]
-        self.apply(ps, "attach V1")
-        if "pickup_V1" in self.world_poses()[0]:
-            raise RuntimeError("attach V1: world copy of pickup_V1 still present")
+        self.apply(ps, f"attach {obj_id}")
+        if obj_id in self.world_poses()[0]:
+            raise RuntimeError(f"attach {obj_id}: world copy still present")
+
+    def attach_v1(self, T_grasp, mesh_path, link="gripper_tcp"):
+        self.attach_part("pickup_V1", T_grasp, mesh_path, link)
 
     def detach_v1_if_attached(self, remove=False):
+        """Detach every attached moving part (pickup_V1..V5); name kept for the V1 scripts."""
         from moveit_msgs.msg import AttachedCollisionObject, CollisionObject, PlanningScene
-        if "pickup_V1" not in self.attached():
-            return False
-        aco = AttachedCollisionObject(); aco.object.id = "pickup_V1"; aco.object.operation = CollisionObject.REMOVE
-        aco.link_name = "gripper_tcp"
-        ps = PlanningScene(); ps.robot_state.attached_collision_objects = [aco]
-        self.apply(ps, "detach V1")
-        if remove:  # MoveIt puts a detached object back into the world; remove it too
-            ps = PlanningScene()
-            ps.world.collision_objects = [collision_object("pickup_V1", sm.np.eye(4), None, operation=CollisionObject.REMOVE)]
-            self.apply(ps, "remove detached V1")
-        return True
+        ids = [k for k in self.attached() if k.startswith("pickup_V")]
+        for obj_id in ids:
+            aco = AttachedCollisionObject(); aco.object.id = obj_id; aco.object.operation = CollisionObject.REMOVE
+            aco.link_name = "gripper_tcp"
+            ps = PlanningScene(); ps.robot_state.attached_collision_objects = [aco]
+            self.apply(ps, f"detach {obj_id}")
+            if remove:  # MoveIt puts a detached object back into the world; remove it too
+                ps = PlanningScene()
+                ps.world.collision_objects = [collision_object(obj_id, sm.np.eye(4), None, operation=CollisionObject.REMOVE)]
+                self.apply(ps, f"remove detached {obj_id}")
+        return bool(ids)
 
     # ---------- allowed collision matrix
     def set_allowed(self, a, b, allowed):
@@ -230,7 +234,9 @@ def main():
         else:
             t0 = time.monotonic(); sc.load_all()
             if a.reset:
-                sc.set_allowed("pickup_V1", "pickup_plate", False)
+                for i in range(1, 6):
+                    sc.set_allowed(f"pickup_V{i}", "pickup_plate", False)
+                    sc.set_allowed(f"pickup_V{i}", f"fitting_V{i}", False)
             poses, frame = sc.world_poses()
             missing = [k for k in OBJECT_IDS if k not in poses]
             if missing:

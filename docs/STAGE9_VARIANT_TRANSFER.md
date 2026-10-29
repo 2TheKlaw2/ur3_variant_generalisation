@@ -10,6 +10,24 @@ python3 scripts/figures/make_stage9_figures.py            # docs/figures/stage9_
 ```
 Reference results: `results/sim_reference/stage9_offline_20261030/` (`V<i>_<level>/{trajectory.csv, collision_log.csv, summary.json}`, `stage9_summary.json`).
 
+## Watch it in RViz (fake hardware)
+```bash
+./scripts/phase6_pickup_sim/start_fake_robot_calibrated.sh     # terminal 1
+./scripts/phase6_pickup_sim/start_fake_moveit_calibrated.sh    # terminal 2
+export ROS_DOMAIN_ID=73
+python3 scripts/phase9_variants/run_variant_insert_sim.py --variant 4 --level L2 --run   # type START
+python3 scripts/phase9_variants/run_variant_insert_sim.py --variant all --level L1 --run # V1..V5 in turn
+python3 scripts/phase6_pickup_sim/planning_scene_tools.py --reset
+```
+- **Sequence:** HOME → OPEN → APPROACH (joint min-jerk) to 40 mm above the Stage 9 start → GRIP → ATTACH V<i> at its grasp → DESCEND 40 mm (3 s) → INSERT → ROTATE.
+- **Pickup and transport are not simulated for V2–V5.** The part is attached directly in the gripper above its fitting. The V1 pickup and transport are in Stages 6–8.
+- **Plan:** INSERT/ROTATE is the same plan as the offline results (`variant_core.run_condition`). Only its feasible part is executed.
+- **Collision checks:**
+  - MoveIt checks APPROACH and DESCEND (samples plus interpolated states).
+  - During INSERT/ROTATE, MoveIt checks every executed sample for everything except V<i>↔fitting_V<i>, which the CAD classifier judges.
+- **Plan only, no ROS:** add `--plan-only`.
+- **Output:** `results/simulation/stage9/<timestamp>/V<i>_<level>/`.
+
 ## Common to all conditions
 - **Start:** the Stage 8 B2 state after CORRECTION, transferred to each fitting.
   - The part is upright and centred on the fitting axis, with tabs on the slot axis.
