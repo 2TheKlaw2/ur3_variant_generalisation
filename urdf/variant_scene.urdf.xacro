@@ -92,7 +92,8 @@
   </joint>
 
   <!-- ===== Optional: existing trolley mesh from ur3_lfd (read-only reference) =====
-       Copy the trolley origin from ur3_lfd/urdf/trolley.urdf.xacro into trolley_xyz / trolley_rpy. -->
+       Pose in `base` composed from ur3_lfd/urdf/trolley.urdf.xacro (base_link is Rz(pi) from base):
+       xyz = 0 -0.2 -1.047, rpy = 0 0 0 (launch file default). -->
   <xacro:if value="$(arg show_trolley)">
     <link name="ur3e_trolley">
       <visual>

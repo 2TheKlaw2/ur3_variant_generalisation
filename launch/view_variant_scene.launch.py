@@ -69,9 +69,12 @@ def generate_launch_description():
                               description="Saved pose in config/saved_poses (joints only are used)"),
         DeclareLaunchArgument("gripper_width", default_value="0.040", description="RG2 finger_width [m]"),
         DeclareLaunchArgument("gui", default_value="false", description="Use joint_state_publisher_gui sliders"),
-        DeclareLaunchArgument("show_trolley", default_value="false",
-                              description="Show ur3_lfd trolley mesh (set trolley_xyz/rpy from ur3_lfd/urdf/trolley.urdf.xacro)"),
-        DeclareLaunchArgument("trolley_xyz", default_value="0 0 0"),
+        # Trolley pose in `base`, composed from ur3_lfd/urdf/trolley.urdf.xacro:
+        #   base->base_link Rz(pi) * base_link->trolley_link (0,-0.2,-1.047) * visual (0,0.4,0) Rz(pi)
+        #   = (0,-0.2,-1.047), rpy 0.  Trolley top ~ base z 0 (robot mount height 1.047 m).
+        DeclareLaunchArgument("show_trolley", default_value="true",
+                              description="Show the ur3_lfd trolley mesh (read-only reference)"),
+        DeclareLaunchArgument("trolley_xyz", default_value="0 -0.2 -1.047"),
         DeclareLaunchArgument("trolley_rpy", default_value="0 0 0"),
         OpaqueFunction(function=_setup),
     ])

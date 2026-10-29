@@ -22,7 +22,7 @@ The robot uses the lab calibration (`config/ur3e_lab_calibration.yaml`). Joints 
 ## Registration (how the plates were placed)
 - **Pickup plate:** 2D rigid fit of the five measured pickup TCPs to the CAD pocket centres. Yaw −178.96°, RMS 2.1 mm (mostly perpendicular scatter of where the TCP sat on each block).
 - **Placement plate:** V1 axis = `v1_insertion_end` TCP xy. Yaw **assumed** parallel to the pickup plate (one point gives no yaw; the photo supports parallel rows).
-- **Trolley-top z = 0.0 in `base` (ASSUMED).** Replace with the real value from `ur3_lfd/urdf/trolley.urdf.xacro` and re-run `compute_scene_registration.py --trolley-surface-z <z>`.
+- **Trolley-top z = 0.0 in `base`.** Consistent with `ur3_lfd/urdf/trolley.urdf.xacro`: the robot is mounted at 1.047 m, described there as approximately the trolley top. It is not measured; if it changes, re-run `compute_scene_registration.py --trolley-surface-z <z>`.
 
 ## Validation (`results/scene_check/scene_check.txt`, 72 checks)
 - All 12 mesh sizes match CAD. Parts rest on the 1.0 mm pocket floor; fittings rest on the 3.0 mm plate top.
@@ -31,9 +31,9 @@ The robot uses the lab calibration (`config/ur3e_lab_calibration.yaml`). Joints 
 - At every measured pickup pose, the RG2 closes across the 10 mm faces of the grip block (≤2.4°). The fingers stay ≥22 mm from neighbouring parts and ≥16 mm from the plate, open (40 mm) or gripped (8.2 mm).
 - Tab axis of the picked part is parallel to the fitting slot axis, so no yaw change is needed before insertion.
 - Insertion-ready TCP is 0.3 mm from the fitting V1 axis. The implied seated depth is 0.65 mm above the CAD floor. Measured rotation is −25.1° (CW) vs the CAD stop at 26°.
-- **FAIL (CAD):** revised V4/V5 tabs (5.18 mm wide) are wider than the pickup pocket notches (4.90 mm), so they overlap the plate by ~0.14 mm per side.
+- **Known, accepted:** revised V4/V5 tabs (5.18 mm) are wider than the pickup pocket notches (4.90 mm), ~0.14 mm overlap per side. Pocket collisions for V4/V5 are out of scope.
 
 ## Known limits
-- Trolley mesh is off by default (`show_trolley:=true trolley_xyz:='…' trolley_rpy:='…'` once its pose is copied from ur3_lfd).
+- Trolley mesh (from ur3_lfd, read-only) is shown by default at `0 -0.2 -1.047` in `base`. Turn it off with `show_trolley:=false`.
 - Scene objects are not yet in the MoveIt planning scene. That is the next step, with attach/detach and an ACM for resting and seating contacts.
 - `config/pickup_plate.csv` / `placement_plate.csv` still list V5 at +5 mm. The CAD and confirmed geometry give +15 mm. They are left unchanged because the C++ tests read them.
