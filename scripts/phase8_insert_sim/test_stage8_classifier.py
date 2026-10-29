@@ -25,7 +25,11 @@ CASES = [  # name, dx, dy, z(bottom, mm), yaw deg, tilt deg, stage, expected sta
     ("seated, rotated 26 deg CW", 0, 0, 2.00, -26, 0, "ROTATE", "intended_contact"),
     ("seated, rotated 27 deg CW (past stop)", 0, 0, 2.00, -27, 0, "ROTATE", "INTERFERENCE"),
     ("seated, rotated 3 deg CCW (wrong way)", 0, 0, 2.00, 3, 0, "ROTATE", "INTERFERENCE"),
-    ("Stage 7 arrival, lowered to 6.9 mm", 1.07, 2.37, 6.90, 0, 3.8, "INSERT", "INTERFERENCE"),
+    ("Stage 7 arrival, lowered to 6.9 mm (exact overlap 0.010-0.020)", 1.07, 2.37, 6.90, 0, 3.8, "INSERT", "touching"),
+    ("Stage 7 arrival, lowered to 6.5 mm", 1.07, 2.37, 6.50, 0, 3.8, "INSERT", "INTERFERENCE"),
+    ("rotated 24.4 deg CW, 0.49 mm high (under ring, clear)", 0, 0, 2.49, -24.4, 0, "ROTATE", "clear"),
+    ("rotated 24.4 deg CW, tab 0.015 mm into ring underside", 0, 0, 2.515, -24.4, 0, "ROTATE", "touching"),
+    ("rotated 24.4 deg CW, tab 0.05 mm into ring underside", 0, 0, 2.55, -24.4, 0, "ROTATE", "INTERFERENCE"),
 ]
 
 

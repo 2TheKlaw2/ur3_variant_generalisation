@@ -12,6 +12,7 @@ ALIGN_INSERT), then:
   A   original CDMP INSERT/ROTATE poses (as learned)
   B1  CORRECTION, then CDMP replayed rigidly relative to the corrected start
   B2  CORRECTION, then geometry-conditioned CDMP (depth + yaw along/about the fitting axis)
+  B2R B2, then ROTATE even though INSERT stopped short of the seat (--experiment B2R)
 Per-sample IK, original CDMP timestamps. V1<->fitting_V1 contact is classified against CAD
 mating regions (stage8_core.py); all other collisions are checked by MoveIt. Only the feasible
 part is executed; the trial stops at the first unacceptable contact. ROTATE only if seated.
@@ -136,11 +137,16 @@ def print_result(exp, r):
         print(f"  final: seating error {r['final']['seating_error_mm']:.3f} mm, rotation {-r['final']['yaw_deg']:.2f} deg CW, "
               f"offset {r['final']['centre_offset_mm']:.3f} mm")
     print(f"  INSERT seated: {r['stages']['INSERT'].get('seated')}; ROTATE: {r['stages']['ROTATE'].get('status', 'executed')}")
+    if "functional_outcome" in r:
+        fc = r["functional_criteria"]
+        print(f"  FUNCTIONAL (B2R): {r['functional_outcome']}  strict: {r['outcome']}  seating gap start/final "
+              f"{fc['seating_error_at_rotate_start_mm']:.3f}/{fc['seating_error_final_mm']:.3f} mm, max CW {fc['max_cw_rotation_deg']:.2f} deg")
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--experiment", choices=["A", "B1", "B2", "all"], default="all")
+    ap.add_argument("--experiment", choices=["A", "B1", "B2", "B2R", "all"], default="all",
+                    help="all = A, B1, B2. B2R = B2 then ROTATE from the unseated INSERT end state (follow-up)")
     ap.add_argument("--run", action="store_true", help="Run with one START confirmation")
     ap.add_argument("--auto", action="store_true", help="Run without prompts (fake hardware only)")
     ap.add_argument("--skip-home", action="store_true")

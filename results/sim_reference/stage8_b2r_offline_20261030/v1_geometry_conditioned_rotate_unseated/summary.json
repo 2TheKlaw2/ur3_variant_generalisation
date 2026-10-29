@@ -1,0 +1,85 @@
+{
+  "experiment": "B2R",
+  "initial": {
+    "centre_offset_mm": 2.5981084983027114,
+    "lateral_mm": [
+      1.0742684623743504,
+      2.3656109231445095
+    ],
+    "tilt_deg": 3.807492107359788,
+    "yaw_deg": 0.3511283594727388,
+    "bottom_z_mm": 7.702761072629338
+  },
+  "stages": {
+    "CORRECTION": {
+      "duration_s": 2.0,
+      "samples": 101,
+      "after": {
+        "centre_offset_mm": 7.169112896295942e-11,
+        "tilt_deg": 0.0,
+        "yaw_deg": -1.2505552149377763e-12,
+        "bottom_z_mm": 7.702761072661971
+      },
+      "timing": "SIM 2.0 s min-jerk"
+    },
+    "INSERT": {
+      "cdmp_duration_s": 12.998915308,
+      "samples_commanded": 651,
+      "samples_feasible": 651,
+      "handoff_mm": 6.849650099573976e-11,
+      "commanded_descent_mm": 5.416718620000004,
+      "max_unused_commanded_descent_mm": 0.0,
+      "seated": false
+    },
+    "ROTATE": {
+      "cdmp_duration_s": 16.998111362,
+      "samples_commanded": 851,
+      "samples_feasible": 851,
+      "handoff_mm": 2.0816681711721685e-14,
+      "max_unused_commanded_descent_mm": 0.0,
+      "started_seated": false,
+      "start_seating_error_mm": 0.28604245263007666
+    }
+  },
+  "first_unacceptable": null,
+  "final": {
+    "stage": "ROTATE",
+    "centre_offset_mm": 3.4685431664914695e-09,
+    "tilt_deg": 1.2074182697257333e-06,
+    "yaw_deg": -24.41347501146973,
+    "lowest_z_mm": 2.4967965129904286,
+    "seating_error_mm": 0.4967965129904286
+  },
+  "max_insertion_depth_mm": 4.748405536373884,
+  "min_clearance_mm": 0.0,
+  "max_penetration_mm": 0.015,
+  "contact_samples": 100,
+  "outcome": "FAIL",
+  "outcome_criteria": {
+    "no_unacceptable_contact": true,
+    "seated": false,
+    "rotate_completed": true,
+    "final_cw_rotation_in_range": true,
+    "rotation_range_deg": [
+      23.5,
+      26.5
+    ]
+  },
+  "functional_outcome": "PASS",
+  "functional_criteria": {
+    "no_unacceptable_contact": true,
+    "insert_completed": true,
+    "rotate_completed": true,
+    "final_cw_rotation_in_range": true,
+    "seating_error_at_rotate_start_mm": 0.28604245263007666,
+    "seating_error_final_mm": 0.4967965129904286,
+    "max_cw_rotation_deg": 24.514163724191008,
+    "rotate_contact_regions": [
+      "bore_wall",
+      "channel_side",
+      "entry_slot_or_ring_edge"
+    ],
+    "rotation_stop_reached": false,
+    "note": "Seating gap is measured and reported; the strict 0.05 mm seat criterion is not applied here."
+  }
+}

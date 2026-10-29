@@ -36,7 +36,11 @@ import ur_kinematics as uk  # noqa: E402
 
 INSERT_CSV = "demonstrations/processed/phase4_assembly/v1_insert_cdmp_refined_depth_guard_SMOOTH_CANDIDATE.csv"
 ROTATE_CSV = "demonstrations/processed/phase4_assembly/v1_rotate_cdmp_baseline_CANDIDATE.csv"
-EXPERIMENTS = {"A": "v1_original_alignment", "B1": "v1_corrected_cdmp", "B2": "v1_geometry_conditioned"}
+EXPERIMENTS = {"A": "v1_original_alignment", "B1": "v1_corrected_cdmp", "B2": "v1_geometry_conditioned",
+               "B2R": "v1_geometry_conditioned_rotate_unseated"}
+# B2R = B2, but ROTATE is run from the INSERT end state even if it is not seated (follow-up test:
+# does the measured seating gap stop the locking rotation?). B2 itself is unchanged.
+B2_FAMILY = ("B2", "B2R")
 
 # Fitting geometry (fitting frame, mm) from cad/CAD_CHECKS.md
 FLOOR_Z_MM, TOP_Z_MM, BORE_R_MM = 2.0, 7.0, 14.0
@@ -94,7 +98,7 @@ def commanded_tcp(exp, t_ins, T_ins, T_grasp, T_fit, T_v1_corr):
     if exp == "B1":
         D = T_tcp_corr @ np.linalg.inv(T_ins[0])
         return [D @ T for T in T_ins]
-    if exp == "B2":
+    if exp in B2_FAMILY:
         return b2_poses(T_ins, T_v1_corr, T_grasp, T_fit)
     raise ValueError(exp)
 
@@ -121,7 +125,7 @@ def rotate_commanded(exp, T_rot, T_tcp_start_actual, T_grasp, T_fit):
     if exp == "B1":
         D = T_tcp_start_actual @ np.linalg.inv(T_rot[0])
         return [D @ T for T in T_rot]
-    if exp == "B2":
+    if exp in B2_FAMILY:
         return b2_poses(T_rot, T_tcp_start_actual @ T_grasp, T_grasp, T_fit)
     raise ValueError(exp)
 
@@ -134,6 +138,11 @@ def correction_poses(T_from, T_to, duration=CORRECTION_DURATION_S, dt=lp.SAMPLE_
 # ------------------------------------------------------------------ geometry / contacts
 class Geometry:
     """V1 <-> fitting_V1 contact evaluation against CAD mating regions.
+
+    Contact within CONTACT_TOL is recognised exactly: if translating V1 by CONTACT_TOL along one of
+    the fitting axes removes every FCL contact, status is "touching" and pen_mm is the minimum such
+    shift (bisection, 0.0005 mm). The sampled signed distance below is only used beyond that; it can
+    over-report on coplanar face contact because trimesh.contains() is ray-based.
 
     Pure seating is recognised exactly: if lifting V1 by FLOOR_TOL along the fitting axis
     removes all contact, it is floor contact with vertical penetration = floor - lowest point.
@@ -206,7 +215,39 @@ class Geometry:
                     "regions": {"floor": round(pen, 4)}}
         Tfi = np.linalg.inv(self.T_fit)
         cp = np.array([ct.pos for ct in c.contacts]) @ Tfi[:3, :3].T + Tfi[:3, 3]     # contacts, fitting frame
+        # Exact within-tolerance test (same idea as the seating test): if translating V1 by
+        # CONTACT_TOL along any fitting axis (+-x, +-y, +-z) removes every contact, the
+        # penetration depth is <= CONTACT_TOL. Needed because the sampled signed distance is
+        # unreliable for coplanar face-on-face contact (e.g. tab top on the ring underside).
+        clear_dir = self._clears_within(T_v1, CONTACT_TOL_MM)
+        if clear_dir is not None:
+            regions = sorted({self._region(p, stage, yaw_deg, below_floor=False) for p in cp})
+            pen = self._min_shift(T_v1, clear_dir, CONTACT_TOL_MM)     # exact upper bound on penetration
+            return {"min_dist_mm": 0.0, "pen_mm": pen, "contact": "touching(" + "+".join(regions) + ")",
+                    "status": "touching", "regions": {r: round(pen, 4) for r in regions}, "exact_clear_dir": clear_dir}
         return self._classify(T_v1, stage, yaw_deg, cp)
+
+    _DIRS = {"+z": (2, 1), "-z": (2, -1), "+x": (0, 1), "-x": (0, -1), "+y": (1, 1), "-y": (1, -1)}
+
+    def _collides_shifted(self, T_v1, d, mm):
+        ax, sgn = self._DIRS[d]
+        T = T_v1.copy(); T[:3, 3] = T_v1[:3, 3] + sgn * self.T_fit[:3, ax] * mm / 1000
+        self.v1_obj.setTransform(self.fcl.Transform(T[:3, :3], T[:3, 3]))
+        r = self.fcl.CollisionResult(); self.fcl.collide(self.v1_obj, self.fit_obj, self.fcl.CollisionRequest(), r)
+        return r.is_collision
+
+    def _clears_within(self, T_v1, tol_mm):
+        for d in self._DIRS:
+            if not self._collides_shifted(T_v1, d, tol_mm):
+                return d
+        return None
+
+    def _min_shift(self, T_v1, d, hi_mm, res_mm=0.0005):
+        lo, hi = 0.0, hi_mm
+        while hi - lo > res_mm:
+            mid = 0.5 * (lo + hi)
+            lo, hi = (mid, hi) if self._collides_shifted(T_v1, d, mid) else (lo, mid)
+        return hi
 
     def _classify(self, T_v1, stage, yaw_deg, contacts_fit):
         import trimesh
@@ -314,7 +355,7 @@ def run_experiment(exp, q_align, calib, T_grasp, T_fit, objs, root, geom=None):
                                              "tilt_deg": tilt0, "yaw_deg": yaw0, "bottom_z_mm": z0}}
     stop = None
     # ---- correction (B1, B2)
-    if exp in ("B1", "B2"):
+    if exp in ("B1",) + B2_FAMILY:
         T_v1_corr = corrected_v1_start(T_v1_0, T_fit)
         T_tcp_corr = T_v1_corr @ np.linalg.inv(T_grasp)
         t_c, T_c = correction_poses(T_tcp0, T_tcp_corr)
@@ -345,7 +386,8 @@ def run_experiment(exp, q_align, calib, T_grasp, T_fit, objs, root, geom=None):
         seated = False
         stages["INSERT"] = {"status": "NOT_EXECUTED (correction failed)"}
     # ---- rotate
-    if seated:
+    insert_complete = bool(stop is None and stages["INSERT"].get("samples_feasible") == len(t_ins))
+    if seated or (exp == "B2R" and insert_complete):
         T_start = uk.tcp(q_cur, calib)
         T_cmdr = rotate_commanded(exp, T_rot, T_start, T_grasp, T_fit)
         handoff = sim_err(T_start, T_cmdr[0])
@@ -354,7 +396,9 @@ def run_experiment(exp, q_align, calib, T_grasp, T_fit, objs, root, geom=None):
         rot_rows = [r for r in rows if r["stage"] == "ROTATE" and r["feasible"]]
         stages["ROTATE"] = {"cdmp_duration_s": float(t_rot[-1]), "samples_commanded": len(t_rot),
                             "samples_feasible": len(rot_rows), "handoff_mm": handoff,
-                            "max_unused_commanded_descent_mm": max([r["clamp_mm"] for r in rot_rows] or [0.0])}
+                            "max_unused_commanded_descent_mm": max([r["clamp_mm"] for r in rot_rows] or [0.0]),
+                            "started_seated": seated,
+                            "start_seating_error_mm": float(geom.lowest_z_mm(T_start @ T_grasp) - FLOOR_Z_MM)}
     else:
         stages["ROTATE"] = {"status": "NOT_EXECUTED"}
     result["stages"] = stages
@@ -379,6 +423,21 @@ def run_experiment(exp, q_align, calib, T_grasp, T_fit, objs, root, geom=None):
     result["outcome_criteria"] = {"no_unacceptable_contact": stop is None, "seated": seated,
                                   "rotate_completed": bool(rotated), "final_cw_rotation_in_range": bool(yaw_ok),
                                   "rotation_range_deg": PASS_YAW_RANGE_DEG}
+    if exp == "B2R":
+        # Functional acceptance (separate from the strict criterion above, which stays in "outcome"):
+        # insertion and rotation complete with no unacceptable contact and the final CW rotation in range.
+        # The measured seating gap is reported, not judged.
+        rot = [r for r in feas if r["stage"] == "ROTATE"]
+        result["functional_outcome"] = "PASS" if (stop is None and insert_complete and rotated and yaw_ok) else "FAIL"
+        result["functional_criteria"] = {
+            "no_unacceptable_contact": stop is None, "insert_completed": insert_complete,
+            "rotate_completed": bool(rotated), "final_cw_rotation_in_range": bool(yaw_ok),
+            "seating_error_at_rotate_start_mm": stages["ROTATE"].get("start_seating_error_mm"),
+            "seating_error_final_mm": None if fin is None else fin["lowest_z_mm"] - FLOOR_Z_MM,
+            "max_cw_rotation_deg": max([-r["yaw_deg"] for r in rot] or [0.0]),
+            "rotate_contact_regions": sorted({k for r in rot for k in r["regions"]}),
+            "rotation_stop_reached": any("rotation_stop" in r["regions"] for r in rot),
+            "note": "Seating gap is measured and reported; the strict 0.05 mm seat criterion is not applied here."}
     return result
 
 
