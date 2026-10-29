@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Guarded, ONE-COMMAND V1 physical assembly sequencer (ROS2 Humble).
 
-Default: OFFLINE CSV PREFLIGHT, NO ROBOT MOVEMENT.
+Default: OFFLINE CSV PREFLIGHT, NO ROBOT MOVEMENT. PILOT BUILD.
 --execute: real hardware required; stage-by-stage physical operator confirmation.
 
+IMPORTANT: this is pilot code, not the formal L0 implementation.
 IMPORTANT: the repository CSVs were also used in simulation. Verify each is
 identical to the trajectory used in the individually validated physical tests,
 and verify the x2 timing multiplier before allowing execution. Every prompt is
 intentional on this FIRST integration run. No auto-run switch is provided.
 
-Sequence: HOME check -> OPEN20 -> REACH -> ALIGN_PICKUP -> GRIP9 -> TRANSPORT
--> ALIGN_INSERT -> INSERT -> ROTATE -> RELEASE20 -> guarded RETREAT -> HOME.
+Sequence: HOME check -> OPEN40 -> REACH -> ALIGN_PICKUP -> GRIP8.2 -> TRANSPORT
+-> ALIGN_INSERT -> INSERT -> ROTATE -> RELEASE40 -> guarded RETREAT -> HOME.
 """
 
 import argparse
@@ -19,6 +20,7 @@ import hashlib
 import json
 import math
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -36,13 +38,29 @@ STAGES = [
     ('INSERT', 'demonstrations/processed/phase4_assembly/v1_insert_joint_sim_13s_CANDIDATE.csv'),
     ('ROTATE', 'demonstrations/processed/phase4_assembly/v1_rotate_joint_sim_17s_CANDIDATE.csv'),
 ]
+# Baseline files confirmed by the successful 2026-10-29 integrated physical run.
+# Fail closed if any physical motion CSV was edited after that run.
+EXPECTED_SHA12 = {
+    'REACH': 'dd5c175c9b1e',
+    'ALIGN_PICKUP': '69dfcecc5ebd',
+    'TRANSPORT': 'f4335b3ef675',
+    'ALIGN_INSERT': '6372a2397601',
+    'INSERT': 'fe2efc060452',
+    'ROTATE': 'c7916592ed76',
+}
 RETREAT = ROOT / 'scripts/phase4_assembly/v1_retreat_guarded.py'
 HOME = ROOT / 'config/saved_poses/v1_home_for_moveit.yaml'
 ARM_ACTION = '/scaled_joint_trajectory_controller/follow_joint_trajectory'
 GRIPPER_ACTION = '/finger_width_trajectory_controller/follow_joint_trajectory'
+# V1 RG2 pilot settings, updated after the 2026-10-29 successful run.
+# Keep trajectory CSVs unchanged; GRIP 8.2 mm is a NEW setting to validate.
+RG2_OPEN_M = 0.040
+RG2_GRIP_M = 0.0082
+RG2_OPEN_DURATION_S = 3.0
+RG2_GRIP_DURATION_S = 2.0
 MAX_JOINT_STEP = .09   # maximum adjacent CSV sample jump, rad
 MAX_SEGMENT_SPEED = .35  # rad/s after 2x retiming, conservative software check
-START_TOL = .012  # max arm discrepancy at handoff (rad)
+START_TOL = .006  # maximum live-to-CSV start discrepancy (rad)
 END_TOL = .012  # max arm discrepancy at stage endpoint (rad)
 TAU = 2 * math.pi
 
@@ -108,6 +126,12 @@ def preflight():
         print(f'{name:14s} {len(p["q"]):4d} points '
               f'{p["t"][-1]:7.2f}s @ x2  max_step={p["max_step"]:.5f} '
               f'max_speed={p["max_speed"]:.4f}  SHA256={p["sha256"][:12]}')
+    for name, plan in plans.items():
+        if plan['sha256'][:12] != EXPECTED_SHA12[name]:
+            raise RuntimeError(f'{name}: saved physical trajectory changed since validated V1 run; review required')
+    print('All six motion CSV hashes match the 2026-10-29 physical run.')
+    print('RG2 updated pilot targets: OPEN/RELEASE=40.0 mm @ 3.0 s; GRIP=8.2 mm @ 2.0 s')
+    print('NOTE: New RG2 widths and faster GRIP are not yet validated together physically.')
     print('\nHandoff errors (rad):')
     prev_name,prev_end = 'SAVED_HOME',home
     for name in plans:
@@ -136,6 +160,7 @@ def run_actual(home,plans,home_only=False,home_only_plan=False):
     from rclpy.qos import qos_profile_sensor_data
     from rclpy.action import ActionClient
     from rclpy.duration import Duration
+    from rclpy.signals import SignalHandlerOptions
     from sensor_msgs.msg import JointState
     from control_msgs.action import FollowJointTrajectory
     from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
@@ -149,6 +174,7 @@ def run_actual(home,plans,home_only=False,home_only_plan=False):
             super().__init__('v1_physical_one_sequence')
             self.q=None; self.width=None; self.last_at=0; self.width_at=0; self.monitor=False
             self.records=[]; self.stage=''
+            self.stop_requested=False; self.goal_inflight=False; self.active_goal_handle=None
             self.create_subscription(JointState,'/joint_states',self.joint_callback,
                                      qos_profile_sensor_data)
             self.hw=self.create_client(ListHardwareComponents,
@@ -224,38 +250,142 @@ def run_actual(home,plans,home_only=False,home_only_plan=False):
             if not self.grip.wait_for_server(timeout_sec=5):
                 raise RuntimeError('Real gripper action unavailable')
 
+        def cancel_active_goal(self,handle,label,result_future=None):
+            # Request cancellation and WAIT for controller acknowledgment.
+            # This is not an E-stop and is not proof of a physical standstill.
+            print(f'\n{label}: REQUESTING CONTROLLER CANCELLATION. '
+                  'Keep pendant stop accessible.', file=sys.stderr, flush=True)
+            try:
+                cf=handle.cancel_goal_async()
+                until=time.monotonic()+6.0
+                while not cf.done() and time.monotonic()<until:
+                    rclpy.spin_once(self,timeout_sec=.1)
+                if not cf.done() or cf.result() is None:
+                    print(f'{label}: CANCEL ACK UNKNOWN. Use pendant stop if moving.',
+                          file=sys.stderr, flush=True)
+                    return False
+                if not cf.result().goals_canceling:
+                    print(f'{label}: CANCEL NOT ACKNOWLEDGED. Verify stop on pendant.',
+                          file=sys.stderr, flush=True)
+                    return False
+                # Wait briefly for the corresponding terminal result as well.
+                if result_future is None:
+                    result_future=handle.get_result_async()
+                until=time.monotonic()+8.0
+                while not result_future.done() and time.monotonic()<until:
+                    rclpy.spin_once(self,timeout_sec=.1)
+                if not result_future.done() or result_future.result() is None:
+                    print(f'{label}: Cancel accepted but terminal result UNKNOWN.',
+                          file=sys.stderr, flush=True)
+                    return False
+                outcome=result_future.result()
+                if outcome.status != GoalStatus.STATUS_CANCELED:
+                    print(f'{label}: Controller terminal status={outcome.status}; '
+                          'verify physical state before any further movement.',
+                          file=sys.stderr, flush=True)
+                    return False
+                print(f'{label}: CONTROLLER CANCEL CONFIRMED (not an E-stop).',
+                      file=sys.stderr, flush=True)
+                return True
+            except BaseException as exc:
+                print(f'{label}: CANCEL VERIFICATION FAILED: {exc}. '
+                      'Use pendant stop if moving.', file=sys.stderr, flush=True)
+                return False
+
         def action(self,client,trajectory,label,timeout,expected_start=None):
+            if self.stop_requested:
+                raise RuntimeError(f'{label}: interrupted before command')
             self.hardware()
-            fresh_q=self.fresh()
-            if expected_start is not None and err(fresh_q,expected_start)>START_TOL:
-                raise RuntimeError(f'{label}: robot moved before controller command; revalidate start')
+            fresh_q=self.fresh()  # requires a NEW callback, not cached /joint_states
+            if expected_start is not None:
+                start_error=err(fresh_q,expected_start)
+                print(f'{label}: live start error {start_error:.6f} rad')
+                if start_error>START_TOL:
+                    raise RuntimeError(f'{label}: live start outside {START_TOL:.3f} rad; '
+                                       'no command sent')
+                # The first point must be exactly the latest measured joint state.
+                # Do NOT translate the remaining learned/CDMP points: that would
+                # change the taught assembly geometry. Validate handoff instead.
+                if label == 'HOME':
+                    # Preserve the successful physical HOME command: one saved
+                    # goal at 30s. Its starting state is the current controller
+                    # position, independently verified above and in home().
+                    if len(trajectory.points) != 1:
+                        raise RuntimeError('HOME must contain one target point')
+                    t_home = (trajectory.points[0].time_from_start.sec +
+                              trajectory.points[0].time_from_start.nanosec * 1e-9)
+                    if abs(t_home - 30.0) > 0.01:
+                        raise RuntimeError('Unexpected HOME timing')
+                    delta = err(fresh_q, trajectory.points[0].positions)
+                    if delta / t_home > MAX_SEGMENT_SPEED:
+                        raise RuntimeError('HOME average speed guard exceeded')
+                    print(f'HOME: verified fresh start; preserving 30s target command')
+                else:
+                    if (len(trajectory.points) < 2 or
+                            trajectory.points[0].time_from_start.sec != 0 or
+                            trajectory.points[0].time_from_start.nanosec != 0):
+                        raise RuntimeError(f'{label}: invalid initial time')
+                    # Keep the rest of the learnt path unchanged. Check the
+                    # resulting live->second-point step before sending.
+                    trajectory.points[0].positions = list(fresh_q)
+                    p1 = trajectory.points[1]
+                    dt = p1.time_from_start.sec + p1.time_from_start.nanosec*1e-9
+                    if dt <= 0:
+                        raise RuntimeError(f'{label}: invalid first segment timing')
+                    delta = err(fresh_q, p1.positions)
+                    if delta > MAX_JOINT_STEP or delta/dt > MAX_SEGMENT_SPEED:
+                        raise RuntimeError(f'{label}: live first segment too large/fast: '
+                                           f'{delta:.6f} rad in {dt:.4f}s')
+                    print(f'{label}: first trajectory point = FRESH measured joints')
+            if self.stop_requested:
+                raise RuntimeError(f'{label}: interrupted before send')
             goal=FollowJointTrajectory.Goal(); goal.trajectory=trajectory
             goal.goal_time_tolerance=Duration(seconds=5).to_msg()
-            self.stage=label;self.monitor=True
+            self.stage=label;self.monitor=True;self.goal_inflight=True
+            handle=None;done=None
             try:
                 future=client.send_goal_async(goal)
                 until=time.monotonic()+8
+                # If Ctrl+C occurs before acceptance, wait for acceptance so
+                # an accepted goal can still be cancelled explicitly.
                 while not future.done() and time.monotonic()<until:
                     rclpy.spin_once(self,timeout_sec=.1)
-                if not future.done() or future.result() is None or not future.result().accepted:
-                    raise RuntimeError(f'{label}: goal not accepted')
-                handle=future.result();done=handle.get_result_async()
+                if not future.done() or future.result() is None:
+                    raise RuntimeError(f'{label}: acceptance UNKNOWN; check controller/pendant')
+                handle=future.result()
+                if not handle.accepted:
+                    raise RuntimeError(f'{label}: goal rejected')
+                self.active_goal_handle=handle
+                done=handle.get_result_async()
+                if self.stop_requested:
+                    raise RuntimeError(f'{label}: Ctrl+C during goal acceptance')
                 until=time.monotonic()+timeout
                 while not done.done() and time.monotonic()<until:
                     rclpy.spin_once(self,timeout_sec=.1)
+                    if self.stop_requested:
+                        raise RuntimeError(f'{label}: Ctrl+C requested')
                     if time.monotonic()-self.last_at>1.0:
-                        handle.cancel_goal_async()
-                        raise RuntimeError(f'{label}: live-state lost; cancel requested')
+                        raise RuntimeError(f'{label}: live-state lost')
                 if not done.done() or done.result() is None:
-                    handle.cancel_goal_async()
-                    raise RuntimeError(f'{label}: timeout; cancel requested')
+                    raise RuntimeError(f'{label}: controller outcome timed out/unknown')
                 r=done.result()
                 if (r.status!=GoalStatus.STATUS_SUCCEEDED or
                     r.result.error_code != FollowJointTrajectory.Result.SUCCESSFUL):
                     raise RuntimeError(f'{label}: controller failure: '
                                        f'{r.result.error_code} {r.result.error_string}')
+                if self.stop_requested:
+                    raise RuntimeError(f'{label}: interrupted while completing')
+            except BaseException:
+                self.stop_requested=True
+                if handle is not None and (done is None or not done.done()):
+                    self.cancel_active_goal(handle,label,done)
+                elif handle is None:
+                    print(f'{label}: goal acceptance could not be resolved. '
+                          'Verify stopped state on pendant.', file=sys.stderr,flush=True)
+                raise
             finally:
-                self.monitor=False
+                self.monitor=False;self.goal_inflight=False
+                self.active_goal_handle=None
             return self.fresh()
 
         def arm_stage(self,label,plan):
@@ -287,7 +417,7 @@ def run_actual(home,plans,home_only=False,home_only_plan=False):
                                    f'({err(end,plan["q"][-1]):.6f} rad)')
             print(f'{label}: PASS | final joint error {err(end,plan["q"][-1]):.6f} rad')
 
-        def rg2(self,label,width_m):
+        def rg2(self,label,width_m,duration_s):
             self.fresh()
             if (self.width is None or not math.isfinite(self.width)
                     or time.monotonic()-self.width_at>1.0):
@@ -296,21 +426,22 @@ def run_actual(home,plans,home_only=False,home_only_plan=False):
                 raise RuntimeError('Unexpected RG2 width units')
             traj=JointTrajectory();traj.joint_names=['finger_width']
             point=JointTrajectoryPoint();point.positions=[width_m]
-            point.time_from_start=Duration(seconds=3).to_msg()
+            point.time_from_start=Duration(seconds=duration_s).to_msg()
             traj.points=[point]
             self.action(self.grip,traj,label,30)
-            # GRIP can stop on contact instead of reaching exact requested 9mm.
+            # GRIP can stop on contact instead of reaching exact requested 8.2 mm.
             # This verifies motion only; it is NOT a force/part-presence check.
             after=time.monotonic()
             deadline=after+3.0
             while time.monotonic()<deadline and self.width_at<after:
                 rclpy.spin_once(self,timeout_sec=.1)
             measured=self.width
-            tol=.005 if width_m==.009 else .003
+            tol=.005 if label=='GRIP' else .003
             if self.width_at<after or measured is None or abs(measured-width_m)>tol:
                 raise RuntimeError(f'{label}: RG2 width {measured} m differs '
                                    f'from {width_m} m or state is stale; inspect gripper physically')
-            print(f'{label}: PASS | RG2 width {measured*1000:.2f} mm '
+            print(f'{label}: PASS | commanded {width_m*1000:.1f} mm '
+                  f'over {duration_s:.1f}s; measured {measured*1000:.2f} mm '
                   '(contact and grasp security NOT proven by width)')
 
         def home_state_validity(self,start,goal):
@@ -369,15 +500,39 @@ def run_actual(home,plans,home_only=False,home_only_plan=False):
         print('Confirm real fixture/workpiece placement, motion clearance, '
               'one command source, stop button accessible.')
         print('Do not confirm if person/obstacle is in robot workspace.')
-        if input(f'Type RUN_{label} to continue: ').strip()!=f'RUN_{label}':
+        if node.stop_requested or input(f'Type RUN_{label} to continue: ').strip()!=f'RUN_{label}':
             raise RuntimeError(f'{label}: operator cancelled; NO further stages sent')
 
     logdir=(ROOT/'results/physical'/('v1_home_only' if home_only else 'v1_integrated')/
             datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
     logdir.mkdir(parents=True,exist_ok=False)
     import rclpy
-    rclpy.init();node=Robot()
-    status={'status':'IN_PROGRESS','stages':[], 'log_folder':str(logdir)}
+    rclpy.init(signal_handler_options=SignalHandlerOptions.NO);node=Robot()
+    active_child=[None]
+    def handle_sigint(_signum,_frame):
+        child=active_child[0]
+        if child is not None and child.poll() is None:
+            print('\nCtrl+C: forwarding SIGINT to RETREAT child; '
+                  'verify controller cancellation and physical stop.',
+                  file=sys.stderr,flush=True)
+            try:
+                os.killpg(child.pid,signal.SIGINT)
+            except ProcessLookupError:
+                pass
+            node.stop_requested=True
+        elif node.goal_inflight:
+            node.stop_requested=True
+            print('\nCtrl+C: cancellation requested; waiting for controller result. '
+                  'Use pendant stop if motion persists.',file=sys.stderr,flush=True)
+        else:
+            raise KeyboardInterrupt()
+    signal.signal(signal.SIGINT,handle_sigint)
+    status={'status':'IN_PROGRESS','stages':[], 'log_folder':str(logdir),
+            'rg2_targets':{'open_mm':40.0,'release_mm':40.0,'grip_mm':8.2,
+                           'open_duration_s':3.0,'grip_duration_s':2.0},
+            'trial_type':'PILOT_NOT_FORMAL_L0', 'started_at':datetime.now().isoformat(),
+            'note':'wall_elapsed_s includes operator confirmations; not pure robot cycle time'}
+    cycle_start=time.monotonic()
     all_records=[]
     try:
         node.hardware()
@@ -394,28 +549,34 @@ def run_actual(home,plans,home_only=False,home_only_plan=False):
         print('\n=== OPERATOR CHECK: physical V1 automatic sequence ===')
         print('All stage trajectories MUST be verified against individually tested physical files.')
         print('CSV timing is multiplied by 2; confirm this was appropriate for every stage.')
+        print('NEW GRIPPER SETTINGS: OPEN/RELEASE 40 mm, GRIP 8.2 mm / 2 s.')
+        print('Verify 40 mm RELEASE cannot collide with or disturb the assembled component.')
         print('Robot must be at saved HOME. V1 component seated at correct pickup.')
         print('Fixture/trolley/component may NOT be represented accurately in MoveIt.')
         print('First integrated trial has required per-stage checkpoints. No unattended run.')
         print('Verify physical fixture clearance for EVERY arm movement; no complete collision-scene validation.')
         approve('V1_START','Start guarded V1 sequence, from HOME.')
         stages = [
-            ('OPEN',lambda:node.rg2('OPEN',.020),'Check RG2 open to 20mm'),
+            ('OPEN',lambda:node.rg2('OPEN',RG2_OPEN_M,RG2_OPEN_DURATION_S),'Check RG2 open to 40mm'),
             ('REACH',lambda:node.arm_stage('REACH',plans['REACH']),'Move toward V1 pickup area'),
             ('ALIGN_PICKUP',lambda:node.arm_stage('ALIGN_PICKUP',plans['ALIGN_PICKUP']),'Fine alignment to V1 grip'),
-            ('GRIP',lambda:node.rg2('GRIP',.009),'Grip V1; verify workpiece is present'),
+            ('GRIP',lambda:node.rg2('GRIP',RG2_GRIP_M,RG2_GRIP_DURATION_S),'Grip V1 at 8.2mm over 2s; verify workpiece is present'),
             ('TRANSPORT',lambda:node.arm_stage('TRANSPORT',plans['TRANSPORT']),'Carry V1 to assembly fixture'),
             ('ALIGN_INSERT',lambda:node.arm_stage('ALIGN_INSERT',plans['ALIGN_INSERT']),'Align above insertion'),
             ('INSERT',lambda:node.arm_stage('INSERT',plans['INSERT']),'Insert with physically validated trajectory'),
             ('ROTATE',lambda:node.arm_stage('ROTATE',plans['ROTATE']),'Rotate using physically validated 25-degree motion'),
-            ('RELEASE',lambda:node.rg2('RELEASE',.020),'Open RG2 and release assembled V1'),
+            ('RELEASE',lambda:node.rg2('RELEASE',RG2_OPEN_M,RG2_OPEN_DURATION_S),'Open RG2 to 40mm and release assembled V1; verify part/fixture clearance'),
         ]
         for name,action,detail in stages:
             approve(name,detail)
             node.hardware()
+            begin=time.monotonic()
             action()
-            status['stages'].append({'name':name,'status':'PASS'})
+            status['stages'].append({'name':name,'status':'PASS',
+                                     'elapsed_s':round(time.monotonic()-begin,3)})
             (logdir/'status.json').write_text(json.dumps(status,indent=2))
+            if node.stop_requested:
+                raise RuntimeError('Interrupted; refusing subsequent stages')
         print('\nRETREAT uses the successful independent guarded script, '
               'including new Cartesian planning, branch correction, and its own operator review.')
         approve('RETREAT','Confirm released workpiece; +30mm base-Z withdrawal is clear.')
@@ -424,20 +585,34 @@ def run_actual(home,plans,home_only=False,home_only_plan=False):
         rclpy.shutdown()
         # Separate already-validated retreat implementation; preserve its
         # independent hardware, pose, collision/path and execution guards.
-        completed=subprocess.run([sys.executable,str(RETREAT),'--execute'],check=False)
-        if completed.returncode != 0:
-            raise RuntimeError('RETREAT failed or was cancelled; HOME NOT SENT')
-        status['stages'].append({'name':'RETREAT','status':'PASS'})
+        # Retreat has its own independent controller/pose/collision guards.
+        # Isolate the child's process group so Ctrl+C is deliberately relayed.
+        retreat_begin=time.monotonic()
+        child=subprocess.Popen([sys.executable,str(RETREAT),'--execute'],
+                               start_new_session=True)
+        active_child[0]=child
+        try:
+            code=child.wait()
+        finally:
+            active_child[0]=None
+        if node.stop_requested or code != 0:
+            raise RuntimeError('RETREAT interrupted/failed; HOME NOT SENT')
+        status['stages'].append({'name':'RETREAT','status':'PASS',
+                                 'elapsed_s_including_retreat_review':round(time.monotonic()-retreat_begin,3)})
         (logdir/'status.json').write_text(json.dumps(status,indent=2))
-        rclpy.init();node=Robot()
+        rclpy.init(signal_handler_options=SignalHandlerOptions.NO);node=Robot()
         node.hardware()
+        home_begin=time.monotonic()
         node.home(home)
-        status['stages'].append({'name':'HOME','status':'PASS'})
+        status['stages'].append({'name':'HOME','status':'PASS',
+                                 'elapsed_s_including_home_review':round(time.monotonic()-home_begin,3)})
         status['status']='PASS'
+        status['wall_elapsed_s']=round(time.monotonic()-cycle_start,3)
         print('\nV1 COMPLETE: all 12 stages completed. Independently inspect assembly result.')
     except BaseException as e:
         status['status']='STOPPED'
         status['error']=str(e)
+        status['wall_elapsed_s']=round(time.monotonic()-cycle_start,3)
         print('V1 STOPPED:',e,file=sys.stderr)
         print('Do not blindly restart after a partial assembly; identify robot state.',file=sys.stderr)
         raise

@@ -12,6 +12,7 @@ import csv
 from datetime import datetime
 import math
 import os
+import signal
 import sys
 import time
 from pathlib import Path
@@ -20,6 +21,7 @@ if os.environ.get('ROS_DOMAIN_ID') != '0':
     raise SystemExit('BLOCKED: ROS_DOMAIN_ID must be 0 for real-robot observation.')
 
 import rclpy
+from rclpy.signals import SignalHandlerOptions
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data, QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from rclpy.action import ActionClient
@@ -57,6 +59,8 @@ class RetreatPreview(Node):
     def __init__(self, execute_requested=False):
         super().__init__('v1_retreat_guarded')
         self.execute_requested = execute_requested
+        self.stop_requested = False
+        self.goal_inflight = False
         self.record_active = False
         self.samples = []
         self.record_start = 0.0
@@ -364,38 +368,52 @@ class RetreatPreview(Node):
         goal = FollowJointTrajectory.Goal()
         goal.trajectory = traj
         goal.goal_time_tolerance = Duration(seconds=5).to_msg()
+        if self.stop_requested:
+            raise RuntimeError('Interrupted before retreat command')
         print('Sending ONE guarded +30 mm retreat trajectory to the real robot.')
         self.record_start = time.monotonic()
         self.samples = []
         self.record_active = True
+        handle = None
+        outcome = None
+        self.goal_inflight = True
         try:
             send = self.arm.send_goal_async(goal)
             deadline = time.monotonic() + 6.0
             while rclpy.ok() and not send.done() and time.monotonic() < deadline:
                 rclpy.spin_once(self, timeout_sec=0.1)
-            if not send.done() or send.result() is None or not send.result().accepted:
-                raise RuntimeError('Joint trajectory goal not accepted; check controller state.')
-
-            handle = send.result()
+            if not send.done() or send.result() is None:
+                raise RuntimeError('Retreat acceptance outcome UNKNOWN; check pendant/controller')
+            handle=send.result()
+            if not handle.accepted:
+                raise RuntimeError('Joint trajectory goal rejected')
             outcome = handle.get_result_async()
+            if self.stop_requested:
+                raise RuntimeError('Ctrl+C during retreat goal acceptance')
             deadline = time.monotonic() + max(60.0, duration * 5.0 + 20.0)
-            # Coarse path corridor monitor (NOT a physical safety stop).
             while rclpy.ok() and not outcome.done() and time.monotonic() < deadline:
                 rclpy.spin_once(self, timeout_sec=0.1)
-                live = self.live_joints()
+                if self.stop_requested:
+                    raise RuntimeError('Ctrl+C during physical retreat')
+                # Check latest live sample only; do not block while waiting
+                # for another callback inside this loop.
+                if self.last_joint_time is None or time.monotonic()-self.last_joint_time>1.0:
+                    raise RuntimeError('Retreat live joint-state stream lost')
+                live = [float(self.last_joint_state.position[
+                    self.last_joint_state.name.index(j)]) for j in JOINTS]
                 path_error = min(max(abs(a-b) for a,b in zip(live,row))
                                  for row in corrected)
                 if path_error > 0.10:
-                    handle.cancel_goal_async()
-                    raise RuntimeError('Large deviation from retreat path; cancellation requested. Use pendant STOP if necessary.')
+                    raise RuntimeError('Large deviation from retreat path')
             if not outcome.done() or outcome.result() is None:
-                handle.cancel_goal_async()
-                raise RuntimeError('Timed out; cancellation requested. Verify physical state.')
+                raise RuntimeError('Retreat result timed out or is UNKNOWN')
             result = outcome.result()
             if (result.status != GoalStatus.STATUS_SUCCEEDED or
                     result.result.error_code != FollowJointTrajectory.Result.SUCCESSFUL):
                 raise RuntimeError('Controller reported retreat failure: '
                                    f'status={result.status} code={result.result.error_code}')
+            if self.stop_requested:
+                raise RuntimeError('Interrupted after retreat result')
             final = self.live_joints()
             err = max(abs(a-b) for a,b in zip(final,corrected[-1]))
             print(f'Final joint endpoint error: {err:.6f} rad')
@@ -418,7 +436,41 @@ class RetreatPreview(Node):
                 raise RuntimeError('Final TCP pose differs from requested 30 mm vertical retreat.')
             print('\nPHYSICAL RETREAT: CONTROLLER SUCCESS + JOINT/TCP ENDPOINT PASS')
             print('Visually verify the gripper is clear. HOME IS NOT COMMANDED.')
+        except BaseException:
+            self.stop_requested=True
+            if handle is not None and (outcome is None or not outcome.done()):
+                print('RETREAT: requesting controller cancellation (NOT an E-stop).',
+                      file=sys.stderr,flush=True)
+                try:
+                    cancel=handle.cancel_goal_async()
+                    until=time.monotonic()+6.0
+                    while not cancel.done() and time.monotonic()<until:
+                        rclpy.spin_once(self,timeout_sec=.1)
+                    accepted=(cancel.done() and cancel.result() is not None and
+                              bool(cancel.result().goals_canceling))
+                    if accepted:
+                        if outcome is None:
+                            outcome=handle.get_result_async()
+                        until=time.monotonic()+8.0
+                        while not outcome.done() and time.monotonic()<until:
+                            rclpy.spin_once(self,timeout_sec=.1)
+                        accepted=(outcome.done() and outcome.result() is not None and
+                                  outcome.result().status==GoalStatus.STATUS_CANCELED)
+                    if accepted:
+                        print('RETREAT: controller CANCELED (verify physical stop).',
+                              file=sys.stderr,flush=True)
+                    else:
+                        print('RETREAT: cancel result UNKNOWN; use pendant stop if moving.',
+                              file=sys.stderr,flush=True)
+                except BaseException as exc:
+                    print(f'RETREAT: cancel FAILED: {exc}. Use pendant stop if moving.',
+                          file=sys.stderr,flush=True)
+            elif handle is None and self.goal_inflight:
+                print('RETREAT: goal acceptance UNKNOWN; verify physical robot state.',
+                      file=sys.stderr,flush=True)
+            raise
         finally:
+            self.goal_inflight=False
             self.record_active = False
             folder = ROOT / 'results/physical/v1_remaining'
             folder.mkdir(parents=True, exist_ok=True)
@@ -435,16 +487,24 @@ def main():
     parser.add_argument('--execute', action='store_true',
                         help='Enable a physical trajectory ONLY with live guards and typed confirmation.')
     args = parser.parse_args()
-    rclpy.init()
+    rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
     node = RetreatPreview(execute_requested=args.execute)
+    def retreat_sigint(_signum,_frame):
+        if node.goal_inflight:
+            node.stop_requested=True
+            print('\nCtrl+C: RETREAT cancellation requested; controller response pending. '
+                  'Use pendant stop if motion persists.', file=sys.stderr, flush=True)
+        else:
+            raise KeyboardInterrupt()
+    signal.signal(signal.SIGINT,retreat_sigint)
     try:
         node.run()
-    except Exception as exc:
-        print(f'BLOCKED: {exc}', file=sys.stderr)
-        sys.exit(1)
+    except BaseException as exc:
+        print(f'RETREAT STOPPED: {type(exc).__name__}: {exc}', file=sys.stderr)
+        raise SystemExit(130 if isinstance(exc,KeyboardInterrupt) else 1)
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():rclpy.shutdown()
 
 
 if __name__ == '__main__':

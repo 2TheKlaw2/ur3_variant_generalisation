@@ -1,0 +1,23 @@
+# Stationary TCP + joints, measurement ONLY (not a controller command)
+name: v1_pickup_V3_geometry
+robot: ur3e
+base_frame: base
+tool_frame: gripper_tcp
+arm:
+  joint_names:
+    - shoulder_pan_joint
+    - shoulder_lift_joint
+    - elbow_joint
+    - wrist_1_joint
+    - wrist_2_joint
+    - wrist_3_joint
+  positions_rad:
+    - -0.797509018575
+    - -1.80548681835
+    - -1.52765679359
+    - -1.37301905573
+    - 1.55891144276
+    - -3.95073062578
+tcp:
+  position_m: [0.149227282797, -0.347035899272, 0.0389578347493]
+  quaternion_xyzw: [-0.00496930870339, 0.999963696501, -0.00621465137227, -0.00304791081371]
