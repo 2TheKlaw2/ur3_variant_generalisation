@@ -13,7 +13,7 @@ HOME -> OPEN 40 mm -> REACH -> ALIGN -> GRIP 8.2 mm -> ATTACH V1 -> LIFT 30 mm -
 
 LIFT geometry reuses run_v1_lift_bridge_transport_staged.py (physically tested):
 +30 mm base Z, constant orientation, MoveIt Cartesian feasibility check through the same
-15 waypoints, wrist_3 2*pi correction. Samples: per-sample IK every 0.5 mm on the
+15 waypoints, wrist_3 2*pi correction. Samples: one IK solution per 20 ms timestamp of the min-jerk profile, on the
 lab-calibrated model, each verified by MoveIt FK and MoveIt collision checking (V1 attached).
 LIFT timing is a NEW 3.0 s minimum-jerk simulation profile (physical: >= 5 s).
 Needs the CALIBRATED fake robot + MoveIt launchers above (the upstream launch files ignore
@@ -325,10 +325,12 @@ def main():
         #     collision checking below. (KDL via /compute_ik proved unreliable: 5 ms solver
         #     timeout, branch jumps from random restarts.)
         calib = yaml.safe_load(open(ROOT / "config/ur3e_lab_calibration.yaml"))
-        n_s = int(round(lp.LIFT_M / lp.CARTESIAN_MAX_STEP_M))
+        # One IK solution per 20 ms timestamp of the min-jerk profile, so the executed
+        # trajectory carries the profile itself (no joint-space resampling between samples).
+        t_l, frac = lp.min_jerk_grid(lp.SIM_LIFT_DURATION_S, lp.SAMPLE_DT_S)
         raw, seed = [list(q_grip)], list(q_grip)
-        for k in range(1, n_s + 1):
-            Tk = T_tcp_fk.copy(); Tk[2, 3] += lp.LIFT_M * k / n_s
+        for k in range(1, len(t_l)):
+            Tk = T_tcp_fk.copy(); Tk[2, 3] += lp.LIFT_M * frac[k]
             q_new = uk.ik_local(seed, Tk, calib).tolist()
             if lp.maxdiff(q_new, seed) > 0.02:
                 raise RuntimeError(f"IK branch jump {lp.maxdiff(q_new, seed):.4f} rad at sample {k}")
@@ -336,16 +338,14 @@ def main():
         path, wraps = lp.correct_wraps(raw, q_grip)
         fk_dev = []
         for k, qi in enumerate(path):
-            Tk = node.fk(qi); target = o[2] + lp.LIFT_M * k / n_s
+            Tk = node.fk(qi); target = o[2] + lp.LIFT_M * frac[k]
             fk_dev.append(max(abs(Tk[2, 3] - target), math.hypot(*(Tk[:2, 3] - o[:2]))) * 1000)
         if max(fk_dev) > 0.01:
-            raise RuntimeError(f"IK samples deviate from the straight lift by {max(fk_dev):.4f} mm")
-        z = np.arange(n_s + 1) * lp.LIFT_M / n_s
-        t_raw = lp.min_jerk_times(z / lp.LIFT_M)
-        t_l, q_l = lp.resample_uniform(t_raw, path, 0.02)
+            raise RuntimeError(f"IK samples deviate from the min-jerk straight lift by {max(fk_dev):.4f} mm")
+        q_l = np.array(path)
         step, speed = lp.verify_path("LIFT", q_l.tolist(), t_l.tolist())
-        print(f"LIFT planned: MoveIt Cartesian fraction {fraction:.4f} ({n_moveit} pts); {len(path)} IK samples "
-              f"(max FK deviation {max(fk_dev):.5f} mm) -> {len(t_l)} timed samples, {t_l[-1]:.2f} s, "
+        print(f"LIFT planned: MoveIt Cartesian fraction {fraction:.4f} ({n_moveit} pts); {len(path)} timed IK samples "
+              f"every {lp.SAMPLE_DT_S*1000:.0f} ms (max FK deviation {max(fk_dev):.5f} mm), {t_l[-1]:.2f} s, "
               f"peak step {step:.4f} rad, peak speed {speed:.4f} rad/s, 2pi turns {wraps}", flush=True)
         invalid = []
         for i in range(0, len(q_l)):
@@ -389,12 +389,13 @@ def main():
             "geometry_source": "run_v1_lift_bridge_transport_staged.py (+30 mm base Z, constant orientation, 15 waypoints)",
             "timing": {"profile": "minimum-jerk on path length", "sim_duration_s": lp.SIM_LIFT_DURATION_S,
                        "physical_reference": "MoveIt-timed, >= 5 s (not comparable)"},
-            "moveit_cartesian_fraction": fraction, "moveit_cartesian_points": n_moveit, "ik_samples": len(path), "ik_max_fk_deviation_mm": max(fk_dev), "samples": int(len(t_l)), "wrist_wraps": wraps,
+            "moveit_cartesian_fraction": fraction, "moveit_cartesian_points": n_moveit, "ik_samples": len(path), "ik_sample_dt_s": lp.SAMPLE_DT_S, "ik_max_fk_deviation_mm": max(fk_dev), "samples": int(len(t_l)), "wrist_wraps": wraps,
             "peak_joint_step_rad": step, "peak_joint_speed_rad_s": speed,
             "V1_rise_mm_fk": rises[-1], "V1_rise_mm_tf": tf_rise, "V1_max_xy_drift_mm": max(drifts),
             "V1_max_tilt_deg": max(tilts), "endpoint_joint_err_rad": lift_err,
             "others_max_move_mm": moved, "final_state_contacts": contacts_end,
         }
+        checks = {k: bool(v) for k, v in checks.items()}
         summary["checks"] = checks
         summary["result"] = "PASS" if all(checks.values()) else "FAIL"
         with (log / "lift_executed.csv").open("w", newline="") as f:

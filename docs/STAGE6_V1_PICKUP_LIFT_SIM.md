@@ -26,19 +26,19 @@ The upstream `ur_onrobot_control/start_robot.launch.py` and `ur_onrobot_moveit.l
 - **Planning scene:** `planning_scene_tools.py` loads all 12 CAD objects from `cad/manifest.yaml` + `config/scene/scene_registration.yaml` (same poses as the RViz URDF scene; verified by readback).
 - **Attach:** at GRIP, `T(gripper_tcp→V1) = inv(T(base→gripper_tcp)) · T(base→V1)` (MoveIt FK; TF agrees to 0.0 mm). This is held fixed. Touch links are the RG2 fingers/knuckles. `pickup_V1↔pickup_plate` is allowed only during LIFT (resting contact in the 2 mm pocket) and restored afterwards.
 - **Lift geometry:** from `run_v1_lift_bridge_transport_staged.py`: +30 mm base Z, constant orientation, 15 waypoints. MoveIt Cartesian feasibility check: fraction 1.0. Wrist_3 2π correction.
-- **Samples:** IK every 0.5 mm (61 samples), each seeded from the previous one (damped least squares on the lab-calibrated model, `scripts/scene/ur_kinematics.py`). Every sample is checked with MoveIt FK (≤0.01 mm from the straight line) and MoveIt collision checking with V1 attached.
+- **Samples:** one IK solution per 20 ms timestamp of the 3.0 s minimum-jerk profile (151 samples), each seeded from the previous one (damped least squares on the lab-calibrated model, `scripts/scene/ur_kinematics.py`). The executed trajectory therefore carries the profile itself, with zero speed at both ends and no joint-space resampling. Every sample is checked with MoveIt FK (≤0.01 mm from the target) and MoveIt collision checking with V1 attached.
   - MoveIt's KDL `/compute_ik` was not used: 5 ms solver timeout, and branch jumps from random restarts.
   - This MoveIt build also resamples Cartesian results at 0.1 s, so the raw Cartesian output has only 5 points.
-- **Timing:** NEW 3.0 s minimum-jerk on path length, resampled at 20 ms. The physical lift used ≥ 5 s MoveIt timing. These are reported separately and are not compared.
+- **Timing:** NEW 3.0 s minimum-jerk on path length (V1 speed 0 → 18.75 mm/s peak → 0). The physical lift used ≥ 5 s MoveIt timing. These are reported separately and are not compared.
 
-## Reference result (`results/sim_reference/v1_pickup_lift_20261029_215923/`)
+## Reference result (`results/sim_reference/v1_pickup_lift_20261029_222514/`)
 | Check | Result |
 |---|---|
 | Attach jump | 0.00000 mm / 0.00000° |
 | Grasp transform T(tcp→V1) | (1.431, 1.861, 34.848) mm. The 2.35 mm off-axis grip is preserved |
 | V1 rise (FK of executed joints / TF at STOP) | 30.000 / 30.000 mm |
 | V1 xy drift, tilt | 0.0002 mm, 0.000° |
-| IK sample deviation from straight line | < 0.001 µm |
+| IK sample deviation from min-jerk target | < 0.001 µm |
 | Peak joint step / speed | 0.0017 rad / 0.085 rad/s (physical guard 0.045 / 0.14) |
 | LIFT endpoint joint error | 0.000000 rad |
 | V2–V5, plates, fittings | unchanged |

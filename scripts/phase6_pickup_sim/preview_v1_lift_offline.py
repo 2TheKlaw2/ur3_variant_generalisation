@@ -45,16 +45,14 @@ def main():
     T_v1 = objs["pickup_V1"]["T"]
     T_grasp = np.linalg.inv(T_tcp0) @ T_v1          # T(gripper_tcp -> V1), fixed from GRIP
 
-    # Cartesian path: 15 physical waypoints, densified to CARTESIAN_MAX_STEP like MoveIt max_step
-    n = int(round(lp.LIFT_M / lp.CARTESIAN_MAX_STEP_M))
-    q_path, z_rise = [np.array(q_grip)], [0.0]
-    for k in range(1, n + 1):
-        target = T_tcp0.copy(); target[2, 3] += lp.LIFT_M * k / n
-        q_path.append(uk.ik_local(q_path[-1], target, calib)); z_rise.append(lp.LIFT_M * k / n)
+    # One IK solution per 20 ms timestamp of the min-jerk profile (same as the fake-hardware run)
+    tg, frac = lp.min_jerk_grid(lp.SIM_LIFT_DURATION_S, lp.SAMPLE_DT_S)
+    q_path = [np.array(q_grip)]
+    for k in range(1, len(tg)):
+        target = T_tcp0.copy(); target[2, 3] += lp.LIFT_M * frac[k]
+        q_path.append(uk.ik_local(q_path[-1], target, calib))
     q_path, _ = lp.correct_wraps([list(x) for x in q_path], q_grip)
-    q_path = np.array(q_path)
-    t = lp.min_jerk_times(np.array(z_rise) / lp.LIFT_M)
-    tg, qg = lp.resample_uniform(t, q_path, 0.02)
+    qg = np.array(q_path)
     step, speed = lp.verify_path("LIFT(sim 3 s)", qg.tolist(), tg.tolist())
 
     # Evaluate every resampled sample with FK

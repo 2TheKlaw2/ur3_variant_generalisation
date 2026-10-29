@@ -3,12 +3,12 @@
   "planning_frame": "world",
   "stages": {
     "REACH": {
-      "samples": 19309,
+      "samples": 19342,
       "endpoint_err_rad": 0.0,
       "timing": "x2.0 of recorded file (evenly retimed; not CDMP timing)"
     },
     "ALIGN_PICKUP": {
-      "samples": 798,
+      "samples": 802,
       "endpoint_err_rad": 0.0,
       "timing": "x2.0 of recorded file (evenly retimed; not CDMP timing)"
     }
@@ -48,8 +48,9 @@
     },
     "moveit_cartesian_fraction": 1.0,
     "moveit_cartesian_points": 5,
-    "ik_samples": 61,
-    "ik_max_fk_deviation_mm": 7.230605003627488e-10,
+    "ik_samples": 151,
+    "ik_sample_dt_s": 0.02,
+    "ik_max_fk_deviation_mm": 9.403066315380215e-07,
     "samples": 151,
     "wrist_wraps": [
       0,
@@ -59,25 +60,25 @@
       0,
       0
     ],
-    "peak_joint_step_rad": 0.001699510889588307,
-    "peak_joint_speed_rad_s": 0.08497554447941529,
-    "V1_rise_mm_fk": 29.999999999276902,
-    "V1_rise_mm_tf": 29.99999999927696,
-    "V1_max_xy_drift_mm": 0.00019847301540528957,
+    "peak_joint_step_rad": 0.0016995349339146149,
+    "peak_joint_speed_rad_s": 0.08497674669573067,
+    "V1_rise_mm_fk": 30.00000000000016,
+    "V1_rise_mm_tf": 30.00000000000054,
+    "V1_max_xy_drift_mm": 7.688730371294238e-05,
     "V1_max_tilt_deg": 0.0,
     "endpoint_joint_err_rad": 0.0,
     "others_max_move_mm": 0.0,
     "final_state_contacts": []
   },
   "checks": {
-    "attach jump < 0.01 mm": 1.0,
-    "grasp transform unchanged through LIFT (< 0.01 mm)": 1.0,
-    "V1 rise 30 +/- 0.5 mm (FK of executed joints)": 1.0,
-    "V1 rise 30 +/- 0.5 mm (TF at STOP)": 1.0,
+    "attach jump < 0.01 mm": true,
+    "grasp transform unchanged through LIFT (< 0.01 mm)": true,
+    "V1 rise 30 +/- 0.5 mm (FK of executed joints)": true,
+    "V1 rise 30 +/- 0.5 mm (TF at STOP)": true,
     "V1 xy drift < 0.5 mm": true,
     "V1 tilt < 0.5 deg": true,
     "LIFT endpoint joint error < 0.002 rad": true,
-    "V2-V5, plates, fittings unchanged": 1.0,
+    "V2-V5, plates, fittings unchanged": true,
     "no planned-state collisions (every timed sample)": true,
     "final state valid with V1<->plate checked again": true
   },

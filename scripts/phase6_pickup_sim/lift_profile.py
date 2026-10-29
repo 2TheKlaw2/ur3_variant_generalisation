@@ -3,7 +3,7 @@
 Geometry copied from scripts/phase5_integration/run_v1_lift_bridge_transport_staged.py
 (physically tested): +30 mm along base Z, orientation held constant, 15 Cartesian
 waypoints (MoveIt feasibility check), wrist_3 2*pi correction. Simulation samples the
-straight line every 0.5 mm with per-sample IK. Timing is NEW for simulation: 3.0 s
+straight line at every 20 ms timestamp of the min-jerk profile (one IK solution per sample). Timing is NEW for simulation: 3.0 s
 minimum-jerk on path length (the physical lift used a MoveIt-timed >= 5 s profile).
 """
 import math
@@ -14,7 +14,8 @@ LIFT_M = 0.030
 N_WAYPOINTS = 15                  # as physical script
 SIM_LIFT_DURATION_S = 3.0         # NEW simulation timing (physical: >= 5 s)
 PHYSICAL_LIFT_MIN_DURATION_S = 5.0
-CARTESIAN_MAX_STEP_M = 0.0005     # IK sample spacing along the lift (physical MoveIt max_step was 0.002)
+CARTESIAN_MAX_STEP_M = 0.0005     # offline-preview spacing only (physical MoveIt max_step was 0.002)
+SAMPLE_DT_S = 0.02                # timed IK samples: one IK solution per 20 ms timestamp
 JOINTS = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
           "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"]
 
@@ -62,6 +63,14 @@ def min_jerk_times(path_fraction, duration=SIM_LIFT_DURATION_S):
     t = np.interp(f, s, taus) * duration
     t[0], t[-1] = 0.0, duration
     return t
+
+
+def min_jerk_grid(duration=SIM_LIFT_DURATION_S, dt=0.02):
+    """Timestamps every dt and the min-jerk path fraction at each (0 -> 1, zero vel/acc at ends)."""
+    t = np.arange(0.0, duration + 1e-9, dt)
+    if t[-1] < duration - 1e-9:
+        t = np.append(t, duration)
+    return t, min_jerk_s(t / duration)
 
 
 def resample_uniform(times, q, dt=0.02):
