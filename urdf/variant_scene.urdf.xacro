@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<!--
+  Static V1-V5 assembly scene (environment only, NOT the robot).
+  Published by its own robot_state_publisher; its root link is the robot's `base`
+  frame, so it attaches to the UR3e TF tree without touching the robot description.
+
+  Geometry : cad/manifest.yaml         (component poses in plate frames, mm)
+  Placement: config/scene/scene_registration.yaml  (PROVISIONAL plate-to-base)
+  Meshes are mm STL -> scale 0.001.
+-->
+<robot name="variant_scene" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:arg name="show_trolley" default="false"/>
+  <xacro:arg name="trolley_xyz" default="0 0 0"/>
+  <xacro:arg name="trolley_rpy" default="0 0 0"/>
+
+  <xacro:property name="pkg" value="ur3_variant_generalisation"/>
+  <xacro:property name="reg" value="${xacro.load_yaml('$(find ur3_variant_generalisation)/config/scene/scene_registration.yaml')}"/>
+  <xacro:property name="man" value="${xacro.load_yaml('$(find ur3_variant_generalisation)/cad/manifest.yaml')['meshes']}"/>
+  <xacro:property name="mm" value="0.001"/>
+  <xacro:property name="deg" value="${pi/180.0}"/>
+
+  <material name="plate_blue"><color rgba="0.10 0.25 0.85 1.0"/></material>
+  <material name="part_blue"><color rgba="0.20 0.40 1.00 1.0"/></material>
+  <material name="fitting_blue"><color rgba="0.12 0.30 0.90 1.0"/></material>
+  <material name="surface_grey"><color rgba="0.75 0.75 0.78 0.35"/></material>
+
+  <!-- Root = robot base frame (provided by the UR3e robot_state_publisher) -->
+  <link name="base"/>
+
+  <!-- ===== Component macro: mesh link fixed to a parent at a pose in mm/deg ===== -->
+  <xacro:macro name="cad_link" params="name parent mesh pose material">
+    <link name="${name}">
+      <visual>
+        <geometry><mesh filename="package://${pkg}/cad/${mesh}" scale="${mm} ${mm} ${mm}"/></geometry>
+        <material name="${material}"/>
+      </visual>
+      <collision>
+        <geometry><mesh filename="package://${pkg}/cad/${mesh}" scale="${mm} ${mm} ${mm}"/></geometry>
+      </collision>
+    </link>
+    <joint name="${name}_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${name}"/>
+      <origin xyz="${pose['xyz_mm'][0]*mm} ${pose['xyz_mm'][1]*mm} ${pose['xyz_mm'][2]*mm}"
+              rpy="${pose['rpy_deg'][0]*deg} ${pose['rpy_deg'][1]*deg} ${pose['rpy_deg'][2]*deg}"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- ===== Plate frames (origin on V1 axis at plate underside, +x along row V1->V5) ===== -->
+  <xacro:macro name="plate" params="name key mesh">
+    <link name="${name}_frame"/>
+    <joint name="${name}_frame_joint" type="fixed">
+      <parent link="base"/>
+      <child link="${name}_frame"/>
+      <origin xyz="${reg[key]['xyz_m'][0]} ${reg[key]['xyz_m'][1]} ${reg[key]['xyz_m'][2]}"
+              rpy="0 0 ${reg[key]['yaw_rad']}"/>
+    </joint>
+    <xacro:cad_link name="${name}" parent="${name}_frame" mesh="${mesh}" material="plate_blue"
+                    pose="${dict(xyz_mm=[0, 0, 0], rpy_deg=[0, 0, 0])}"/>
+  </xacro:macro>
+
+  <xacro:plate name="pickup_plate"    key="pickup_plate"    mesh="pickup_plate/pickup_plate.stl"/>
+  <xacro:plate name="placement_plate" key="placement_plate" mesh="placement_plate/placement_plate.stl"/>
+
+  <!-- ===== Five moving parts (pickup) and five stationary fittings (placement) ===== -->
+  <xacro:macro name="variants" params="i">
+    <xacro:cad_link name="pickup_V${i}" parent="pickup_plate_frame"
+                    mesh="${man['V' + str(i) + '_moving']['file']}" material="part_blue"
+                    pose="${man['V' + str(i) + '_moving']['pose_in_pickup_plate']}"/>
+    <xacro:cad_link name="fitting_V${i}" parent="placement_plate_frame"
+                    mesh="${man['V' + str(i) + '_fitting']['file']}" material="fitting_blue"
+                    pose="${man['V' + str(i) + '_fitting']['pose_in_placement_plate']}"/>
+    <xacro:if value="${i &lt; 5}">
+      <xacro:variants i="${i + 1}"/>
+    </xacro:if>
+  </xacro:macro>
+  <xacro:variants i="1"/>
+
+  <!-- ===== Visual-only trolley-top patch (shows the assumed surface height) ===== -->
+  <link name="trolley_surface_patch">
+    <visual>
+      <geometry><box size="${reg['trolley_patch']['size_m'][0]} ${reg['trolley_patch']['size_m'][1]} ${reg['trolley_patch']['size_m'][2]}"/></geometry>
+      <material name="surface_grey"/>
+    </visual>
+  </link>
+  <joint name="trolley_surface_patch_joint" type="fixed">
+    <parent link="base"/>
+    <child link="trolley_surface_patch"/>
+    <origin xyz="${reg['trolley_patch']['xyz_m'][0]} ${reg['trolley_patch']['xyz_m'][1]} ${reg['trolley_patch']['xyz_m'][2]}"
+            rpy="0 0 ${reg['trolley_patch']['yaw_rad']}"/>
+  </joint>
+
+  <!-- ===== Optional: existing trolley mesh from ur3_lfd (read-only reference) =====
+       Copy the trolley origin from ur3_lfd/urdf/trolley.urdf.xacro into trolley_xyz / trolley_rpy. -->
+  <xacro:if value="$(arg show_trolley)">
+    <link name="ur3e_trolley">
+      <visual>
+        <geometry><mesh filename="package://ur3_lfd/meshes/trolley/ur3e_trolley.dae"/></geometry>
+      </visual>
+    </link>
+    <joint name="ur3e_trolley_joint" type="fixed">
+      <parent link="base"/>
+      <child link="ur3e_trolley"/>
+      <origin xyz="$(arg trolley_xyz)" rpy="$(arg trolley_rpy)"/>
+    </joint>
+  </xacro:if>
+
+</robot>

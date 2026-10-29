@@ -1,0 +1,73 @@
+Static scene validation (kinematic/geometric only; PROVISIONAL registration)
+[PASS] size pickup_plate: 200.00 x 70.00 x 3.00 mm (expected 200.00 x 70.00 x 3.00)
+[PASS] size placement_plate: 250.00 x 70.00 x 3.00 mm (expected 250.00 x 70.00 x 3.00)
+[PASS] size pickup_V1: 32.06 x 27.50 x 25.00 mm (expected 32.06 x 27.50 x 25.00)
+[PASS] size fitting_V1: 40.00 x 40.00 x 7.00 mm (expected 40.00 x 40.00 x 7.00)
+[PASS] size pickup_V2: 32.06 x 27.50 x 25.00 mm (expected 32.06 x 27.50 x 25.00)
+[PASS] size fitting_V2: 40.00 x 40.00 x 7.00 mm (expected 40.00 x 40.00 x 7.00)
+[PASS] size pickup_V3: 32.06 x 27.50 x 30.00 mm (expected 32.06 x 27.50 x 30.00)
+[PASS] size fitting_V3: 40.00 x 40.00 x 12.00 mm (expected 40.00 x 40.00 x 12.00)
+[PASS] size pickup_V4: 31.46 x 27.50 x 30.00 mm (expected 31.46 x 27.50 x 30.00)
+[PASS] size fitting_V4: 40.00 x 40.00 x 12.00 mm (expected 40.00 x 40.00 x 12.00)
+[PASS] size pickup_V5: 31.46 x 27.50 x 40.00 mm (expected 31.46 x 27.50 x 40.00)
+[PASS] size fitting_V5: 40.00 x 40.00 x 22.00 mm (expected 40.00 x 40.00 x 22.00)
+[PASS] seat pickup_V1: part bottom z = 1.00 mm (pocket floor = surface + 1.00)
+[PASS] seat fitting_V1: fitting base z = 3.00 mm (plate top = surface + 3.00)
+[PASS] seat pickup_V2: part bottom z = 1.00 mm (pocket floor = surface + 1.00)
+[PASS] seat fitting_V2: fitting base z = 3.00 mm (plate top = surface + 3.00)
+[PASS] seat pickup_V3: part bottom z = 1.00 mm (pocket floor = surface + 1.00)
+[PASS] seat fitting_V3: fitting base z = 3.00 mm (plate top = surface + 3.00)
+[PASS] seat pickup_V4: part bottom z = 1.00 mm (pocket floor = surface + 1.00)
+[PASS] seat fitting_V4: fitting base z = 3.00 mm (plate top = surface + 3.00)
+[PASS] seat pickup_V5: part bottom z = 1.00 mm (pocket floor = surface + 1.00)
+[PASS] seat fitting_V5: fitting base z = 3.00 mm (plate top = surface + 3.00)
+[PASS] no penetration pickup_V1 vs plate: min dist 0.020 mm (resting contact excluded)
+[PASS] no penetration fitting_V1 vs plate: min dist 0.020 mm (resting contact excluded)
+[PASS] no penetration pickup_V2 vs plate: min dist 0.020 mm (resting contact excluded)
+[PASS] no penetration fitting_V2 vs plate: min dist 0.020 mm (resting contact excluded)
+[PASS] no penetration pickup_V3 vs plate: min dist 0.020 mm (resting contact excluded)
+[PASS] no penetration fitting_V3 vs plate: min dist 0.020 mm (resting contact excluded)
+[FAIL] no penetration pickup_V4 vs plate: min dist 0.000 mm (resting contact excluded)
+[PASS] no penetration fitting_V4 vs plate: min dist 0.020 mm (resting contact excluded)
+[FAIL] no penetration pickup_V5 vs plate: min dist 0.000 mm (resting contact excluded)
+[PASS] no penetration fitting_V5 vs plate: min dist 0.020 mm (resting contact excluded)
+[PASS] plates do not overlap: gap 51.6 mm
+[PASS] gap pickup_V1-V2: 12.50 mm
+[PASS] gap fitting_V1-V2: 10.00 mm
+[PASS] gap pickup_V2-V3: 12.50 mm
+[PASS] gap fitting_V2-V3: 9.75 mm
+[PASS] gap pickup_V3-V4: 12.50 mm
+[PASS] gap fitting_V3-V4: 10.00 mm
+[PASS] gap pickup_V4-V5: 12.50 mm
+[PASS] gap fitting_V4-V5: 8.99 mm
+[PASS] TCP over pickup_V1: TCP xy offset from part axis 2.48 mm
+[PASS] finger direction vs 10 mm block faces V1: gripper closing axis vs part tab axis: 1.35 deg
+[PASS] finger height V1: finger end 20.9 mm, 14.9 mm above disc, engages top 5.1 mm of block
+[PASS] TCP over pickup_V2: TCP xy offset from part axis 3.36 mm
+[PASS] finger direction vs 10 mm block faces V2: gripper closing axis vs part tab axis: 2.41 deg
+[PASS] finger height V2: finger end 20.0 mm, 14.0 mm above disc, engages top 6.0 mm of block
+[PASS] TCP over pickup_V3: TCP xy offset from part axis 0.82 mm
+[PASS] finger direction vs 10 mm block faces V3: gripper closing axis vs part tab axis: 0.85 deg
+[PASS] finger height V3: finger end 24.2 mm, 13.2 mm above disc, engages top 6.8 mm of block
+[PASS] TCP over pickup_V4: TCP xy offset from part axis 0.88 mm
+[PASS] finger direction vs 10 mm block faces V4: gripper closing axis vs part tab axis: 1.39 deg
+[PASS] finger height V4: finger end 27.7 mm, 16.7 mm above disc, engages top 3.3 mm of block
+[PASS] TCP over pickup_V5: TCP xy offset from part axis 1.59 mm
+[PASS] finger direction vs 10 mm block faces V5: gripper closing axis vs part tab axis: 2.44 deg
+[PASS] finger height V5: finger end 37.0 mm, 26.0 mm above disc, engages top 4.0 mm of block
+[PASS] pickup tab axis parallel to fitting slot axis: 0.00 deg -> no yaw change needed for insertion
+[PASS] row order V1..V5 (robot-side left to right = decreasing base x): pickup x [229, 189, 149, 109, 69] mm, fitting x [-27, -77, -127, -177, -226] mm
+[PASS] insertion-ready TCP over fitting_V1: 0.30 mm
+[PASS] V1 seated depth consistency: implied part bottom 5.65 mm vs fitting floor 5.00 mm (diff +0.65 mm)
+[PASS] V1 rotation sense and size: measured -25.1 deg (CW); CAD stop at 26 deg CW
+[PASS] UR3e+RG2 FK reproduces recorded TCP: max 0.026 mm over 11 saved poses
+[PASS] RG2 at pickup_V1 (open 40 mm): to neighbours 27.4 mm, to plate 21.8 mm, own part 13.6 mm
+[PASS] RG2 at pickup_V1 (grip 8.2 mm): to neighbours 22.2 mm, to plate 17.8 mm, own part contact
+[PASS] RG2 at pickup_V2 (open 40 mm): to neighbours 26.8 mm, to plate 20.3 mm, own part 13.3 mm
+[PASS] RG2 at pickup_V2 (grip 8.2 mm): to neighbours 22.0 mm, to plate 16.4 mm, own part contact
+[PASS] RG2 at pickup_V3 (open 40 mm): to neighbours 28.6 mm, to plate 25.1 mm, own part 15.7 mm
+[PASS] RG2 at pickup_V3 (grip 8.2 mm): to neighbours 22.4 mm, to plate 21.3 mm, own part contact
+[PASS] RG2 at pickup_V4 (open 40 mm): to neighbours 27.6 mm, to plate 28.7 mm, own part 15.7 mm
+[PASS] RG2 at pickup_V4 (grip 8.2 mm): to neighbours 22.2 mm, to plate 24.6 mm, own part contact
+[PASS] RG2 at pickup_V5 (open 40 mm): to neighbours 32.3 mm, to plate 38.0 mm, own part 14.9 mm
+[PASS] RG2 at pickup_V5 (grip 8.2 mm): to neighbours 26.7 mm, to plate 33.9 mm, own part contact
