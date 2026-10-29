@@ -1,0 +1,85 @@
+{
+  "type": "KINEMATIC SIMULATION (fake hardware) - not a physical result",
+  "planning_frame": "world",
+  "stages": {
+    "REACH": {
+      "samples": 19309,
+      "endpoint_err_rad": 0.0,
+      "timing": "x2.0 of recorded file (evenly retimed; not CDMP timing)"
+    },
+    "ALIGN_PICKUP": {
+      "samples": 798,
+      "endpoint_err_rad": 0.0,
+      "timing": "x2.0 of recorded file (evenly retimed; not CDMP timing)"
+    }
+  },
+  "attach": {
+    "T_tcp_to_V1_xyz_mm": [
+      1.4307,
+      1.8611,
+      34.8479
+    ],
+    "T_tcp_to_V1_quat_xyzw": [
+      -0.7042124,
+      0.7096149,
+      0.0133937,
+      -0.0187668
+    ],
+    "tf_vs_fk_mm": 2.1898779786837934e-13,
+    "jump_mm": 6.887201757200159e-14,
+    "jump_deg": 0.0,
+    "touch_links": [
+      "gripper_tcp",
+      "left_inner_finger",
+      "right_inner_finger",
+      "left_inner_knuckle",
+      "right_inner_knuckle",
+      "left_outer_knuckle",
+      "right_outer_knuckle"
+    ],
+    "acm": "pickup_V1<->pickup_plate allowed during LIFT (resting contact in 2 mm pocket)"
+  },
+  "lift": {
+    "geometry_source": "run_v1_lift_bridge_transport_staged.py (+30 mm base Z, constant orientation, 15 waypoints)",
+    "timing": {
+      "profile": "minimum-jerk on path length",
+      "sim_duration_s": 3.0,
+      "physical_reference": "MoveIt-timed, >= 5 s (not comparable)"
+    },
+    "moveit_cartesian_fraction": 1.0,
+    "moveit_cartesian_points": 5,
+    "ik_samples": 61,
+    "ik_max_fk_deviation_mm": 7.230605003627488e-10,
+    "samples": 151,
+    "wrist_wraps": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "peak_joint_step_rad": 0.001699510889588307,
+    "peak_joint_speed_rad_s": 0.08497554447941529,
+    "V1_rise_mm_fk": 29.999999999276902,
+    "V1_rise_mm_tf": 29.99999999927696,
+    "V1_max_xy_drift_mm": 0.00019847301540528957,
+    "V1_max_tilt_deg": 0.0,
+    "endpoint_joint_err_rad": 0.0,
+    "others_max_move_mm": 0.0,
+    "final_state_contacts": []
+  },
+  "checks": {
+    "attach jump < 0.01 mm": 1.0,
+    "grasp transform unchanged through LIFT (< 0.01 mm)": 1.0,
+    "V1 rise 30 +/- 0.5 mm (FK of executed joints)": 1.0,
+    "V1 rise 30 +/- 0.5 mm (TF at STOP)": 1.0,
+    "V1 xy drift < 0.5 mm": true,
+    "V1 tilt < 0.5 deg": true,
+    "LIFT endpoint joint error < 0.002 rad": true,
+    "V2-V5, plates, fittings unchanged": 1.0,
+    "no planned-state collisions (every timed sample)": true,
+    "final state valid with V1<->plate checked again": true
+  },
+  "result": "PASS"
+}

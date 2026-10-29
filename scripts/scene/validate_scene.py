@@ -98,17 +98,8 @@ def scene_links(urdf_xml):
 
 
 # ---------------------------------------------------------------- UR3e + RG2 FK
-def ur_fk(q, calib):
-    k = calib["kinematics"]
-    M = T(r=(0, 0, math.pi))  # base_link -> base_link_inertia
-    for name, qi in zip(["shoulder", "upper_arm", "forearm", "wrist_1", "wrist_2", "wrist_3"], q):
-        e = k[name]
-        M = M @ T((e["x"], e["y"], e["z"]), (e["roll"], e["pitch"], e["yaw"])) @ _axis_angle(np.array([0, 0, 1.0]), qi)
-    M = M @ T(r=(0, -math.pi / 2, -math.pi / 2)) @ T(r=(math.pi / 2, 0, math.pi / 2))  # wrist_3 -> flange -> tool0
-    base_link_to_base = T(r=(0, 0, math.pi))
-    tool0 = np.linalg.inv(base_link_to_base) @ M
-    rg2_base = tool0 @ T(r=(0, 0, -math.pi / 2))
-    return rg2_base, rg2_base @ T((0, 0, 0.218))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from ur_kinematics import ur_fk  # noqa: E402  (shared calibrated FK)
 
 
 def rg2_links(rg2_base, width):
