@@ -303,7 +303,7 @@ class Geometry:
 
 
 # ------------------------------------------------------------------ IK along a path with floor clamp
-def solve_path(T_cmd, q_seed, calib, T_grasp, geom, clamp=True):
+def solve_path(T_cmd, q_seed, calib, T_grasp, geom, clamp=True, max_step_rad=0.02):
     """Per-sample IK; holds V1 on the seating floor when the command goes deeper.
 
     Returns list of dicts with q, T_exec, clamp_mm (unused commanded descent)."""
@@ -316,7 +316,7 @@ def solve_path(T_cmd, q_seed, calib, T_grasp, geom, clamp=True):
                 clamp_mm = FLOOR_Z_MM - low
                 T_exec[:3, 3] = T[:3, 3] + geom.T_fit[:3, 2] * clamp_mm / 1000.0
         q = uk.ik_local(seed, T_exec, calib).tolist()
-        if k and lp.maxdiff(q, seed) > 0.02:
+        if k and lp.maxdiff(q, seed) > max_step_rad:
             raise RuntimeError(f"IK branch jump {lp.maxdiff(q, seed):.4f} rad at sample {k}")
         seed = q
         out.append({"q": q, "T_cmd": T, "T_exec": T_exec, "clamp_mm": clamp_mm})

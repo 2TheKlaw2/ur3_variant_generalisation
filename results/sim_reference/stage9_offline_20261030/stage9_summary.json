@@ -1,0 +1,528 @@
+{
+ "_common": {
+  "type": "KINEMATIC SIMULATION (offline) - not a physical result",
+  "start": "part centred/upright, tabs on slot axis, bottom 0.703 mm above fitting top (= Stage 8 B2 after CORRECTION)",
+  "part_yaw_in_fitting_frame_deg": 180.0,
+  "demo": {
+   "insert_csv": "demonstrations/processed/phase4_assembly/v1_insert_cdmp_refined_depth_guard_SMOOTH_CANDIDATE.csv",
+   "rotate_csv": "demonstrations/processed/phase4_assembly/v1_rotate_cdmp_baseline_CANDIDATE.csv",
+   "D_demo_mm": 5.416718620000004,
+   "Y_demo_deg": -24.38826286693761,
+   "insert_s": 12.998915308,
+   "rotate_s": 16.998111362
+  },
+  "v1_lock_end_deg": -26.5,
+  "grasp_sources": {
+   "1": "config/trajectories/v1/v1_align_to_grip_joint_plan_001.csv (last row), as Stage 6-8",
+   "2": "config/saved_poses/v1_pickup_V2_geometry.yaml",
+   "3": "config/saved_poses/v1_pickup_V3_geometry.yaml",
+   "4": "config/saved_poses/v1_pickup_V4_geometry.yaml",
+   "5": "config/saved_poses/v1_pickup_V5_geometry.yaml"
+  },
+  "tolerances": {
+   "contact_mm": 0.02,
+   "floor_mm": 0.05,
+   "yaw_target_deg": 1.5,
+   "retain_lift_mm": 1.0,
+   "corridor_margin_deg": 1.0
+  }
+ },
+ "V1_L0": {
+  "functional_outcome": "PASS",
+  "strict_outcome": "FAIL",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": true,
+   "insert_completed": true,
+   "rotate_completed": true,
+   "final_yaw_within_tol_of_cad_seat": true,
+   "retained_by_fitting": true,
+   "seated_at_insert_end": false
+  },
+  "final": {
+   "stage": "ROTATE",
+   "yaw_deg": -24.413475011469217,
+   "lowest_z_mm": 2.4967965129972374,
+   "seating_gap_mm": 0.49679651299723737,
+   "centre_offset_mm": 3.4538449892501432e-09,
+   "tilt_deg": 8.537736462515939e-07
+  },
+  "max_insertion_depth_mm": 5.4511666090033835,
+  "cad_seat_depth_mm": 5.702761072629338,
+  "max_penetration_mm": 0.015,
+  "touching_samples": 100,
+  "first_unacceptable": null,
+  "cad_seat_yaw_deg": -24.38826286693761
+ },
+ "V1_L1": {
+  "functional_outcome": "PASS",
+  "strict_outcome": "PASS",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": true,
+   "insert_completed": true,
+   "rotate_completed": true,
+   "final_yaw_within_tol_of_cad_seat": true,
+   "retained_by_fitting": true,
+   "seated_at_insert_end": true
+  },
+  "final": {
+   "stage": "ROTATE",
+   "yaw_deg": -24.41347501147007,
+   "lowest_z_mm": 2.210754060361163,
+   "seating_gap_mm": 0.21075406036116284,
+   "centre_offset_mm": 3.4495070818994617e-09,
+   "tilt_deg": 8.537736462515939e-07
+  },
+  "max_insertion_depth_mm": 5.702761072812499,
+  "cad_seat_depth_mm": 5.702761072629338,
+  "max_penetration_mm": 1.8316126393358445e-10,
+  "touching_samples": 0,
+  "first_unacceptable": null,
+  "cad_seat_yaw_deg": -24.38826286693761
+ },
+ "V1_L2": {
+  "functional_outcome": "PASS",
+  "strict_outcome": "PASS",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": true,
+   "insert_completed": true,
+   "rotate_completed": true,
+   "final_yaw_within_tol_of_cad_seat": true,
+   "retained_by_fitting": true,
+   "seated_at_insert_end": true
+  },
+  "final": {
+   "stage": "ROTATE",
+   "yaw_deg": -24.388262866944245,
+   "lowest_z_mm": 2.210754060367791,
+   "seating_gap_mm": 0.21075406036779087,
+   "centre_offset_mm": 3.450574015456899e-09,
+   "tilt_deg": 1.2074182697257333e-06
+  },
+  "max_insertion_depth_mm": 5.702761072649528,
+  "cad_seat_depth_mm": 5.702761072629338,
+  "max_penetration_mm": 2.0190071836623247e-11,
+  "touching_samples": 0,
+  "first_unacceptable": null,
+  "cad_seat_yaw_deg": -24.38826286693761
+ },
+ "V2_L0": {
+  "functional_outcome": "FAIL",
+  "strict_outcome": "FAIL",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": false,
+   "insert_completed": true,
+   "rotate_completed": false,
+   "final_yaw_within_tol_of_cad_seat": false,
+   "retained_by_fitting": true,
+   "seated_at_insert_end": false
+  },
+  "final": {
+   "stage": "ROTATE",
+   "yaw_deg": -1.3557776465781899,
+   "lowest_z_mm": 2.293891349630889,
+   "seating_gap_mm": 0.29389134963088903,
+   "centre_offset_mm": 1.6411620965722884e-12,
+   "tilt_deg": 8.537736462515939e-07
+  },
+  "max_insertion_depth_mm": 5.45116660900152,
+  "cad_seat_depth_mm": 5.702761072629338,
+  "max_penetration_mm": 0.04268732940109512,
+  "touching_samples": 1,
+  "first_unacceptable": {
+   "stage": "ROTATE",
+   "sample": 126,
+   "t_s": 2.519720037,
+   "status": "INTERFERENCE",
+   "contact": "feature",
+   "pen_mm": 0.04268732940109512,
+   "regions": {
+    "feature": 0.0427,
+    "bore_wall": 0.0112
+   },
+   "lat_mm": 1.8619006149354547e-12,
+   "bottom_z_mm": 2.294001933630853,
+   "yaw_deg": -1.4987253786168822
+  },
+  "cad_seat_yaw_deg": 24.38826286693761
+ },
+ "V2_L1": {
+  "functional_outcome": "PASS",
+  "strict_outcome": "PASS",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": true,
+   "insert_completed": true,
+   "rotate_completed": true,
+   "final_yaw_within_tol_of_cad_seat": true,
+   "retained_by_fitting": true,
+   "seated_at_insert_end": true
+  },
+  "final": {
+   "stage": "ROTATE",
+   "yaw_deg": 24.363050722410776,
+   "lowest_z_mm": 2.210754060919142,
+   "seating_gap_mm": 0.21075406091914184,
+   "centre_offset_mm": 3.914217216593362e-09,
+   "tilt_deg": 0.0
+  },
+  "max_insertion_depth_mm": 5.702761072648942,
+  "cad_seat_depth_mm": 5.702761072629338,
+  "max_penetration_mm": 1.960365203501624e-11,
+  "touching_samples": 0,
+  "first_unacceptable": null,
+  "cad_seat_yaw_deg": 24.38826286693761
+ },
+ "V2_L2": {
+  "functional_outcome": "PASS",
+  "strict_outcome": "PASS",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": true,
+   "insert_completed": true,
+   "rotate_completed": true,
+   "final_yaw_within_tol_of_cad_seat": true,
+   "retained_by_fitting": true,
+   "seated_at_insert_end": true
+  },
+  "final": {
+   "stage": "ROTATE",
+   "yaw_deg": 24.38826286693717,
+   "lowest_z_mm": 2.210754060915873,
+   "seating_gap_mm": 0.2107540609158729,
+   "centre_offset_mm": 3.917842356133866e-09,
+   "tilt_deg": 0.0
+  },
+  "max_insertion_depth_mm": 5.702761072642603,
+  "cad_seat_depth_mm": 5.702761072629338,
+  "max_penetration_mm": 1.326494469822137e-11,
+  "touching_samples": 0,
+  "first_unacceptable": null,
+  "cad_seat_yaw_deg": 24.38826286693761
+ },
+ "V3_L0": {
+  "functional_outcome": "FAIL",
+  "strict_outcome": "FAIL",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": false,
+   "insert_completed": true,
+   "rotate_completed": false,
+   "final_yaw_within_tol_of_cad_seat": false,
+   "retained_by_fitting": true,
+   "seated_at_insert_end": false
+  },
+  "final": {
+   "stage": "ROTATE",
+   "yaw_deg": -1.3557776465781899,
+   "lowest_z_mm": 7.293891349629848,
+   "seating_gap_mm": 5.293891349629848,
+   "centre_offset_mm": 5.721958498152797e-13,
+   "tilt_deg": 0.0
+  },
+  "max_insertion_depth_mm": 5.451166608998871,
+  "cad_seat_depth_mm": 10.702761072629338,
+  "max_penetration_mm": 0.0470679648908765,
+  "touching_samples": 1,
+  "first_unacceptable": {
+   "stage": "ROTATE",
+   "sample": 126,
+   "t_s": 2.519720037,
+   "status": "INTERFERENCE",
+   "contact": "feature",
+   "pen_mm": 0.0470679648908765,
+   "regions": {
+    "feature": 0.0471
+   },
+   "lat_mm": 5.266250202865052e-13,
+   "bottom_z_mm": 7.294001933629788,
+   "yaw_deg": -1.4987253786169958
+  },
+  "cad_seat_yaw_deg": -24.326262866937608
+ },
+ "V3_L1": {
+  "functional_outcome": "PASS",
+  "strict_outcome": "PASS",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": true,
+   "insert_completed": true,
+   "rotate_completed": true,
+   "final_yaw_within_tol_of_cad_seat": true,
+   "retained_by_fitting": true,
+   "seated_at_insert_end": true
+  },
+  "final": {
+   "stage": "ROTATE",
+   "yaw_deg": -24.351475011463833,
+   "lowest_z_mm": 2.2107540606068565,
+   "seating_gap_mm": 0.21075406060685653,
+   "centre_offset_mm": 3.764730704426725e-09,
+   "tilt_deg": 1.4787793334710982e-06
+  },
+  "max_insertion_depth_mm": 10.702761072662133,
+  "cad_seat_depth_mm": 10.702761072629338,
+  "max_penetration_mm": 3.27948779244025e-11,
+  "touching_samples": 0,
+  "first_unacceptable": null,
+  "cad_seat_yaw_deg": -24.326262866937608
+ },
+ "V3_L2": {
+  "functional_outcome": "PASS",
+  "strict_outcome": "PASS",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": true,
+   "insert_completed": true,
+   "rotate_completed": true,
+   "final_yaw_within_tol_of_cad_seat": true,
+   "retained_by_fitting": true,
+   "seated_at_insert_end": true
+  },
+  "final": {
+   "stage": "ROTATE",
+   "yaw_deg": -24.326262866937952,
+   "lowest_z_mm": 2.2107540605937395,
+   "seating_gap_mm": 0.21075406059373947,
+   "centre_offset_mm": 3.766345731508659e-09,
+   "tilt_deg": 8.537736462515939e-07
+  },
+  "max_insertion_depth_mm": 10.702761072632445,
+  "cad_seat_depth_mm": 10.702761072629338,
+  "max_penetration_mm": 3.107292201320888e-12,
+  "touching_samples": 0,
+  "first_unacceptable": null,
+  "cad_seat_yaw_deg": -24.326262866937608
+ },
+ "V4_L0": {
+  "functional_outcome": "FAIL",
+  "strict_outcome": "FAIL",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": false,
+   "insert_completed": true,
+   "rotate_completed": false,
+   "final_yaw_within_tol_of_cad_seat": false,
+   "retained_by_fitting": true,
+   "seated_at_insert_end": false
+  },
+  "final": {
+   "stage": "ROTATE",
+   "yaw_deg": -4.989716440849406,
+   "lowest_z_mm": 7.295911203635711,
+   "seating_gap_mm": 5.295911203635711,
+   "centre_offset_mm": 4.89569330860403e-12,
+   "tilt_deg": 8.537736462515939e-07
+  },
+  "max_insertion_depth_mm": 5.451166609001763,
+  "cad_seat_depth_mm": 10.702761072629338,
+  "max_penetration_mm": 0.030374910823852547,
+  "touching_samples": 1,
+  "first_unacceptable": {
+   "stage": "ROTATE",
+   "sample": 147,
+   "t_s": 2.939673377,
+   "status": "INTERFERENCE",
+   "contact": "bore_wall",
+   "pen_mm": 0.030374910823852547,
+   "regions": {
+    "bore_wall": 0.0304
+   },
+   "lat_mm": 4.324172596470543e-12,
+   "bottom_z_mm": 7.295984734634938,
+   "yaw_deg": -5.13980824120739
+  },
+  "cad_seat_yaw_deg": -23.576262866937608
+ },
+ "V4_L1": {
+  "functional_outcome": "FAIL",
+  "strict_outcome": "FAIL",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": false,
+   "insert_completed": false,
+   "rotate_completed": false,
+   "final_yaw_within_tol_of_cad_seat": false,
+   "retained_by_fitting": false,
+   "seated_at_insert_end": false
+  },
+  "final": {
+   "stage": "INSERT",
+   "yaw_deg": 0.0007161903396024627,
+   "lowest_z_mm": 6.317262954790417,
+   "seating_gap_mm": 4.317262954790417,
+   "centre_offset_mm": 5.123967932556229e-12,
+   "tilt_deg": 1.4787793334710982e-06
+  },
+  "max_insertion_depth_mm": 6.385498117838921,
+  "cad_seat_depth_mm": 10.702761072629338,
+  "max_penetration_mm": 0.11301546468998887,
+  "touching_samples": 0,
+  "first_unacceptable": {
+   "stage": "INSERT",
+   "sample": 212,
+   "t_s": 4.239646224,
+   "status": "INTERFERENCE",
+   "contact": "feature",
+   "pen_mm": 0.11301546468998887,
+   "regions": {
+    "feature": 0.113,
+    "bore_wall": 0.0431
+   },
+   "lat_mm": 5.740239562294621e-12,
+   "bottom_z_mm": 6.130345734668658,
+   "yaw_deg": 0.0007615972995722586
+  },
+  "cad_seat_yaw_deg": -23.576262866937608
+ },
+ "V4_L2": {
+  "functional_outcome": "PASS",
+  "strict_outcome": "PASS",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": true,
+   "insert_completed": true,
+   "rotate_completed": true,
+   "final_yaw_within_tol_of_cad_seat": true,
+   "retained_by_fitting": true,
+   "seated_at_insert_end": true
+  },
+  "final": {
+   "stage": "ROTATE",
+   "yaw_deg": -23.576262866937185,
+   "lowest_z_mm": 2.210754060429435,
+   "seating_gap_mm": 0.2107540604294349,
+   "centre_offset_mm": 3.5391912751304874e-09,
+   "tilt_deg": 0.0
+  },
+  "max_insertion_depth_mm": 10.702761072630306,
+  "cad_seat_depth_mm": 10.702761072629338,
+  "max_penetration_mm": 9.687806112879116e-13,
+  "touching_samples": 0,
+  "first_unacceptable": null,
+  "cad_seat_yaw_deg": -23.576262866937608
+ },
+ "V5_L0": {
+  "functional_outcome": "FAIL",
+  "strict_outcome": "FAIL",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": false,
+   "insert_completed": true,
+   "rotate_completed": false,
+   "final_yaw_within_tol_of_cad_seat": false,
+   "retained_by_fitting": true,
+   "seated_at_insert_end": false
+  },
+  "final": {
+   "stage": "ROTATE",
+   "yaw_deg": -4.98971644084952,
+   "lowest_z_mm": 17.295911203628915,
+   "seating_gap_mm": 15.295911203628915,
+   "centre_offset_mm": 6.206335383118183e-13,
+   "tilt_deg": 0.0
+  },
+  "max_insertion_depth_mm": 5.4511666090616515,
+  "cad_seat_depth_mm": 20.702761072629336,
+  "max_penetration_mm": 0.029863981871403933,
+  "touching_samples": 1,
+  "first_unacceptable": {
+   "stage": "ROTATE",
+   "sample": 147,
+   "t_s": 2.939673377,
+   "status": "INTERFERENCE",
+   "contact": "bore_wall",
+   "pen_mm": 0.029863981871403933,
+   "regions": {
+    "bore_wall": 0.0299
+   },
+   "lat_mm": 4.163336342344337e-13,
+   "bottom_z_mm": 17.29598473462944,
+   "yaw_deg": -5.139808241207447
+  },
+  "cad_seat_yaw_deg": 0.0
+ },
+ "V5_L1": {
+  "functional_outcome": "FAIL",
+  "strict_outcome": "FAIL",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": false,
+   "insert_completed": false,
+   "rotate_completed": false,
+   "final_yaw_within_tol_of_cad_seat": true,
+   "retained_by_fitting": false,
+   "seated_at_insert_end": false
+  },
+  "final": {
+   "stage": "INSERT",
+   "yaw_deg": 0.0004796655188954446,
+   "lowest_z_mm": 16.564737927363232,
+   "seating_gap_mm": 14.564737927363232,
+   "centre_offset_mm": 1.3943939601568091e-10,
+   "tilt_deg": 8.537736462515939e-07
+  },
+  "max_insertion_depth_mm": 6.138023145266104,
+  "cad_seat_depth_mm": 20.702761072629336,
+  "max_penetration_mm": 0.026050799682524068,
+  "touching_samples": 0,
+  "first_unacceptable": {
+   "stage": "INSERT",
+   "sample": 196,
+   "t_s": 3.919672924,
+   "status": "INTERFERENCE",
+   "contact": "bore_wall",
+   "pen_mm": 0.026050799682524068,
+   "regions": {
+    "bore_wall": 0.0261
+   },
+   "lat_mm": 1.496514026448895e-10,
+   "bottom_z_mm": 16.191674889572976,
+   "yaw_deg": 0.00046798262727065776
+  },
+  "cad_seat_yaw_deg": 0.0
+ },
+ "V5_L2": {
+  "functional_outcome": "FAIL",
+  "strict_outcome": "FAIL",
+  "criteria": {
+   "within_ur3e_joint_speed_limits": true,
+   "no_unacceptable_contact": false,
+   "insert_completed": false,
+   "rotate_completed": false,
+   "final_yaw_within_tol_of_cad_seat": false,
+   "retained_by_fitting": false,
+   "seated_at_insert_end": false
+  },
+  "final": {
+   "stage": "INSERT",
+   "yaw_deg": -11.5464999999773,
+   "lowest_z_mm": 13.853891673702538,
+   "seating_gap_mm": 11.853891673702538,
+   "centre_offset_mm": 5.818528609769542e-09,
+   "tilt_deg": 1.2074182697257333e-06
+  },
+  "max_insertion_depth_mm": 8.848869398926798,
+  "cad_seat_depth_mm": 20.702761072629336,
+  "max_penetration_mm": 0.20158167317271164,
+  "touching_samples": 1,
+  "first_unacceptable": {
+   "stage": "INSERT",
+   "sample": 203,
+   "t_s": 4.059661242,
+   "status": "INTERFERENCE",
+   "contact": "bore_wall",
+   "pen_mm": 0.20158167317271164,
+   "regions": {
+    "bore_wall": 0.2016
+   },
+   "lat_mm": 1.8049564141038065e-10,
+   "bottom_z_mm": 13.45555783523025,
+   "yaw_deg": -11.54649999999981
+  },
+  "cad_seat_yaw_deg": 0.0
+ }
+}

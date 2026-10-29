@@ -83,3 +83,6 @@ Fake hardware and the offline preview agree exactly. Executed end states match t
 | **Strict / functional outcome** | **FAIL** (not seated) / **PASS** |
 
 **Interpretation (kinematic):** the 0.29 mm gap does not stop the locking rotation. Under the ring, V1 has 0.50 mm of vertical play (bottom z 2.00–2.50 mm); the tab rotates freely within it. At the end of the demonstrated rotation, the CDMP lifts 0.23 mm. Starting 0.29 mm high, that pulls the tab up against the ring underside: the retaining feature takes the load. The margin is small (0.015 mm overlap vs 0.02 mm tolerance). With a seated start, the same lift would leave 0.27 mm clearance. In hardware this is a real upward pull on a locked part, which compliance absorbs; a rigid simulation cannot represent that.
+
+## Figures
+`python3 scripts/figures/make_stage8_figures.py` → `docs/figures/stage8_insert_A_B1_B2.png` (centre offset and depth during INSERT) and `docs/figures/stage8_b2r_rotate.png` (B2R rotation and height, with the ring-underside contact window).

@@ -1,0 +1,99 @@
+{
+  "variant": "V5",
+  "level": "L0",
+  "stages": {
+    "INSERT": {
+      "samples_commanded": 651,
+      "samples_feasible": 651,
+      "commanded_depth_mm": 5.416718620000005,
+      "cad_seat_depth_mm": 20.702761072629336,
+      "depth_scale": 1.0,
+      "max_unused_commanded_descent_mm": 0.0,
+      "seated": false,
+      "end_seating_gap_mm": 15.28604245262925
+    },
+    "ROTATE": {
+      "samples_commanded": 851,
+      "samples_feasible": 147,
+      "commanded_rotation_deg": -24.388262866938312,
+      "goal_yaw_deg": -24.38826286693761,
+      "started_seated": false
+    }
+  },
+  "first_unacceptable": {
+    "stage": "ROTATE",
+    "sample": 147,
+    "t_s": 2.939673377,
+    "status": "INTERFERENCE",
+    "contact": "bore_wall",
+    "pen_mm": 0.029863981871403933,
+    "regions": {
+      "bore_wall": 0.0299
+    },
+    "lat_mm": 4.163336342344337e-13,
+    "bottom_z_mm": 17.29598473462944,
+    "yaw_deg": -5.139808241207447
+  },
+  "ik_error": null,
+  "final": {
+    "stage": "ROTATE",
+    "yaw_deg": -4.98971644084952,
+    "lowest_z_mm": 17.295911203628915,
+    "seating_gap_mm": 15.295911203628915,
+    "centre_offset_mm": 6.206335383118183e-13,
+    "tilt_deg": 0.0
+  },
+  "max_insertion_depth_mm": 5.4511666090616515,
+  "cad_seat_depth_mm": 20.702761072629336,
+  "min_clearance_mm": 0.0,
+  "max_penetration_mm": 0.029863981871403933,
+  "touching_samples": 1,
+  "cad_seat_yaw_deg": 0.0,
+  "peak_joint_speed_deg_s": [
+    0.06840361080967894,
+    0.10278945487375891,
+    1.4539169407761763,
+    1.4167729555218183,
+    0.12975835186593798,
+    9.448529829557126
+  ],
+  "peak_speed_fraction_of_limit": 0.026245916193214237,
+  "criteria": {
+    "within_ur3e_joint_speed_limits": true,
+    "no_unacceptable_contact": false,
+    "insert_completed": true,
+    "rotate_completed": false,
+    "final_yaw_within_tol_of_cad_seat": false,
+    "retained_by_fitting": true,
+    "seated_at_insert_end": false
+  },
+  "functional_outcome": "FAIL",
+  "strict_outcome": "FAIL",
+  "cad_features": {
+    "seat_corridor_deg": null,
+    "lock_end_deg": null,
+    "centre_deg": null,
+    "demo_margin_deg": null,
+    "target_deg": 0.0,
+    "yaw_at_seat_on_path_deg": null,
+    "corridor_closed_at_bottom_z_mm": 13.9,
+    "note": "CAD corridor closes before the seat; seat yaw undefined, 0 deg (slot axis) used as goal"
+  },
+  "start": {
+    "bottom_z_mm": 22.702761072629336,
+    "q": [
+      -1.8272511937618556,
+      -1.96502592117577,
+      -1.1382484129054553,
+      -1.594023042072227,
+      1.575196540508241,
+      -4.9485901420697855
+    ],
+    "grasp_xyz_mm": [
+      -1.0025401761649815,
+      1.9518393954855995,
+      50.79601587197381
+    ]
+  },
+  "type": "KINEMATIC SIMULATION (offline) - not a physical result"
+}

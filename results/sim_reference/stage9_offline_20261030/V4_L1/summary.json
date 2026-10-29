@@ -1,0 +1,97 @@
+{
+  "variant": "V4",
+  "level": "L1",
+  "stages": {
+    "INSERT": {
+      "samples_commanded": 651,
+      "samples_feasible": 212,
+      "commanded_depth_mm": 10.702761072629338,
+      "cad_seat_depth_mm": 10.702761072629338,
+      "depth_scale": 1.9758754004891121,
+      "max_unused_commanded_descent_mm": 0.0,
+      "seated": false,
+      "end_seating_gap_mm": 4.317262954790417
+    },
+    "ROTATE": {
+      "status": "NOT_EXECUTED (INSERT stopped)"
+    }
+  },
+  "first_unacceptable": {
+    "stage": "INSERT",
+    "sample": 212,
+    "t_s": 4.239646224,
+    "status": "INTERFERENCE",
+    "contact": "feature",
+    "pen_mm": 0.11301546468998887,
+    "regions": {
+      "feature": 0.113,
+      "bore_wall": 0.0431
+    },
+    "lat_mm": 5.740239562294621e-12,
+    "bottom_z_mm": 6.130345734668658,
+    "yaw_deg": 0.0007615972995722586
+  },
+  "ik_error": null,
+  "final": {
+    "stage": "INSERT",
+    "yaw_deg": 0.0007161903396024627,
+    "lowest_z_mm": 6.317262954790417,
+    "seating_gap_mm": 4.317262954790417,
+    "centre_offset_mm": 5.123967932556229e-12,
+    "tilt_deg": 1.4787793334710982e-06
+  },
+  "max_insertion_depth_mm": 6.385498117838921,
+  "cad_seat_depth_mm": 10.702761072629338,
+  "min_clearance_mm": 0.0,
+  "max_penetration_mm": 0.11301546468998887,
+  "touching_samples": 0,
+  "cad_seat_yaw_deg": -23.576262866937608,
+  "peak_joint_speed_deg_s": [
+    0.0015661688610234612,
+    0.27725666529303444,
+    2.420439698911823,
+    2.692768985140764,
+    0.003635340930563799,
+    0.0050315462865205
+  ],
+  "peak_speed_fraction_of_limit": 0.013446887216176795,
+  "criteria": {
+    "within_ur3e_joint_speed_limits": true,
+    "no_unacceptable_contact": false,
+    "insert_completed": false,
+    "rotate_completed": false,
+    "final_yaw_within_tol_of_cad_seat": false,
+    "retained_by_fitting": false,
+    "seated_at_insert_end": false
+  },
+  "functional_outcome": "FAIL",
+  "strict_outcome": "FAIL",
+  "cad_features": {
+    "seat_corridor_deg": [
+      -25.688,
+      -17.094
+    ],
+    "lock_end_deg": -25.688,
+    "centre_deg": -21.391,
+    "demo_margin_deg": 2.111737133062391,
+    "target_deg": -23.576262866937608,
+    "yaw_at_seat_on_path_deg": -18.094
+  },
+  "start": {
+    "bottom_z_mm": 12.702761072629338,
+    "q": [
+      -1.7260431124186666,
+      -1.8634331815605485,
+      -1.3679276791313206,
+      -1.471862736455818,
+      1.6071149814258132,
+      -4.86701722494076
+    ],
+    "grasp_xyz_mm": [
+      1.7217711928040058,
+      -0.27359171821250694,
+      41.473953243754316
+    ]
+  },
+  "type": "KINEMATIC SIMULATION (offline) - not a physical result"
+}

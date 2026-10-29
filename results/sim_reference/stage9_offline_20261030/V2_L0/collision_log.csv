@@ -1,0 +1,3 @@
+stage,sample,t_s,status,contact,penetration_mm,regions,v1_centre_offset_mm,v1_lowest_z_mm,v1_yaw_deg,v1_tilt_deg
+ROTATE,125,2.4997,touching,feature,0.0111,"{""feature"": 0.0111}",0.0,2.29389,-1.35578,0.0
+ROTATE,126,2.5197,INTERFERENCE,feature,0.04269,"{""feature"": 0.0427, ""bore_wall"": 0.0112}",0.0,2.294,-1.49873,0.0
