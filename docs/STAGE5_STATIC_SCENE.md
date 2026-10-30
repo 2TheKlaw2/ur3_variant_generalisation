@@ -42,3 +42,15 @@ The robot uses the lab calibration (`config/ur3e_lab_calibration.yaml`). Joints 
 - Trolley mesh (from ur3_lfd, read-only) is off by default; `show_trolley:=true` shows it at `0 -0.2 -1.047` in `base`.
 - Scene objects are not yet in the MoveIt planning scene. That is the next step, with attach/detach and an ACM for resting and seating contacts.
 - `config/pickup_plate.csv` / `placement_plate.csv` still list V5 at +5 mm. The CAD and confirmed geometry give +15 mm. They are left unchanged because the C++ tests read them.
+
+## Plate revision (30 Oct 2026): prongs as a mechanical datum
+
+Both base plates were redesigned (`Basea.STL`, `PlaceAssem.STL`): 141 mm wide (was 70 mm), with two prongs on the side
+away from the robot that butt against the far edge of the aluminium top layer, plus pocket fillets (≤0.35 mm).
+Pocket and fitting positions in the plate frame are unchanged (fittings match the manifest exactly), so the existing
+robot-taught poses and registration still apply. The prongs set plate yaw/parallelism mechanically.
+
+Prong length ≈71 mm beyond the old far edge, but the far-edge gap measured in the current lab setup is 76–77 mm:
+with the prongs butted against the edge, the plates should sit ~5.5 mm farther from the robot than the current
+registration. The simulation keeps the measured registration until the lab calibration (`CALIBRATE_PLATES`) re-measures it.
+Scene validation: 63 checks, 1 FAIL (the known V4 part-in-pocket notch contact).

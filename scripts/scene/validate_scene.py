@@ -157,7 +157,7 @@ def main():
 
     # ---- A. dimensions and units (mm-accurate extents in metres)
     # expected local extents (x = tab/slot axis, y, z) in metres; part tab span differs (V4/V5 revised)
-    exp = {"pickup_plate": (0.200, 0.070, 0.003), "placement_plate": (0.250, 0.070, 0.003)}
+    exp = {"pickup_plate": (0.200, 0.141, 0.003), "placement_plate": (0.250, 0.141, 0.003)}   # 141 = 70 + 71 mm prongs (30 Oct)
     hts_p, hts_f, span = [25, 25, 30, 30, 40], [7, 7, 12, 12, 22], [32.06, 32.06, 32.06, 31.46, 31.46]
     for i in range(5):
         exp[f"pickup_V{i+1}"] = (span[i] / 1000, 0.0275, hts_p[i] / 1000)

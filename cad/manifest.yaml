@@ -10,10 +10,12 @@ assumptions:
 meshes:
   pickup_plate:
     file: pickup_plate/pickup_plate.stl
-    source: Basea.STL (SolidWorks)
+    source: 'Basea.STL (30 Oct 2026 revision: two prongs to the aluminium top-layer
+      far edge, pocket fillets)'
   placement_plate:
     file: placement_plate/placement_plate.stl
-    source: PlaceAssem - Base-1-1.STL
+    source: 'PlaceAssem.STL base body (30 Oct 2026 revision: two prongs to the aluminium
+      top-layer far edge)'
   V1_moving:
     file: moving_parts/V1_moving.stl
     source: Varient1a.STEP via OpenCascade, 0.01 mm / 1 deg
