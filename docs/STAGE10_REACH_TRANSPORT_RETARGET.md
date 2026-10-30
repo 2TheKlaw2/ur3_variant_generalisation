@@ -114,3 +114,32 @@ The fingers clear the part only above ~12 mm opening because the modelled 8.2 mm
 
 The RViz runner `--full` now plays the whole cycle for every variant:
 HOME → REACH → ALIGN_GRIP → GRIP → LIFT → TRANSPORT → ALIGN_INSERT → INSERT → ROTATE → RELEASE (detach, part left seated) → RETREAT → HOME.
+
+## Relocation study (31 Oct 2026): move the whole fixture, re-register, re-plan
+`relocation_study.py` (kinematic simulation only). This tests spatial retargeting after a **correct**
+re-registration: no new demonstration and no re-teaching. The whole fixture (both blue plates and the
+aluminium plate) is moved relative to the robot, about the fixture centre, one displacement at a time.
+For each case, Stage 10 (REACH/TRANSPORT CDMP, arc-height rule) and Stage 9 L2 (INSERT/ROTATE) are
+re-planned for V1–V5 with the same checks as the nominal case.
+
+| Case | Stage 10 V1–V5 | Stage 9 L2 V1–V5 | Arc scale k (V1…V5) |
+|---|---|---|---|
+| nominal | 5/5 | 5/5 | 1.0, 1.0, 1.0, 0.8, 0.6 |
+| x +30 mm | 5/5 | 5/5 | 1.0, 1.0, 1.0, 0.9, 0.7 |
+| x −30 mm | 5/5 | 5/5 | 1.0, 1.0, 0.9, 0.7, **0.5** |
+| 20 mm away from the robot | 5/5 | 5/5 | 1.0, 1.0, 0.9, 0.7, **0.5** |
+| 20 mm closer | 5/5 | 5/5 | 1.0, 1.0, 1.0, 0.9, 0.7 |
+| yaw +5° | 5/5 | 5/5 | 1.0, 1.0, 1.0, 0.8, 0.5 |
+| yaw −5° | 5/5 | 5/5 | 1.0, 1.0, 1.0, 0.9, 0.6 |
+
+Caveats:
+- **V5 at x −30 mm and at 20 mm away:** the rule reached its floor (k = 0.5) with σ_min 0.039 / 0.038,
+  slightly below the 0.04 margin. These cases are IK-feasible and collision-free, but the arc-height rule
+  alone is near its limit there; the far end of the row and further from the robot are the hard directions.
+- Single-axis displacements only (not combined). Arm links were not checked offline. RELEASE/RETREAT was not
+  re-planned per case.
+- Registration **error** is a separate question. With a rigid model and no compliance, a lateral error larger
+  than the radial clearance (0.30 mm V1–V4, 0.35 mm V5) blocks insertion, so registration accuracy (not
+  relocation) is what the lab calibration has to deliver.
+
+Results: `results/sim_reference/relocation_20261031/` (summaries and the moved registrations).

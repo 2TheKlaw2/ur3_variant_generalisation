@@ -1,0 +1,84 @@
+status: PROVISIONAL - derived from TCP measurements, not a verified calibration
+frame: base
+trolley_surface_z_m: 0.0
+trolley_surface_z_source: robot base sits on the trolley top (lab photo 30 Oct 2026)
+fixture_thickness_m: 0.0125
+fixture_thickness_source: ur3_lfd trolley mesh, measured in Bambu Studio (12.5 mm);
+  NOT yet measured on the real plate
+plate_underside_z_m: 0.0125
+pickup_plate:
+  xyz_m:
+  - 0.232131
+  - -0.330716
+  - 0.0125
+  yaw_rad: -3.036244
+  yaw_deg: -173.964
+  source: 'PREDICTED: Kabsch fit of v1_pickup_V1..V5_geometry TCP xy to CAD pocket
+    centres; then moved +5.98 mm away from the robot so the prongs touch the fixture
+    far edge (revised plates, not yet measured in the lab)'
+  fit_residual_mm:
+  - - -0.16
+    - -2.47
+  - - 0.2
+    - 3.35
+  - - 0.66
+    - -0.49
+  - - 0.31
+    - 0.82
+  - - -1.02
+    - -1.22
+  fit_rms_mm: 2.07
+  measured_xyz_m:
+  - 0.22856
+  - -0.34508
+  - 0.0125
+  measured_yaw_rad: -3.12351
+  prong_shift_mm: 5.98
+placement_plate:
+  xyz_m:
+  - -0.022234
+  - -0.356102
+  - 0.0125
+  yaw_rad: -3.036244
+  yaw_deg: -173.964
+  source: 'PREDICTED: origin xy = v1_insertion_end TCP xy; yaw ASSUMED parallel to
+    pickup plate; then moved +9.03 mm away from the robot so the prongs touch the
+    fixture far edge (revised plates, not yet measured in the lab)'
+  measured_xyz_m:
+  - -0.0271
+  - -0.34515
+  - 0.0125
+  measured_yaw_rad: -3.12351
+  prong_shift_mm: 9.03
+environment:
+  fixture_plate:
+    size_m:
+    - 0.5006
+    - 0.32
+    - 0.0125
+    xyz_m:
+    - -0.00258
+    - -0.30125
+    - 0.00625
+    yaw_rad: -3.036244
+    comment: 'slotted aluminium plate: 495 x 320 mm (lab ruler, +/- 1-2 mm), blue
+      plates'' outer ends at its ends, far edge 77 mm beyond the blue plates (thickness
+      from the trolley mesh)'
+  trolley_top:
+    size_m:
+    - 0.8
+    - 0.8
+    - 0.02
+    xyz_m:
+    - -0.00258
+    - -0.10125
+    - -0.0105
+    yaw_rad: -3.12351
+    comment: trolley top under the workspace, top 0.5 mm below the robot mounting
+      plane
+layout: prongs
+relocation:
+  dx_mm: 0
+  dy_mm: -0.0
+  dyaw_deg: 5
+  about: fixture centre; dy in base y (negative = away from the robot here)

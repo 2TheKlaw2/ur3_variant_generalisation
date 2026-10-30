@@ -1,0 +1,125 @@
+{
+ "type": "KINEMATIC SIMULATION (offline) - not a physical result",
+ "cases": {
+  "x+30": {
+   "dx_mm": 30,
+   "dy_base_mm": -0.0,
+   "dyaw_deg": 0,
+   "stage10_reach_transport": {
+    "V1": true,
+    "V2": true,
+    "V3": true,
+    "V4": true,
+    "V5": true
+   },
+   "stage10_failure": {},
+   "stage9_L2": {
+    "V1": "PASS",
+    "V2": "PASS",
+    "V3": "PASS",
+    "V4": "PASS",
+    "V5": "PASS"
+   }
+  },
+  "x-30": {
+   "dx_mm": -30,
+   "dy_base_mm": -0.0,
+   "dyaw_deg": 0,
+   "stage10_reach_transport": {
+    "V1": true,
+    "V2": true,
+    "V3": true,
+    "V4": true,
+    "V5": true
+   },
+   "stage10_failure": {},
+   "stage9_L2": {
+    "V1": "PASS",
+    "V2": "PASS",
+    "V3": "PASS",
+    "V4": "PASS",
+    "V5": "PASS"
+   }
+  },
+  "yaw+5": {
+   "dx_mm": 0,
+   "dy_base_mm": -0.0,
+   "dyaw_deg": 5,
+   "stage10_reach_transport": {
+    "V1": true,
+    "V2": true,
+    "V3": true,
+    "V4": true,
+    "V5": true
+   },
+   "stage10_failure": {},
+   "stage9_L2": {
+    "V1": "PASS",
+    "V2": "PASS",
+    "V3": "PASS",
+    "V4": "PASS",
+    "V5": "PASS"
+   }
+  },
+  "y+20 (away)": {
+   "dx_mm": 0,
+   "dy_base_mm": -20.0,
+   "dyaw_deg": 0,
+   "stage10_reach_transport": {
+    "V1": true,
+    "V2": true,
+    "V3": true,
+    "V4": true,
+    "V5": true
+   },
+   "stage10_failure": {},
+   "stage9_L2": {
+    "V1": "PASS",
+    "V2": "PASS",
+    "V3": "PASS",
+    "V4": "PASS",
+    "V5": "PASS"
+   }
+  },
+  "y-20 (closer)": {
+   "dx_mm": 0,
+   "dy_base_mm": 20.0,
+   "dyaw_deg": 0,
+   "stage10_reach_transport": {
+    "V1": true,
+    "V2": true,
+    "V3": true,
+    "V4": true,
+    "V5": true
+   },
+   "stage10_failure": {},
+   "stage9_L2": {
+    "V1": "PASS",
+    "V2": "PASS",
+    "V3": "PASS",
+    "V4": "PASS",
+    "V5": "PASS"
+   }
+  },
+  "yaw-5": {
+   "dx_mm": 0,
+   "dy_base_mm": -0.0,
+   "dyaw_deg": -5,
+   "stage10_reach_transport": {
+    "V1": true,
+    "V2": true,
+    "V3": true,
+    "V4": true,
+    "V5": true
+   },
+   "stage10_failure": {},
+   "stage9_L2": {
+    "V1": "PASS",
+    "V2": "PASS",
+    "V3": "PASS",
+    "V4": "PASS",
+    "V5": "PASS"
+   }
+  }
+ }
+}

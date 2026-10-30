@@ -1,0 +1,556 @@
+{
+ "type": "KINEMATIC SIMULATION (offline) - not a physical result",
+ "method": "Victor Hernandez-Moreno CartesianDMPs, trained once per skill on the V1 demo; goal change per variant",
+ "cdmp_params": {
+  "alpha_s": 7.0,
+  "k_gain": 100.0,
+  "rbfs_pSec": 4.0
+ },
+ "reach_demo": "demonstrations/processed/v1_reach_001_motion.csv",
+ "transport_demo": "demonstrations/processed/v1_transport_001_motion.csv",
+ "demo_durations_s": {
+  "reach": 15.939680685,
+  "transport": 12.399829443
+ },
+ "grasp_sources": {
+  "1": "config/trajectories/v1/v1_align_to_grip_joint_plan_001.csv (last row), as Stage 6-8",
+  "2": "config/saved_poses/v1_pickup_V2_geometry.yaml",
+  "3": "config/saved_poses/v1_pickup_V3_geometry.yaml",
+  "4": "config/saved_poses/v1_pickup_V4_geometry.yaml",
+  "5": "config/saved_poses/v1_pickup_V5_geometry.yaml"
+ },
+ "layout": "prongs",
+ "collision_scope": "RG2 links (+ attached part) vs every scene object; arm links not checked offline",
+ "variants": {
+  "V1": {
+   "tau_reach": 2.0,
+   "tau_transport": 2.0,
+   "transport_z_scale": 1.0,
+   "z_scale_search": [
+    {
+     "z_scale": 1.0,
+     "ik": true,
+     "sigma_min": 0.0689
+    }
+   ],
+   "transport_sigma_min": 0.0689,
+   "reach_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     0.08065468530819964,
+     0.05566392628352582
+    ],
+    "final_goal_err_mm_deg": [
+     0.08065468530819964,
+     0.05566392628352582
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "transport_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     0.26966282469878683,
+     0.10582024311061365
+    ],
+    "final_goal_err_mm_deg": [
+     0.26966282469878683,
+     0.10582024311061365
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "durations_s": {
+    "REACH": 31.879361370000503,
+    "ALIGN_GRIP": 1.0,
+    "LIFT": 3.0,
+    "TRANSPORT": 24.799658886000056,
+    "ALIGN_INSERT": 1.0
+   },
+   "peak_joint_speed_rad_s": {
+    "REACH": 0.3025,
+    "ALIGN_GRIP": 0.002,
+    "LIFT": 0.0851,
+    "TRANSPORT": 0.4144,
+    "ALIGN_INSERT": 0.0036
+   },
+   "max_joint_step_rad": {
+    "REACH": 0.00605,
+    "ALIGN_GRIP": 4e-05,
+    "LIFT": 0.0017,
+    "TRANSPORT": 0.00829,
+    "ALIGN_INSERT": 7e-05
+   },
+   "within_physical_speed_guard": false,
+   "align_grip_correction_mm": 0.08065468530819964,
+   "align_insert_correction_mm": 0.26966282469878683,
+   "handover_to_stage9_joint_gap_rad": 6.727951529228449e-14,
+   "failure": null,
+   "transport_min_tcp_z_mm": 45.62774636785565,
+   "collision": {
+    "REACH": {
+     "samples_checked": 161,
+     "min_clearance_mm": 2.973,
+     "closest_pair": "r_inner_finger<->pickup_V1",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "ALIGN_GRIP": {
+     "samples_checked": 51,
+     "min_clearance_mm": 9.017,
+     "closest_pair": "r_inner_finger<->pickup_V1",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "LIFT": {
+     "samples_checked": 151,
+     "min_clearance_mm": 0.604,
+     "closest_pair": "pickup_V1<->pickup_plate",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "TRANSPORT": {
+     "samples_checked": 125,
+     "min_clearance_mm": 0.966,
+     "closest_pair": "pickup_V1<->fitting_V1",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "ALIGN_INSERT": {
+     "samples_checked": 51,
+     "min_clearance_mm": 1.09,
+     "closest_pair": "pickup_V1<->fitting_V1",
+     "first_collision": null,
+     "collision_free": true
+    }
+   },
+   "PASS": true
+  },
+  "V2": {
+   "tau_reach": 2.0,
+   "tau_transport": 2.0,
+   "transport_z_scale": 1.0,
+   "z_scale_search": [
+    {
+     "z_scale": 1.0,
+     "ik": true,
+     "sigma_min": 0.0802
+    }
+   ],
+   "transport_sigma_min": 0.0802,
+   "reach_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     0.4063589556920026,
+     0.03825186629976015
+    ],
+    "final_goal_err_mm_deg": [
+     0.4063589556920026,
+     0.03825186629976015
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "transport_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     0.29729377561425896,
+     0.10582024311061315
+    ],
+    "final_goal_err_mm_deg": [
+     0.29729377561425896,
+     0.10582024311061315
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "durations_s": {
+    "REACH": 31.879361370000503,
+    "ALIGN_GRIP": 1.0,
+    "LIFT": 3.0,
+    "TRANSPORT": 24.799658886000056,
+    "ALIGN_INSERT": 1.0
+   },
+   "peak_joint_speed_rad_s": {
+    "REACH": 0.3036,
+    "ALIGN_GRIP": 0.0027,
+    "LIFT": 0.0863,
+    "TRANSPORT": 0.3898,
+    "ALIGN_INSERT": 0.0031
+   },
+   "max_joint_step_rad": {
+    "REACH": 0.00607,
+    "ALIGN_GRIP": 5e-05,
+    "LIFT": 0.00173,
+    "TRANSPORT": 0.0078,
+    "ALIGN_INSERT": 6e-05
+   },
+   "within_physical_speed_guard": false,
+   "align_grip_correction_mm": 0.4063589556920026,
+   "align_insert_correction_mm": 0.29729377561425896,
+   "handover_to_stage9_joint_gap_rad": 9.392486788328824e-14,
+   "failure": null,
+   "transport_min_tcp_z_mm": 44.51083569654905,
+   "collision": {
+    "REACH": {
+     "samples_checked": 161,
+     "min_clearance_mm": 2.345,
+     "closest_pair": "r_inner_finger<->pickup_plate",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "ALIGN_GRIP": {
+     "samples_checked": 51,
+     "min_clearance_mm": 7.755,
+     "closest_pair": "r_inner_finger<->pickup_plate",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "LIFT": {
+     "samples_checked": 151,
+     "min_clearance_mm": 0.604,
+     "closest_pair": "pickup_V2<->pickup_plate",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "TRANSPORT": {
+     "samples_checked": 125,
+     "min_clearance_mm": 0.962,
+     "closest_pair": "pickup_V2<->fitting_V2",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "ALIGN_INSERT": {
+     "samples_checked": 51,
+     "min_clearance_mm": 1.09,
+     "closest_pair": "pickup_V2<->fitting_V2",
+     "first_collision": null,
+     "collision_free": true
+    }
+   },
+   "PASS": true
+  },
+  "V3": {
+   "tau_reach": 2.0,
+   "tau_transport": 2.0,
+   "transport_z_scale": 1.0,
+   "z_scale_search": [
+    {
+     "z_scale": 1.0,
+     "ik": true,
+     "sigma_min": 0.0596
+    }
+   ],
+   "transport_sigma_min": 0.0596,
+   "reach_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     0.7413254348258128,
+     0.039631591409346675
+    ],
+    "final_goal_err_mm_deg": [
+     0.7413254348258128,
+     0.039631591409346675
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "transport_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     0.312460909791061,
+     0.10582024311061432
+    ],
+    "final_goal_err_mm_deg": [
+     0.312460909791061,
+     0.10582024311061432
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "durations_s": {
+    "REACH": 31.879361370000503,
+    "ALIGN_GRIP": 1.0,
+    "LIFT": 3.0,
+    "TRANSPORT": 24.799658886000056,
+    "ALIGN_INSERT": 1.0
+   },
+   "peak_joint_speed_rad_s": {
+    "REACH": 0.311,
+    "ALIGN_GRIP": 0.0042,
+    "LIFT": 0.0867,
+    "TRANSPORT": 0.4198,
+    "ALIGN_INSERT": 0.0025
+   },
+   "max_joint_step_rad": {
+    "REACH": 0.00622,
+    "ALIGN_GRIP": 8e-05,
+    "LIFT": 0.00173,
+    "TRANSPORT": 0.0084,
+    "ALIGN_INSERT": 5e-05
+   },
+   "within_physical_speed_guard": false,
+   "align_grip_correction_mm": 0.7413254348258128,
+   "align_insert_correction_mm": 0.312460909791061,
+   "handover_to_stage9_joint_gap_rad": 7.203126983768016e-13,
+   "failure": null,
+   "transport_min_tcp_z_mm": 53.638736131882474,
+   "collision": {
+    "REACH": {
+     "samples_checked": 161,
+     "min_clearance_mm": 3.712,
+     "closest_pair": "r_inner_finger<->pickup_V3",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "ALIGN_GRIP": {
+     "samples_checked": 51,
+     "min_clearance_mm": 8.446,
+     "closest_pair": "r_inner_finger<->pickup_V3",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "LIFT": {
+     "samples_checked": 151,
+     "min_clearance_mm": 0.604,
+     "closest_pair": "pickup_V3<->pickup_plate",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "TRANSPORT": {
+     "samples_checked": 125,
+     "min_clearance_mm": 0.898,
+     "closest_pair": "pickup_V3<->fitting_V3",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "ALIGN_INSERT": {
+     "samples_checked": 51,
+     "min_clearance_mm": 1.075,
+     "closest_pair": "pickup_V3<->fitting_V3",
+     "first_collision": null,
+     "collision_free": true
+    }
+   },
+   "PASS": true
+  },
+  "V4": {
+   "tau_reach": 2.0,
+   "tau_transport": 2.0,
+   "transport_z_scale": 0.9,
+   "z_scale_search": [
+    {
+     "z_scale": 1.0,
+     "ik": true,
+     "sigma_min": 0.033
+    },
+    {
+     "z_scale": 0.9,
+     "ik": true,
+     "sigma_min": 0.0515
+    }
+   ],
+   "transport_sigma_min": 0.0515,
+   "reach_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     1.0915573861453007,
+     0.04806050097881291
+    ],
+    "final_goal_err_mm_deg": [
+     1.0915573861453007,
+     0.04806050097881291
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "transport_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     0.37409018539972977,
+     0.10582024311061376
+    ],
+    "final_goal_err_mm_deg": [
+     0.37409018539972977,
+     0.10582024311061376
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "durations_s": {
+    "REACH": 31.879361370000503,
+    "ALIGN_GRIP": 1.0,
+    "LIFT": 3.0,
+    "TRANSPORT": 24.799658886000056,
+    "ALIGN_INSERT": 1.0
+   },
+   "peak_joint_speed_rad_s": {
+    "REACH": 0.3095,
+    "ALIGN_GRIP": 0.0037,
+    "LIFT": 0.0877,
+    "TRANSPORT": 0.3671,
+    "ALIGN_INSERT": 0.0021
+   },
+   "max_joint_step_rad": {
+    "REACH": 0.00619,
+    "ALIGN_GRIP": 7e-05,
+    "LIFT": 0.00175,
+    "TRANSPORT": 0.00734,
+    "ALIGN_INSERT": 4e-05
+   },
+   "within_physical_speed_guard": false,
+   "align_grip_correction_mm": 1.0915573861453007,
+   "align_insert_correction_mm": 0.37409018539972977,
+   "handover_to_stage9_joint_gap_rad": 1.024758056189512e-11,
+   "failure": null,
+   "transport_min_tcp_z_mm": 57.20384260875922,
+   "collision": {
+    "REACH": {
+     "samples_checked": 161,
+     "min_clearance_mm": 6.626,
+     "closest_pair": "r_inner_finger<->pickup_V4",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "ALIGN_GRIP": {
+     "samples_checked": 51,
+     "min_clearance_mm": 11.2,
+     "closest_pair": "l_inner_finger<->pickup_V4",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "LIFT": {
+     "samples_checked": 151,
+     "min_clearance_mm": 0.834,
+     "closest_pair": "pickup_V4<->pickup_plate",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "TRANSPORT": {
+     "samples_checked": 125,
+     "min_clearance_mm": 1.263,
+     "closest_pair": "pickup_V4<->fitting_V4",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "ALIGN_INSERT": {
+     "samples_checked": 51,
+     "min_clearance_mm": 1.472,
+     "closest_pair": "pickup_V4<->fitting_V4",
+     "first_collision": null,
+     "collision_free": true
+    }
+   },
+   "PASS": true
+  },
+  "V5": {
+   "tau_reach": 2.0,
+   "tau_transport": 2.0,
+   "transport_z_scale": 0.7,
+   "z_scale_search": [
+    {
+     "z_scale": 1.0,
+     "ik": false,
+     "sigma_min": 0.0
+    },
+    {
+     "z_scale": 0.9,
+     "ik": false,
+     "sigma_min": 0.0
+    },
+    {
+     "z_scale": 0.8,
+     "ik": true,
+     "sigma_min": 0.0228
+    },
+    {
+     "z_scale": 0.7,
+     "ik": true,
+     "sigma_min": 0.0445
+    }
+   ],
+   "transport_sigma_min": 0.0445,
+   "reach_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     1.453366325923353,
+     0.03395743527498243
+    ],
+    "final_goal_err_mm_deg": [
+     1.453366325923353,
+     0.03395743527498243
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "transport_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     0.40250907551055104,
+     0.10582024311061325
+    ],
+    "final_goal_err_mm_deg": [
+     0.40250907551055104,
+     0.10582024311061325
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "durations_s": {
+    "REACH": 31.879361370000503,
+    "ALIGN_GRIP": 1.0,
+    "LIFT": 3.0,
+    "TRANSPORT": 24.799658886000056,
+    "ALIGN_INSERT": 1.0
+   },
+   "peak_joint_speed_rad_s": {
+    "REACH": 0.3338,
+    "ALIGN_GRIP": 0.0062,
+    "LIFT": 0.0878,
+    "TRANSPORT": 0.2865,
+    "ALIGN_INSERT": 0.0018
+   },
+   "max_joint_step_rad": {
+    "REACH": 0.00668,
+    "ALIGN_GRIP": 0.00012,
+    "LIFT": 0.00176,
+    "TRANSPORT": 0.00573,
+    "ALIGN_INSERT": 4e-05
+   },
+   "within_physical_speed_guard": false,
+   "align_grip_correction_mm": 1.453366325923353,
+   "align_insert_correction_mm": 0.40250907551055104,
+   "handover_to_stage9_joint_gap_rad": 5.7798876795800425e-11,
+   "failure": null,
+   "transport_min_tcp_z_mm": 76.44966115997943,
+   "collision": {
+    "REACH": {
+     "samples_checked": 161,
+     "min_clearance_mm": 8.249,
+     "closest_pair": "r_inner_finger<->pickup_V5",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "ALIGN_GRIP": {
+     "samples_checked": 51,
+     "min_clearance_mm": 14.715,
+     "closest_pair": "r_inner_finger<->pickup_V5",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "LIFT": {
+     "samples_checked": 151,
+     "min_clearance_mm": 0.915,
+     "closest_pair": "pickup_V5<->pickup_plate",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "TRANSPORT": {
+     "samples_checked": 125,
+     "min_clearance_mm": 1.221,
+     "closest_pair": "pickup_V5<->fitting_V5",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "ALIGN_INSERT": {
+     "samples_checked": 51,
+     "min_clearance_mm": 1.386,
+     "closest_pair": "pickup_V5<->fitting_V5",
+     "first_collision": null,
+     "collision_free": true
+    }
+   },
+   "PASS": true
+  }
+ }
+}
