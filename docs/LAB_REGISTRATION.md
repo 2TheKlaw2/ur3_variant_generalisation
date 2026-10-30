@@ -7,6 +7,11 @@ The simulation places everything relative to the robot from measured robot poses
   - A 0.5° yaw error moves V5 by about 1.7 mm. The radial clearance is 0.25 mm.
   - So the placement plate must be measured before physical V2–V5 trials.
 - **Fixture plate thickness:** 12.5 mm, taken from the trolley model. Measure it.
+- **Ruler measurements (30 Oct, ±1–2 mm):**
+  - The aluminium fixture plate is about 495 × 320 mm. The blue plates' outer ends line up with its ends, and the gap between the blue plates is about 50 mm (the simulation has 51.6 mm).
+  - The far edge of each blue plate is 76–77 mm from the far aluminium edge at three places. So both blue plates are parallel to that edge, and to each other, to roughly ±0.3° (about ±1 mm over 200 mm).
+  - This supports the simulation's assumption that the plates are parallel (they already share one yaw). At V5, ±0.3° is still about ±1 mm against 0.25 mm of clearance, so the robot-based registration below is still needed before physical V2–V5 trials.
+  - `fixture_plate` in the scene now uses these dimensions.
 - **Trolley mesh in RViz:** placed approximately, for looks only. The aluminium plate in the trolley mesh does not line up with the real one. The blue plates are what the robot uses. The simulation already has about 51.6 mm between the blue plates, matching the roughly 50 mm in the lab.
 
 ## Procedure (about 20 min, staged, low speed)

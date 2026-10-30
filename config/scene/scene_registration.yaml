@@ -38,24 +38,25 @@ placement_plate:
 environment:
   fixture_plate:
     size_m:
-    - 0.5806
-    - 0.1546
+    - 0.5006
+    - 0.32
     - 0.0125
     xyz_m:
-    - -0.00175
-    - -0.34697
+    - -0.00258
+    - -0.30125
     - 0.00625
     yaw_rad: -3.12351
-    comment: slotted aluminium plate under both blue plates; footprint = plates +
-      40 mm (minimum; the real plate is larger)
+    comment: 'slotted aluminium plate: 495 x 320 mm (lab ruler, +/- 1-2 mm), blue
+      plates'' outer ends at its ends, far edge 77 mm beyond the blue plates (thickness
+      from the trolley mesh)'
   trolley_top:
     size_m:
     - 0.8
     - 0.8
     - 0.02
     xyz_m:
-    - -0.00175
-    - -0.14697
+    - -0.00258
+    - -0.10125
     - -0.0105
     yaw_rad: -3.12351
     comment: trolley top under the workspace, top 0.5 mm below the robot mounting

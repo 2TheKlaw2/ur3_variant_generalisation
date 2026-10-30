@@ -20,8 +20,8 @@ Method:
     mounting plane). The slotted aluminium fixture plate lies on the trolley top and both
     blue plates lie on it, so plate underside z = trolley_surface_z + fixture thickness.
   * Environment collision boxes (written as STL to cad/environment/):
-      fixture_plate  aluminium plate, top = plate underside z, footprint = both blue plates
-                     + FIXTURE_MARGIN (the real plate is larger; footprint is a minimum)
+      fixture_plate  aluminium plate, top = plate underside z, 495 x 320 mm (lab ruler), blue
+                     plates' outer ends at its ends, far edge FIXTURE_FAR_EDGE beyond the blue plates
       trolley_top    trolley top under the workspace, top 0.5 mm below the mounting plane
                      (avoids a permanent resting contact with the robot base)
 
@@ -51,7 +51,9 @@ def tcp_xyz(name):
 PICKUP_X = (-0.020, 0.180)        # pickup plate extent along its row (V1 axis = 0), 200 mm
 PLACEMENT_X = (-0.025, 0.225)     # placement plate extent, 250 mm
 PLATE_HALF_W = 0.035              # both plates 70 mm wide
-FIXTURE_MARGIN = 0.040            # minimum fixture-plate footprint around the blue plates
+FIXTURE_LENGTH = 0.495            # aluminium fixture plate along the row (lab ruler, 30 Oct 2026)
+FIXTURE_WIDTH = 0.320             # across the row (lab ruler)
+FIXTURE_FAR_EDGE = 0.077          # far edge beyond the blue plates' far long edge (lab ruler, 3 readings 76-77 mm)
 TROLLEY_TOP_SIZE = (0.80, 0.80, 0.020)
 TROLLEY_TOP_DY = 0.20             # shift the trolley-top box toward the robot (covers the base area)
 
@@ -157,14 +159,25 @@ def main():
             for y in (-PLATE_HALF_W, PLATE_HALF_W):
                 corners.append(Rm.T @ (o + Rm @ np.array([x, y])))      # into the yaw frame
     corners = np.array(corners)
-    lo = corners.min(0) - FIXTURE_MARGIN; hi = corners.max(0) + FIXTURE_MARGIN
+    lo = corners.min(0); hi = corners.max(0)                   # blue plates' extent in the yaw frame
+    # Measured in the lab (ruler, +/- 1-2 mm): plate 495 x 320 mm; the blue plates' outer ends line up
+    # with its ends; its far edge (away from the robot) is 77 mm beyond the blue plates' far edge.
+    span = max(FIXTURE_LENGTH, hi[0] - lo[0])
+    robot_y = (Rm.T @ np.zeros(2))[1]
+    far_is_hi = abs(hi[1] - robot_y) > abs(lo[1] - robot_y)
+    if far_is_hi:
+        y_far = hi[1] + FIXTURE_FAR_EDGE; y_near = y_far - FIXTURE_WIDTH
+    else:
+        y_far = lo[1] - FIXTURE_FAR_EDGE; y_near = y_far + FIXTURE_WIDTH
+    lo = np.array([(lo[0] + hi[0]) / 2 - span / 2, min(y_far, y_near)])
+    hi = np.array([(lo[0]) + span, max(y_far, y_near)])
     ctr = Rm @ ((lo + hi) / 2)
     out["environment"] = {
         "fixture_plate": {"size_m": [round(float(hi[0] - lo[0]), 4), round(float(hi[1] - lo[1]), 4), args.fixture_thickness],
                           "xyz_m": [round(float(ctr[0]), 5), round(float(ctr[1]), 5), round(t + args.fixture_thickness / 2, 5)],
                           "yaw_rad": round(yaw, 6),
-                          "comment": f"slotted aluminium plate under both blue plates; footprint = plates + {FIXTURE_MARGIN*1000:.0f} mm "
-                                     "(minimum; the real plate is larger)"},
+                          "comment": "slotted aluminium plate: 495 x 320 mm (lab ruler, +/- 1-2 mm), blue plates' outer ends at its ends, "
+                                     "far edge 77 mm beyond the blue plates (thickness from the trolley mesh)"},
         "trolley_top": {"size_m": list(TROLLEY_TOP_SIZE), "xyz_m": [round(float(ctr[0]), 5), round(float(ctr[1]) + TROLLEY_TOP_DY, 5),
                                                                    round(t - 0.0005 - TROLLEY_TOP_SIZE[2] / 2, 5)],
                         "yaw_rad": round(yaw, 6),
