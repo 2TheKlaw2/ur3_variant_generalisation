@@ -47,7 +47,8 @@ CDMP_PARAMS = {"alpha_s": 7.0, "k_gain": 100.0, "rbfs_pSec": 4.0}       # as Pha
 LIFT_M, LIFT_S = 0.030, 3.0
 ALIGN_S = 1.0                # final straight min-jerk correction from the CDMP end to the exact pose (as V1 ALIGN)
 MAX_STEP_RAD = 0.02          # IK branch-jump guard per 20 ms sample
-PHYS_GUARD_RAD_S = 0.14      # physical pilot joint-speed guard (reported, Stage 6/7)
+PHYS_GUARD_RAD_S = 0.14
+SIGMA_MIN_RULE = 0.04        # z-scale rule: smallest Jacobian singular value along TRANSPORT must stay >= this      # physical pilot joint-speed guard (reported, Stage 6/7)
 CONTACT_MM = 0.0
 POCKET_RELEASE_MM = 2.5      # part<->pickup_plate ignored until the part is this far above its start (pocket 2 mm)
 
@@ -154,6 +155,18 @@ def align(q0, T_goal, calib, name):
     return t, ik_path(q0, [tp.interp_pose(T0, T_goal, s_) for s_ in frac], calib, name)
 
 
+def sigma_min(Q, calib):
+    """Smallest singular value of the numerical 6x6 Jacobian (translation m, rotation rad) over Q."""
+    out = []
+    for q in Q:
+        T0 = uk.tcp(q, calib); J = np.zeros((6, 6))
+        for j in range(6):
+            dq = np.array(q, float); dq[j] += 1e-6
+            J[:, j] = uk._err(uk.tcp(dq, calib), T0) / 1e-6
+        out.append(np.linalg.svd(J, compute_uv=False)[-1])
+    return float(min(out))
+
+
 def speeds(t, Q):
     Q = np.asarray(Q); dt = np.diff(t)[:, None]
     v = np.abs(np.diff(Q, axis=0)) / dt
@@ -240,6 +253,10 @@ def main():
     ap.add_argument("--variants", nargs="+", type=int, default=[1, 2, 3, 4, 5])
     ap.add_argument("--tau", type=float, default=None,
                     help="CDMP time scale for REACH and TRANSPORT (default: smallest, in 0.5 steps, within the 0.14 rad/s guard)")
+    ap.add_argument("--z-scale", default="auto",
+                    help="TRANSPORT: scale of the learned z forcing term (arc height). 'auto' (default): the demo's "
+                         f"amplitude (1.0) unless the path comes closer than sigma_min {SIGMA_MIN_RULE} to a singularity "
+                         "or IK fails; then 0.9, 0.8, ... 0.5 (same rule for every variant). A number fixes it.")
     ap.add_argument("--stride", type=int, default=5, help="collision-check every Nth 20 ms sample (+ the last)")
     ap.add_argument("--out", default=os.path.join(sm.PKG, "results/simulation/stage10_retarget"))
     a = ap.parse_args()
@@ -259,7 +276,7 @@ def main():
                "method": "Victor Hernandez-Moreno CartesianDMPs, trained once per skill on the V1 demo; goal change per variant",
                "cdmp_params": CDMP_PARAMS, "reach_demo": REACH_CSV, "transport_demo": TRANSPORT_CSV,
                "demo_durations_s": {"reach": float(tr[-1]), "transport": float(tt[-1])},
-               "grasp_sources": gsrc, "layout": yaml.safe_load(open(root / "config/scene/scene_registration.yaml")).get("layout"),
+               "grasp_sources": gsrc, "layout": yaml.safe_load(open(sm.registration_path())).get("layout"),
                "collision_scope": "RG2 links (+ attached part) vs every scene object; arm links not checked offline",
                "variants": {}}
     spath = os.path.join(a.out, "stage10_summary.json")
@@ -275,7 +292,10 @@ def main():
         T_home = uk.tcp(q_home, calib)
         st_fail = [None]
 
-        def plan(tau_r, tau_t):
+        w_z0 = trans.wp[2, :].copy()
+
+        def plan(tau_r, tau_t, kz=1.0):
+            trans.wp[2, :] = w_z0 * kz
             t_r, Ts_r, info_r = rollout(reach, pr, qr, T_home, T_grip_i, tau_r)
             t_r, Ts_r = resample(t_r, Ts_r)
             Q_r = ik_path(q_home, Ts_r, calib, "REACH")
@@ -301,23 +321,33 @@ def main():
                 t_ai, Q_ai = align(Q_t[-1], T_start_i, calib, "ALIGN_INSERT")
                 st.append(("ALIGN_INSERT", t_ai, Q_ai))
             st_fail[0] = fail_
+            trans.wp[2, :] = w_z0
             v = {n: speeds(np.asarray(t), Q) for n, t, Q in st}
             return st, v, info_r, info_t, Ts_r, Ts_t
 
+        # arc-height rule (path shape does not depend on tau, so it is chosen at tau 2)
+        kz_tried = []
+        for kz in ([float(a.z_scale)] if a.z_scale != "auto" else [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]):
+            st, v, *_ = plan(2.0, 2.0, kz)
+            sm_ = sigma_min(dict((n, Q) for n, _, Q in st)["TRANSPORT"][::10], calib) if st_fail[0] is None else 0.0
+            kz_tried.append({"z_scale": kz, "ik": st_fail[0] is None, "sigma_min": round(sm_, 4)})
+            if a.z_scale != "auto" or (st_fail[0] is None and sm_ >= SIGMA_MIN_RULE):
+                break
         if a.tau:
             tau_r = tau_t = a.tau
         else:   # temporal scaling: the smallest tau (0.5 steps) that keeps the CDMP stages within the guard
-            _, v1_, *_ = plan(1.0, 1.0)
+            _, v1_, *_ = plan(1.0, 1.0, kz)
             tau_r = max(1.0, math.ceil(2 * v1_["REACH"][0] / PHYS_GUARD_RAD_S) / 2)
             tau_t = max(1.0, math.ceil(2 * v1_["TRANSPORT"][0] / PHYS_GUARD_RAD_S) / 2)
         while True:
-            st, v, info_r, info_t, Ts_r, Ts_t = plan(tau_r, tau_t)
+            st, v, info_r, info_t, Ts_r, Ts_t = plan(tau_r, tau_t, kz)
             if a.tau or (v["REACH"][0] <= PHYS_GUARD_RAD_S and v["TRANSPORT"][0] <= PHYS_GUARD_RAD_S) or max(tau_r, tau_t) >= 10:
                 break
             tau_r += 0.5 * (v["REACH"][0] > PHYS_GUARD_RAD_S); tau_t += 0.5 * (v["TRANSPORT"][0] > PHYS_GUARD_RAD_S)
         S = {n: (t, Q) for n, t, Q in st}
         peak = max(x[0] for x in v.values())
-        res = {"tau_reach": tau_r, "tau_transport": tau_t, "reach_cdmp": info_r, "transport_cdmp": info_t,
+        res = {"tau_reach": tau_r, "tau_transport": tau_t, "transport_z_scale": kz, "z_scale_search": kz_tried,
+               "transport_sigma_min": kz_tried[-1]["sigma_min"], "reach_cdmp": info_r, "transport_cdmp": info_t,
                "durations_s": {n: float(t[-1]) for n, t, _ in st},
                "peak_joint_speed_rad_s": {k: round(x[0], 4) for k, x in v.items()},
                "max_joint_step_rad": {k: round(x[1], 5) for k, x in v.items()},
@@ -347,7 +377,7 @@ def main():
                     w.writerow([n, f"{ti:.3f}"] + [f"{x:.9f}" for x in q])
         c = res["collision"]
         D = res["durations_s"]
-        print(f"V{i}: {'PASS' if res['PASS'] else 'FAIL'}  tau R/T {tau_r}/{tau_t}  REACH {D['REACH']:.1f}s  TRANSPORT {D['TRANSPORT']:.1f}s  "
+        print(f"V{i}: {'PASS' if res['PASS'] else 'FAIL'}  tau R/T {tau_r}/{tau_t}  z-scale {kz} (sigma_min {res['transport_sigma_min']})  REACH {D['REACH']:.1f}s  TRANSPORT {D['TRANSPORT']:.1f}s  "
               f"peak {peak:.3f} rad/s  ALIGN {res['align_grip_correction_mm']:.2f}/{res['align_insert_correction_mm']:.2f} mm  "
               + (f"hand-over gap {res['handover_to_stage9_joint_gap_rad']:.1e} rad  " if st_fail[0] is None
                  else f"STOPPED: {st_fail[0]['reason']} at t={st_fail[0]['t_s']:.1f}s, elbow {st_fail[0]['elbow_rad']} rad  ")

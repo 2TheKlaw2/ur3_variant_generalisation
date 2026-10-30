@@ -33,12 +33,24 @@ np = sm.np
 
 def grasps(objs, calib):
     """V1: the Stage 6-8 grasp (align_to_grip end). V2-V5: the measured pickup geometry poses.
-    Grasp offsets come from where the plates were when those poses were taught (measured layout)."""
+    Grasp offsets come from where the plates were when those poses were taught (measured layout).
+    After a lab calibration session (scene_registration.yaml: poses_dir), all five come from that
+    session's v1_pickup_V<i>_geometry poses, measured on the same plates as the registration."""
     objs = sm.scene_objects(measured=True)
+    reg = yaml.safe_load(open(sm.registration_path()))
+    sess = reg.get("poses_dir")
+    G, src = {}, {}
+    if sess:
+        for i in range(1, 6):
+            p = os.path.join(sess, f"v1_pickup_V{i}_geometry.yaml")
+            q = yaml.safe_load(open(os.path.join(sm.PKG, p)))["arm"]["positions_rad"]
+            G[i] = np.linalg.inv(uk.tcp(q, calib)) @ objs[f"pickup_V{i}"]["T"]
+            src[i] = p
+        return G, src
     rows = list(csv.DictReader(open(os.path.join(sm.PKG, "config/trajectories/v1/v1_align_to_grip_joint_plan_001.csv"))))
     q_grip = [float(rows[-1][j]) for j in lp.JOINTS]
-    G = {1: np.linalg.inv(uk.tcp(q_grip, calib)) @ objs["pickup_V1"]["T"]}
-    src = {1: "config/trajectories/v1/v1_align_to_grip_joint_plan_001.csv (last row), as Stage 6-8"}
+    G[1] = np.linalg.inv(uk.tcp(q_grip, calib)) @ objs["pickup_V1"]["T"]
+    src[1] = "config/trajectories/v1/v1_align_to_grip_joint_plan_001.csv (last row), as Stage 6-8"
     for i in range(2, 6):
         p = f"config/saved_poses/v1_pickup_V{i}_geometry.yaml"
         q = yaml.safe_load(open(os.path.join(sm.PKG, p)))["arm"]["positions_rad"]

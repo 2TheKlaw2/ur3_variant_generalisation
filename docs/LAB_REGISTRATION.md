@@ -40,3 +40,38 @@ The simulation places everything relative to the robot from measured robot poses
 
 ## Why this works
 Every motion is planned relative to where the robot itself measured the parts and fittings, using the same grasp it will insert with. So the simulation and the robot share one frame, and an error in the trolley model does not matter.
+
+## New lab tools (31 Oct 2026)
+**`CALIBRATE_PLATES.sh`: guided and read-only.** It never sends motion; you move the robot in freedrive and run the RG2 from the pendant.
+- Each run creates a dated session `config/calibration/<YYYYmmdd_HHMM>/`. `config/saved_poses` is never touched.
+- Per variant i, the protocol is the matched part as its own probe:
+  1. Grip part i in its pocket exactly as for pickup, and save `v1_pickup_V<i>_geometry`.
+  2. Freedrive it into fitting i (tabs on the slots, entry depth, no twist, never forced), and save `v1_place_V<i>_geometry`.
+  3. Put it back in its pocket and open the RG2.
+- It asks for the fixture thickness, then fits both plates as a dry run (`scene_registration_candidate.yaml` in the session) and reports these checks:
+
+  | Check | Limit |
+  |---|---|
+  | Pickup fit RMS | ≤ 1.5 mm |
+  | Placement fit RMS | ≤ 0.5 mm |
+  | Placement prong tip vs the far edge set by the pickup plate | ≤ 1.5 mm |
+  | Plate yaw difference | ≤ 0.5° |
+
+- The placement fit is **grasp-compensated**: the part's TCP→axis offset, measured at its pocket, is removed at its fitting (same grasp). This removes the main error source of the old TCP-only fit.
+- Self-test: `python3 scripts/scene/calibrate_plates.py --test-from-saved`, using the old poses plus synthetic place poses. Result:
+  - pickup RMS 2.07 mm (same as before);
+  - placement RMS 0.02 mm (grasp-compensated; 1.87 mm without compensation);
+  - prong mismatch 3.05 mm, which correctly flags that the old plates were not butted against one edge.
+- Options: `--resume <session>` to redo a pose; `--variants 1 2` to do only some.
+
+**`UPDATE_SIM.sh config/calibration/<session>` applies a session in one command.** It runs:
+1. registration (the previous file is kept as `scene_registration.before_<session>.yaml`);
+2. scene validation;
+3. Stage 9, all levels;
+4. Stage 10 retargeting (arc-height rule);
+5. RELEASE/RETREAT/HOME;
+6. it then points `results/simulation/stage10_current` at the new plans, which the RViz runner's `--full` uses by default.
+
+Restart the fake robot and MoveIt afterwards so RViz loads the new plate positions. Self-test sessions are refused.
+
+With a session applied, grasp offsets for all five parts come from that session's pickup poses (`run_variants_offline.grasps`). So the plates and the grasps come from one consistent measurement.

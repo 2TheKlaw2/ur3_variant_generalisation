@@ -15,8 +15,17 @@ import yaml
 PKG = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
+REGISTRATION = "config/scene/scene_registration.yaml"
+
+
+def registration_path():
+    """The scene registration in use; SCENE_REGISTRATION=<file> overrides it (relocation studies)."""
+    return os.environ.get("SCENE_REGISTRATION") or os.path.join(PKG, REGISTRATION)
+
+
 def _load(rel):
-    with open(os.path.join(PKG, rel)) as f:
+    path = registration_path() if rel == REGISTRATION else os.path.join(PKG, rel)
+    with open(path) as f:
         return yaml.safe_load(f)
 
 

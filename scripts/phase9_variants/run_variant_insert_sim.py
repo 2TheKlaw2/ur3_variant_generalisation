@@ -14,7 +14,7 @@
 --full: replaces APPROACH/ATTACH/DESCEND with the Stage 10 CDMP-retargeted sequence
   REACH -> ALIGN_GRIP -> GRIP + ATTACH -> LIFT 30 mm -> TRANSPORT -> ALIGN_INSERT
   (joint trajectories from scripts/phase10_full_sequence/retarget_reach_transport.py; it ends exactly
-  on the INSERT/ROTATE start state). V4/V5: plays up to where the TRANSPORT IK fails (elbow singularity), then stops.
+  on the INSERT/ROTATE start state). V1-V5 (31 Oct reference). A plan that stops early (IK failure) is played up to that point.
 
 Sequence per variant:
   HOME -> OPEN -> APPROACH (joint-space, min-jerk) to 40 mm above the Stage 9 start
@@ -208,8 +208,22 @@ def execute(node, i, level, p, calib, objs, run_dir, args):
             res["pre_stages"] = summary
             out8.write_outputs(str(folder), res)
             return res
+        if "INSERT" in full:      # posture-A plans carry INSERT/ROTATE re-solved on their own IK branch
+            feas = [{"q": q, "stage": st, "sample": n_, "t_s": t_}
+                    for st in ("INSERT", "ROTATE") if st in full for n_, (t_, q) in enumerate(zip(*full[st]))]
+            print(f"INSERT/ROTATE: same Cartesian plan, joint solution from {args.full_dir} (posture A)", flush=True)
         node.scene.set_allowed(obj_id, f"fitting_V{i}", True)
-        return finish_insert(node, i, level, p, calib, objs, folder, res, geom, G, feas, summary, obj_id)
+        res = finish_insert(node, i, level, p, calib, objs, folder, res, geom, G, feas, summary, obj_id)
+        rr = Path(args.full_dir) / f"V{i}" / "release_retreat.csv"
+        if res["functional_outcome"] != "PASS":
+            print(f"V{i}: not assembled -> no RELEASE; the part stays in the gripper.", flush=True)
+        elif not rr.exists():
+            print(f"V{i}: no RELEASE/RETREAT plan in {args.full_dir} (run plan_release_retreat.py)", flush=True)
+        else:
+            run_release(node, i, rr, k, calib, summary)
+            res["pre_stages"] = summary
+            out8.write_outputs(str(folder), res)
+        return res
     k = unwrap_to(q_home, [p["q_desc"], [r["q"] for r in feas]])
     if k:
         print(f"  wrist_3 shifted by {k} x 2pi to stay near HOME (same poses)", flush=True)
@@ -238,6 +252,25 @@ def execute(node, i, level, p, calib, objs, run_dir, args):
     return finish_insert(node, i, level, p, calib, objs, folder, res, geom, G, feas, summary, obj_id)
 
 
+def run_release(node, i, path, k, calib, summary):
+    """RELEASE (RG2 to 40 mm, part detached and left seated in the world), RETREAT +30 mm, HOME."""
+    import csv
+    stages = {}
+    for r in csv.DictReader(open(path)):
+        t, q = stages.setdefault(r["stage"], ([], []))
+        t.append(float(r["t_s"])); q.append([float(r[j]) + (2 * math.pi * k if j == JOINTS[5] else 0.0) for j in JOINTS])
+    node.run_gripper("RELEASE", sm.RG2_OPEN_M)
+    node.scene.detach_v1_if_attached(remove=False)          # MoveIt keeps it in the world, seated in its fitting
+    print(f"DETACH: pickup_V{i} left in fitting_V{i}", flush=True)
+    for stage in ("RETREAT", "HOME"):
+        t, q = stages[stage]
+        bad, n = node.check_path(stage, t, q, calib)
+        if bad:
+            raise RuntimeError(f"{stage} collisions (MoveIt): {bad[:3]}")
+        node.run_arm(f"V{i} {stage}", t, q)
+        summary["stages"][stage] = {"samples": len(q), "duration_s": t[-1], "states_checked": n}
+
+
 def load_full(d, i):
     import csv
     f = d / f"V{i}" / "joint_trajectory.csv"
@@ -252,7 +285,7 @@ def load_full(d, i):
 
 def run_full(node, i, full, G, objs, calib, summary):
     obj_id = f"pickup_V{i}"
-    for stage in ("REACH", "ALIGN_GRIP", "LIFT", "TRANSPORT", "ALIGN_INSERT"):
+    for stage in ("RECONFIG", "REACH", "ALIGN_GRIP", "LIFT", "TRANSPORT", "ALIGN_INSERT"):
         if stage not in full:
             continue
         t, q = full[stage]
@@ -325,7 +358,11 @@ def main():
     ap.add_argument("--plan-only", action="store_true", help="Plan and print; no ROS")
     ap.add_argument("--features", default=str(ROOT / "results/cad_features"))
     ap.add_argument("--full", action="store_true", help="whole sequence: Stage 10 CDMP REACH/TRANSPORT before INSERT/ROTATE")
-    ap.add_argument("--full-dir", default=str(ROOT / "results/sim_reference/stage10_retarget_20261030_tau2"))
+    ap.add_argument("--full-dir", default=str(ROOT / "results/simulation/stage10_current")
+                    if (ROOT / "results/simulation/stage10_current").exists()
+                    else str(ROOT / "results/sim_reference/stage10_retarget_20261031_zscale"),
+                    help="Stage 10 plans (default: results/simulation/stage10_current from UPDATE_SIM.sh, "
+                         "else the 31 Oct V1-V5 reference)")
     sim_node.add_speed_arg(ap)
     args = ap.parse_args()
     variants = [1, 2, 3, 4, 5] if args.variant == "all" else [int(args.variant)]
@@ -354,7 +391,9 @@ def main():
                    ["APPROACH      HOME -> 40 mm above the start (joint min-jerk)",
                     "ATTACH        part attached in the gripper (pickup/transport NOT simulated)",
                     f"DESCEND       40 mm straight down, {DESCEND_S:.1f} s min-jerk"])
-                  + [f"INSERT/ROTATE {args.level} plan, original CDMP timestamps"])
+                  + [f"INSERT/ROTATE {args.level} plan, original CDMP timestamps"]
+                  + (["RELEASE       RG2 to 40 mm, part left seated", "RETREAT       +30 mm straight up",
+                      "HOME          joint min-jerk"] if args.full else []))
         if not (args.run or args.auto):
             print("PREFLIGHT PASS — NO ROBOT MOVEMENT. Re-run with --run or --auto."); return 0
         if args.run and input(f"Type START to run {args.level} on V{', V'.join(map(str, variants))}: ").strip() != "START":

@@ -1,0 +1,267 @@
+{
+ "type": "KINEMATIC SIMULATION (offline) - not a physical result",
+ "source_stage9": "/home/claude/ur3_variant_generalisation/results/sim_reference/stage9_offline_20261030_prongs",
+ "level": "L2",
+ "variants": {
+  "V1": {
+   "final_q": [
+    -1.2993241897251961,
+    -1.6996526885785967,
+    -1.6638678015290684,
+    -1.3127685257612296,
+    1.6023380326335412,
+    -4.026575006536322
+   ],
+   "RELEASE": {
+    "min_clearance_other_mm": 3.08,
+    "closest_pair": "l_inner_finger<->fitting_V1",
+    "first_collision": null,
+    "fingers_clear_part_at_width_mm": 14.2,
+    "collision_free": true
+   },
+   "RETREAT": {
+    "samples_checked": 152,
+    "min_clearance_mm": 6.916,
+    "closest_pair": "r_inner_finger<->fitting_V1",
+    "first_collision": null,
+    "collision_free": true
+   },
+   "HOME": {
+    "samples_checked": 217,
+    "min_clearance_mm": 22.301,
+    "closest_pair": "r_inner_finger<->pickup_V1",
+    "first_collision": null,
+    "collision_free": true,
+    "duration_s": 8.592365403254107
+   },
+   "arm_proxy": {
+    "min_elbow_wrist_z_above_fixture_mm": 245.4,
+    "ok": true
+   },
+   "joint_limits": {
+    "ok": true,
+    "per_joint": {
+     "shoulder_pan": true,
+     "shoulder_lift": true,
+     "elbow": true,
+     "wrist_1": true,
+     "wrist_2": true,
+     "wrist_3": true
+    }
+   },
+   "peak_joint_speed_rad_s": {
+    "RETREAT": 0.087,
+    "HOME": 0.3
+   },
+   "PASS": true
+  },
+  "V2": {
+   "final_q": [
+    -1.4367018956036668,
+    -1.7121323293925834,
+    -1.6550319700348317,
+    -1.3079470792260544,
+    1.5945355909336376,
+    -5.013977455652057
+   ],
+   "RELEASE": {
+    "min_clearance_other_mm": 1.226,
+    "closest_pair": "r_inner_finger<->fitting_V2",
+    "first_collision": null,
+    "fingers_clear_part_at_width_mm": 18.1,
+    "collision_free": true
+   },
+   "RETREAT": {
+    "samples_checked": 152,
+    "min_clearance_mm": 6.714,
+    "closest_pair": "r_inner_finger<->fitting_V2",
+    "first_collision": null,
+    "collision_free": true
+   },
+   "HOME": {
+    "samples_checked": 218,
+    "min_clearance_mm": 21.391,
+    "closest_pair": "l_inner_finger<->pickup_V2",
+    "first_collision": null,
+    "collision_free": true,
+    "duration_s": 8.62406253897581
+   },
+   "arm_proxy": {
+    "min_elbow_wrist_z_above_fixture_mm": 244.3,
+    "ok": true
+   },
+   "joint_limits": {
+    "ok": true,
+    "per_joint": {
+     "shoulder_pan": true,
+     "shoulder_lift": true,
+     "elbow": true,
+     "wrist_1": true,
+     "wrist_2": true,
+     "wrist_3": true
+    }
+   },
+   "peak_joint_speed_rad_s": {
+    "RETREAT": 0.087,
+    "HOME": 0.3
+   },
+   "PASS": true
+  },
+  "V3": {
+   "final_q": [
+    -1.5463754653553674,
+    -1.801487023487868,
+    -1.5142435034525932,
+    -1.386523388316589,
+    1.5610654494460008,
+    -4.27505636204141
+   ],
+   "RELEASE": {
+    "min_clearance_other_mm": 1.278,
+    "closest_pair": "r_inner_finger<->fitting_V3",
+    "first_collision": null,
+    "fingers_clear_part_at_width_mm": 12.2,
+    "collision_free": true
+   },
+   "RETREAT": {
+    "samples_checked": 152,
+    "min_clearance_mm": 4.99,
+    "closest_pair": "r_inner_finger<->fitting_V3",
+    "first_collision": null,
+    "collision_free": true
+   },
+   "HOME": {
+    "samples_checked": 206,
+    "min_clearance_mm": 21.531,
+    "closest_pair": "r_inner_finger<->pickup_V3",
+    "first_collision": null,
+    "collision_free": true,
+    "duration_s": 8.141474766257922
+   },
+   "arm_proxy": {
+    "min_elbow_wrist_z_above_fixture_mm": 248.6,
+    "ok": true
+   },
+   "joint_limits": {
+    "ok": true,
+    "per_joint": {
+     "shoulder_pan": true,
+     "shoulder_lift": true,
+     "elbow": true,
+     "wrist_1": true,
+     "wrist_2": true,
+     "wrist_3": true
+    }
+   },
+   "peak_joint_speed_rad_s": {
+    "RETREAT": 0.086,
+    "HOME": 0.3
+   },
+   "PASS": true
+  },
+  "V4": {
+   "final_q": [
+    -1.716017197860275,
+    -1.8839306198824277,
+    -1.3954578701011542,
+    -1.4101304386198763,
+    1.6010447269306896,
+    -4.4458055750515895
+   ],
+   "RELEASE": {
+    "min_clearance_other_mm": 4.557,
+    "closest_pair": "r_inner_finger<->fitting_V4",
+    "first_collision": null,
+    "fingers_clear_part_at_width_mm": 12.2,
+    "collision_free": true
+   },
+   "RETREAT": {
+    "samples_checked": 152,
+    "min_clearance_mm": 8.721,
+    "closest_pair": "r_inner_finger<->fitting_V4",
+    "first_collision": null,
+    "collision_free": true
+   },
+   "HOME": {
+    "samples_checked": 202,
+    "min_clearance_mm": 24.476,
+    "closest_pair": "l_inner_finger<->pickup_V4",
+    "first_collision": null,
+    "collision_free": true,
+    "duration_s": 7.9948211941827365
+   },
+   "arm_proxy": {
+    "min_elbow_wrist_z_above_fixture_mm": 252.1,
+    "ok": true
+   },
+   "joint_limits": {
+    "ok": true,
+    "per_joint": {
+     "shoulder_pan": true,
+     "shoulder_lift": true,
+     "elbow": true,
+     "wrist_1": true,
+     "wrist_2": true,
+     "wrist_3": true
+    }
+   },
+   "peak_joint_speed_rad_s": {
+    "RETREAT": 0.086,
+    "HOME": 0.3
+   },
+   "PASS": true
+  },
+  "V5": {
+   "final_q": [
+    -1.8209573422285725,
+    -2.0001512297350055,
+    -1.183242146817218,
+    -1.5138028345510386,
+    1.5749079580863081,
+    -4.914148831287385
+   ],
+   "RELEASE": {
+    "min_clearance_other_mm": 4.212,
+    "closest_pair": "l_inner_finger<->fitting_V5",
+    "first_collision": null,
+    "fingers_clear_part_at_width_mm": 14.2,
+    "collision_free": true
+   },
+   "RETREAT": {
+    "samples_checked": 152,
+    "min_clearance_mm": 7.75,
+    "closest_pair": "r_inner_finger<->fitting_V5",
+    "first_collision": null,
+    "collision_free": true
+   },
+   "HOME": {
+    "samples_checked": 185,
+    "min_clearance_mm": 23.067,
+    "closest_pair": "r_inner_finger<->pickup_V5",
+    "first_collision": null,
+    "collision_free": true,
+    "duration_s": 7.317305008324583
+   },
+   "arm_proxy": {
+    "min_elbow_wrist_z_above_fixture_mm": 261.5,
+    "ok": true
+   },
+   "joint_limits": {
+    "ok": true,
+    "per_joint": {
+     "shoulder_pan": true,
+     "shoulder_lift": true,
+     "elbow": true,
+     "wrist_1": true,
+     "wrist_2": true,
+     "wrist_3": true
+    }
+   },
+   "peak_joint_speed_rad_s": {
+    "RETREAT": 0.092,
+    "HOME": 0.3
+   },
+   "PASS": true
+  }
+ }
+}

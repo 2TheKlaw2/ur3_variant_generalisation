@@ -48,6 +48,21 @@ def joint_origins(q, calib):
     return np.array(out)
 
 
+# UR3e position limits as in ur_description (config/ur3e/joint_limits.yaml): +-360 deg, elbow +-180 deg
+LIMITS = [2 * math.pi] * 6
+LIMITS[2] = math.pi
+
+
+def joint_limits(Q):
+    """Can the whole path be shifted (each joint by a fixed 2*pi multiple) to lie within the UR3e limits?"""
+    Q = np.asarray(Q); out = {}
+    for j, L in enumerate(LIMITS):
+        lo, hi = Q[:, j].min(), Q[:, j].max()
+        ok = any(lo + 2 * math.pi * k >= -L - 1e-9 and hi + 2 * math.pi * k <= L + 1e-9 for k in range(-3, 4))
+        out[["shoulder_pan", "shoulder_lift", "elbow", "wrist_1", "wrist_2", "wrist_3"][j]] = ok
+    return {"ok": all(out.values()), "per_joint": out}
+
+
 def arm_proxy(Q, calib, fixture_top_z):
     lo = min(joint_origins(q, calib)[2:, 2].min() for q in Q[::10] + Q[-1:])
     return {"min_elbow_wrist_z_above_fixture_mm": round((lo - fixture_top_z) * 1000, 1),
@@ -134,6 +149,7 @@ def main():
     ap.add_argument("--rg2-mesh-dir", required=True)
     ap.add_argument("--variants", nargs="+", type=int, default=[4, 5])
     ap.add_argument("--tau", type=float, default=2.0)
+    ap.add_argument("--only", choices=("A", "B"), default=None, help="run only fix A or only fix B")
     ap.add_argument("--out", default=os.path.join(sm.PKG, "results/simulation/stage10_v45_fix"))
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     import csv
@@ -166,65 +182,82 @@ def main():
         def held_check(Q, n):
             return R.check_stage(col, n, Q, calib, sm.RG2_GRIP_M, part, G[i], z0, stride=5)
 
-        # ---------------- A: arm posture (same Cartesian path)
         t_t, Ts_t, _ = R.rollout(trans, pt, qt, T_lift, T_start, a.tau)
         t_t, Ts_t = R.resample(t_t, Ts_t)
         t_r, Ts_r, _ = R.rollout(reach, pr, qr, T_home, T_grip, a.tau)
         t_r, Ts_r = R.resample(t_r, Ts_r)
-        sols = distinct_solutions(T_lift, calib, q_home)
-        A = []
-        for b, qb in enumerate(sols):
-            qb = unwrap_near(qb, q_home)
-            Qt, fail = walk(qb, Ts_t, calib)
-            entry = {"branch": b, "q_at_lift_end": np.round(qb, 3).tolist(),
-                     "transport": "PASS" if fail is None else fail}
-            if fail is None:
-                Qr_back, fr = walk(uk.ik_local(qb, T_grip, calib).tolist(), Ts_r[::-1], calib)
-                entry["reach_same_branch"] = "PASS" if fr is None else fr
-                entry["arm_proxy"] = arm_proxy(Qt + (Qr_back if fr is None else []), calib, fix_top)
-                entry["gripper_part_collision"] = held_check(Qt, "TRANSPORT")
-                if fr is None:
-                    entry["home_on_this_branch"] = np.round(Qr_back[-1], 3).tolist()
-                    entry["reconfiguration_at_home_rad"] = round(float(lp.maxdiff(Qr_back[-1], q_home)), 3)
-            A.append(entry)
-            print(f"V{i} A branch {b}: q {np.round(qb, 2).tolist()} transport "
-                  f"{'PASS' if fail is None else 'FAIL @' + str(fail['sample'])}"
-                  + (f", reach {'PASS' if entry.get('reach_same_branch') == 'PASS' else 'FAIL'}, "
-                     f"arm proxy {entry['arm_proxy']}, collision-free {entry['gripper_part_collision']['collision_free']}, "
-                     f"reconfig at HOME {entry.get('reconfiguration_at_home_rad')} rad" if fail is None else ""), flush=True)
-        res["A_arm_posture"] = {"distinct_ik_solutions_at_lift_end": len(sols), "branches": A}
 
         # ---------------- B: height-limit coupling term (current branch)
-        q_grip = R.ik_path(q_home, Ts_r, calib, "REACH")[-1]
-        q_lift = uk.ik_local(q_grip, T_lift, calib).tolist()
-        _, Ts_free = R.rollout(trans, pt, qt, T_lift, T_start, a.tau)[:2]
-        P_free = np.array([T[:3, 3] for T in Ts_free])
-        B = []
-        for cap in CAPS_MM:
-            t_c, Ts_c, info = capped_rollout(trans, pt, qt, T_lift, T_start, a.tau, cap / 1000)
-            P_c = np.array([T[:3, 3] for T in Ts_c])
-            n = min(len(P_c), len(P_free))
-            dev_xy = float(np.linalg.norm(P_c[:n, :2] - P_free[:n, :2], axis=1).max() * 1000)
-            t_c, Ts_c = R.resample(t_c, Ts_c)
-            Qc, fail = walk(q_lift, Ts_c, calib)
-            e = {"z_cap_mm": cap, **info, "max_xy_deviation_from_uncapped_mm": round(dev_xy, 1),
-                 "duration_s": float(t_c[-1]), "ik": "PASS" if fail is None else fail}
-            if fail is None:
-                e["gripper_part_collision"] = held_check(Qc, "TRANSPORT")
-                e["arm_proxy"] = arm_proxy(Qc, calib, fix_top)
-                e["peak_joint_speed_rad_s"] = round(R.speeds(np.asarray(t_c), Qc)[0], 3)
-                e["end_tcp_err_mm"] = float(np.linalg.norm(uk.tcp(Qc[-1], calib)[:3, 3] - T_start[:3, 3]) * 1000)
-                e["PASS"] = bool(e["gripper_part_collision"]["collision_free"] and e["arm_proxy"]["ok"])
-            else:
-                e["PASS"] = False
-            B.append(e)
-            print(f"V{i} B cap {cap} mm: max z {info['max_tcp_z_mm']:.0f} mm, xy dev {dev_xy:.1f} mm, IK "
-                  f"{'PASS' if fail is None else 'FAIL @' + str(fail['sample'])}"
-                  + (f", collision-free {e['gripper_part_collision']['collision_free']} "
-                     f"(min {e['gripper_part_collision']['min_clearance_mm']} mm {e['gripper_part_collision']['closest_pair']}), "
-                     f"arm proxy {e['arm_proxy']['min_elbow_wrist_z_above_fixture_mm']} mm, peak {e['peak_joint_speed_rad_s']} rad/s"
-                     if fail is None else ""), flush=True)
-        res["B_height_coupling"] = B
+        if a.only != "A":
+            q_grip = R.ik_path(q_home, Ts_r, calib, "REACH")[-1]
+            q_lift = uk.ik_local(q_grip, T_lift, calib).tolist()
+            _, Ts_free = R.rollout(trans, pt, qt, T_lift, T_start, a.tau)[:2]
+            P_free = np.array([T[:3, 3] for T in Ts_free])
+            B = []
+            for cap in CAPS_MM:
+                t_c, Ts_c, info = capped_rollout(trans, pt, qt, T_lift, T_start, a.tau, cap / 1000)
+                P_c = np.array([T[:3, 3] for T in Ts_c])
+                n = min(len(P_c), len(P_free))
+                dev_xy = float(np.linalg.norm(P_c[:n, :2] - P_free[:n, :2], axis=1).max() * 1000)
+                t_c, Ts_c = R.resample(t_c, Ts_c)
+                Qc, fail = walk(q_lift, Ts_c, calib)
+                e = {"z_cap_mm": cap, **info, "max_xy_deviation_from_uncapped_mm": round(dev_xy, 1),
+                     "duration_s": float(t_c[-1]), "ik": "PASS" if fail is None else fail}
+                if fail is None:
+                    e["gripper_part_collision"] = held_check(Qc, "TRANSPORT")
+                    e["arm_proxy"] = arm_proxy(Qc, calib, fix_top)
+                    e["joint_limits"] = joint_limits(Qc)
+                    e["peak_joint_speed_rad_s"] = round(R.speeds(np.asarray(t_c), Qc)[0], 3)
+                    e["end_tcp_err_mm"] = float(np.linalg.norm(uk.tcp(Qc[-1], calib)[:3, 3] - T_start[:3, 3]) * 1000)
+                    e["PASS"] = bool(e["gripper_part_collision"]["collision_free"] and e["arm_proxy"]["ok"]
+                                     and e["joint_limits"]["ok"])
+                else:
+                    e["PASS"] = False
+                B.append(e)
+                print(f"V{i} B cap {cap} mm: max z {info['max_tcp_z_mm']:.0f} mm, xy dev {dev_xy:.1f} mm, IK "
+                      f"{'PASS' if fail is None else 'FAIL @' + str(fail['sample'])}"
+                      + (f", collision-free {e['gripper_part_collision']['collision_free']} "
+                         f"(min {e['gripper_part_collision']['min_clearance_mm']} mm {e['gripper_part_collision']['closest_pair']}), "
+                         f"arm proxy {e['arm_proxy']['min_elbow_wrist_z_above_fixture_mm']} mm, peak {e['peak_joint_speed_rad_s']} rad/s"
+                         if fail is None else ""), flush=True)
+            res["B_height_coupling"] = B
+            res["B_height_coupling"] = B
+            out["variants"][f"V{i}"] = res
+            json.dump(out, open(os.path.join(a.out, "v45_fix_summary.json"), "w"), indent=1, default=float)
+
+        # ---------------- A: arm posture (same Cartesian path)
+        if a.only != "B":
+            sols = distinct_solutions(T_lift, calib, q_home)
+            A = []
+            for b, qb in enumerate(sols):
+                qb = unwrap_near(qb, q_home)
+                pre = arm_proxy([qb], calib, fix_top)
+                if not pre["ok"]:
+                    A.append({"branch": b, "q_at_lift_end": np.round(qb, 3).tolist(), "transport": "SKIPPED",
+                              "reason": f"arm below the fixture at the start ({pre['min_elbow_wrist_z_above_fixture_mm']} mm)"})
+                    print(f"V{i} A branch {b}: skipped (arm {pre['min_elbow_wrist_z_above_fixture_mm']} mm vs fixture at start)", flush=True)
+                    continue
+                Qt, fail = walk(qb, Ts_t, calib)
+                entry = {"branch": b, "q_at_lift_end": np.round(qb, 3).tolist(),
+                         "transport": "PASS" if fail is None else fail}
+                if fail is None:
+                    Qr_back, fr = walk(uk.ik_local(qb, T_grip, calib).tolist(), Ts_r[::-1], calib)
+                    entry["reach_same_branch"] = "PASS" if fr is None else fr
+                    entry["arm_proxy"] = arm_proxy(Qt + (Qr_back if fr is None else []), calib, fix_top)
+                    entry["joint_limits"] = joint_limits(Qt + (Qr_back if fr is None else []))
+                    entry["gripper_part_collision"] = held_check(Qt, "TRANSPORT")
+                    if fr is None:
+                        entry["home_on_this_branch"] = np.round(Qr_back[-1], 3).tolist()
+                        entry["reconfiguration_at_home_rad"] = round(float(lp.maxdiff(Qr_back[-1], q_home)), 3)
+                A.append(entry)
+                print(f"V{i} A branch {b}: q {np.round(qb, 2).tolist()} transport "
+                      f"{'PASS' if fail is None else 'FAIL @' + str(fail['sample'])}"
+                      + (f", reach {'PASS' if entry.get('reach_same_branch') == 'PASS' else 'FAIL'}, "
+                         f"limits {entry['joint_limits']['ok']}, "
+                         f"arm proxy {entry['arm_proxy']}, collision-free {entry['gripper_part_collision']['collision_free']}, "
+                         f"reconfig at HOME {entry.get('reconfiguration_at_home_rad')} rad" if fail is None else ""), flush=True)
+            res["A_arm_posture"] = {"distinct_ik_solutions_at_lift_end": len(sols), "branches": A}
+
         out["variants"][f"V{i}"] = res
         json.dump(out, open(os.path.join(a.out, "v45_fix_summary.json"), "w"), indent=1, default=float)
     print("->", a.out)

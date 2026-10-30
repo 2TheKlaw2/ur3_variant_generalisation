@@ -44,8 +44,24 @@ def load(path):
         return yaml.safe_load(f)
 
 
+POSES_DIR = None          # set by --session: a dated calibration session folder (checked first)
+
+
+def pose_file(name):
+    if POSES_DIR and os.path.exists(os.path.join(POSES_DIR, f"{name}.yaml")):
+        return os.path.join(POSES_DIR, f"{name}.yaml")
+    return os.path.join(PKG, "config", "saved_poses", f"{name}.yaml")
+
+
+def rot_of(name):
+    from scipy.spatial.transform import Rotation
+    with open(pose_file(name)) as f:
+        return Rotation.from_quat(yaml.safe_load(f)["tcp"]["quaternion_xyzw"]).as_matrix()
+
+
 def tcp_xyz(name):
-    return np.array(load(f"config/saved_poses/{name}.yaml")["tcp"]["position_m"], float)
+    with open(pose_file(name)) as f:
+        return np.array(yaml.safe_load(f)["tcp"]["position_m"], float)
 
 
 PICKUP_X = (-0.020, 0.180)        # pickup plate extent along its row (V1 axis = 0), 200 mm
@@ -81,11 +97,24 @@ def main():
     ap.add_argument("--layout", choices=("prongs", "measured"), default="prongs",
                     help="prongs: plates pushed out until the prongs touch the fixture far edge (predicted for the "
                          "revised plates); measured: plates where the lab TCP poses put them (old plates)")
+    ap.add_argument("--session", help="calibration session folder (config/calibration/<date>): use its "
+                    "v1_pickup_V*_geometry / v1_place_V*_geometry poses; layout becomes 'session' (as measured)")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="write the result into the session folder only (scene_registration_candidate.yaml); "
+                         "config/ and cad/environment are not touched")
     ap.add_argument("--trolley-surface-z", type=float, default=0.0,
                     help="z of the trolley top (robot mounting plane) in the robot base frame [m]")
     ap.add_argument("--fixture-thickness", type=float, default=0.0125,
                     help="slotted aluminium fixture plate thickness [m] (12.5 mm from the ur3_lfd trolley mesh)")
     args = ap.parse_args()
+    global POSES_DIR
+    if args.session:
+        POSES_DIR = os.path.abspath(args.session)
+        missing = [f"v1_pickup_V{v}_geometry" for v in range(1, 6)
+                   if not os.path.exists(os.path.join(POSES_DIR, f"v1_pickup_V{v}_geometry.yaml"))]
+        if missing:
+            raise SystemExit(f"session {POSES_DIR} is missing {missing}")
+        args.layout = "session"
 
     man = load("cad/manifest.yaml")["meshes"]
     # CAD pocket centres in the pickup plate frame (m)
@@ -110,11 +139,26 @@ def main():
     # the same grasp), fit xy + yaw to them like the pickup plate; otherwise keep the single
     # V1 insertion-end point and assume yaw parallel to the pickup plate.
     place = {v: f"v1_place_V{v}_geometry" for v in range(1, 6)
-             if os.path.exists(os.path.join(PKG, "config", "saved_poses", f"v1_place_V{v}_geometry.yaml"))}
+             if os.path.exists(pose_file(f"v1_place_V{v}_geometry"))}
     place_fit = None
     if len(place) >= 2:
         lp_ = np.array([np.array(man[f"V{v}_fitting"]["pose_in_placement_plate"]["xyz_mm"][:2]) / 1000.0 for v in place])
         mp_ = np.array([tcp_xyz(n)[:2] for n in place.values()])
+        mp_raw = mp_.copy()
+        # Grasp compensation: when part V<i> was measured in its pocket AND in its fitting with the same
+        # grasp (calibration protocol), its axis is offset from the TCP by the same tool-frame vector in
+        # both. That vector comes from the pickup fit (pocket centre - pickup TCP), as in rvo.grasps().
+        comp = []
+        for k, v in enumerate(place):
+            pick_name = f"v1_pickup_V{v}_geometry"
+            if not os.path.exists(pose_file(pick_name)):
+                continue
+            Rk = rot_of(pick_name); Rp = rot_of(place[v])
+            pocket = origin + R @ local[v - 1]
+            z_part = args.trolley_surface_z + args.fixture_thickness + man[f"V{v}_moving"]["pose_in_pickup_plate"]["xyz_mm"][2] / 1000.0
+            d = np.r_[pocket, z_part] - tcp_xyz(pick_name)                  # TCP -> part origin, base frame (3D)
+            mp_[k] = mp_[k] + (Rp @ (Rk.T @ d))[:2]                          # same vector in the tool frame at the place pose
+            comp.append(v)
         lc2, mc2 = lp_.mean(0), mp_.mean(0)
         U2, _, Vt2 = np.linalg.svd((lp_ - lc2).T @ (mp_ - mc2))
         R2 = Vt2.T @ U2.T
@@ -122,7 +166,12 @@ def main():
             Vt2[-1] *= -1; R2 = Vt2.T @ U2.T
         o2 = mc2 - R2 @ lc2
         r2 = mp_ - (lp_ @ R2.T + o2)
-        place_fit = {"origin": o2, "yaw": math.atan2(R2[1, 0], R2[0, 0]), "resid": r2, "used": list(place.values())}
+        # same fit without compensation, for reference
+        lcr, mcr = lp_.mean(0), mp_raw.mean(0)
+        Ur, _, Vtr = np.linalg.svd((lp_ - lcr).T @ (mp_raw - mcr)); Rr = Vtr.T @ Ur.T
+        rr = mp_raw - (lp_ @ Rr.T + (mcr - Rr @ lcr))
+        place_fit = {"origin": o2, "yaw": math.atan2(R2[1, 0], R2[0, 0]), "resid": r2, "used": list(place.values()),
+                     "grasp_compensated": comp, "rms_uncompensated_mm": float(np.sqrt((rr ** 2).sum(1).mean()) * 1000)}
     t = args.trolley_surface_z
     s = t + args.fixture_thickness            # blue plate undersides
 
@@ -154,6 +203,8 @@ def main():
             "source": "Kabsch fit of " + ", ".join(place_fit["used"]) + " TCP xy to CAD fitting centres",
             "fit_residual_mm": [[round(float(a) * 1000, 2), round(float(b) * 1000, 2)] for a, b in place_fit["resid"]],
             "fit_rms_mm": round(float(np.sqrt((place_fit["resid"] ** 2).sum(1).mean())) * 1000, 2),
+            "grasp_compensated_variants": place_fit["grasp_compensated"],
+            "fit_rms_without_grasp_compensation_mm": round(place_fit["rms_uncompensated_mm"], 2),
         }),
     }
     # ---- environment boxes (in the plates' yaw frame)
@@ -189,10 +240,31 @@ def main():
                         "yaw_rad": round(yaw, 6),
                         "comment": "trolley top under the workspace, top 0.5 mm below the robot mounting plane"},
     }
+    sign = 1.0 if far_is_hi else -1.0
+    if args.layout == "session":
+        # Both plates were measured with the robot and their prongs are butted against the fixture's
+        # far edge: put the far edge at the pickup plate's prong tip, and report how far the placement
+        # plate's prong tip is from it (a check on the measurement / on the plates being butted).
+        tips = {}
+        for key, o, yw in (("pickup_plate", origin, yaw),
+                           ("placement_plate", (place_fit or {}).get("origin", ins[:2]), (place_fit or {}).get("yaw", yaw))):
+            cy, sy = math.cos(yw), math.sin(yw)
+            tip = np.array(o) + np.array([[cy, -sy], [sy, cy]]) @ np.array([0.0, PRONG_TIP_Y[key]])
+            tips[key] = (Rm.T @ tip)[1]
+        y_far = tips["pickup_plate"]
+        y_near = y_far - sign * FIXTURE_WIDTH
+        lo2 = np.array([lo[0], min(y_far, y_near)]); hi2 = np.array([hi[0], max(y_far, y_near)])
+        ctr = Rm @ ((lo2 + hi2) / 2)
+        out["environment"]["fixture_plate"]["xyz_m"][:2] = [round(float(ctr[0]), 5), round(float(ctr[1]), 5)]
+        out["environment"]["fixture_plate"]["comment"] = ("far edge at the measured pickup plate's prong tip (session "
+                                                          f"{os.path.basename(POSES_DIR)}); size from the lab ruler")
+        out["environment"]["trolley_top"]["xyz_m"][:2] = [round(float(ctr[0]), 5), round(float(ctr[1]) + TROLLEY_TOP_DY, 5)]
+        out["prong_check"] = {"placement_prong_tip_from_far_edge_mm": round(float(sign * (tips["placement_plate"] - y_far)) * 1000, 2),
+                              "note": "0 = both plates butted against the same edge; > ~1 mm: re-check the plates or the poses"}
+        out["poses_dir"] = os.path.relpath(POSES_DIR, PKG)
     # ---- layout: the fixture plate stays where it was measured; with the revised plates the prongs
     # set the across-row position (and yaw = fixture yaw, i.e. both plates parallel to its far edge).
     out["layout"] = args.layout
-    sign = 1.0 if far_is_hi else -1.0
     for key in ("pickup_plate", "placement_plate"):
         r = out[key]
         r["measured_xyz_m"] = list(r["xyz_m"]); r["measured_yaw_rad"] = r["yaw_rad"]
@@ -207,6 +279,15 @@ def main():
         r["prong_shift_mm"] = round(float(dy * sign) * 1000, 2)
         r["source"] = ("PREDICTED: " + r["source"] + f"; then moved {dy * sign * 1000:+.2f} mm away from the robot so the "
                        "prongs touch the fixture far edge (revised plates, not yet measured in the lab)")
+    if args.dry_run:
+        if not POSES_DIR:
+            raise SystemExit("--dry-run needs --session")
+        dst = os.path.join(POSES_DIR, "scene_registration_candidate.yaml")
+        with open(dst, "w") as f:
+            f.write("# CANDIDATE from compute_scene_registration.py --dry-run; apply with UPDATE_SIM.sh.\n")
+            yaml.safe_dump(out, f, sort_keys=False)
+        print(yaml.safe_dump(out, sort_keys=False)); print("candidate ->", dst)
+        return 0
     write_box_stl(os.path.join(PKG, "cad", "environment", "fixture_plate.stl"), out["environment"]["fixture_plate"]["size_m"])
     write_box_stl(os.path.join(PKG, "cad", "environment", "trolley_top.stl"), out["environment"]["trolley_top"]["size_m"])
 
