@@ -14,10 +14,17 @@ Method:
     pocket centres (plate-local x = 0, 40, ..., 160 mm). Gives plate origin xy and yaw.
   * Placement plate: origin xy = V1 TCP xy at insertion end (TCP assumed on the
     part axis). Yaw ASSUMED parallel to the pickup plate (one point cannot give yaw).
-  * Plate underside z = trolley_surface_z (a single provisional parameter).
+  * Heights: the robot base sits on the trolley top (z = trolley_surface_z, 0 = robot
+    mounting plane). The slotted aluminium fixture plate lies on the trolley top and both
+    blue plates lie on it, so plate underside z = trolley_surface_z + fixture thickness.
+  * Environment collision boxes (written as STL to cad/environment/):
+      fixture_plate  aluminium plate, top = plate underside z, footprint = both blue plates
+                     + FIXTURE_MARGIN (the real plate is larger; footprint is a minimum)
+      trolley_top    trolley top under the workspace, top 0.5 mm below the mounting plane
+                     (avoids a permanent resting contact with the robot base)
 
 Nothing here is a verified calibration. Usage:
-  python3 scripts/scene/compute_scene_registration.py [--trolley-surface-z 0.0]
+  python3 scripts/scene/compute_scene_registration.py [--trolley-surface-z 0.0] [--fixture-thickness 0.0125]
 """
 import argparse
 import math
@@ -39,10 +46,35 @@ def tcp_xyz(name):
     return np.array(load(f"config/saved_poses/{name}.yaml")["tcp"]["position_m"], float)
 
 
+PICKUP_X = (-0.020, 0.180)        # pickup plate extent along its row (V1 axis = 0), 200 mm
+PLACEMENT_X = (-0.025, 0.225)     # placement plate extent, 250 mm
+PLATE_HALF_W = 0.035              # both plates 70 mm wide
+FIXTURE_MARGIN = 0.040            # minimum fixture-plate footprint around the blue plates
+TROLLEY_TOP_SIZE = (0.80, 0.80, 0.020)
+TROLLEY_TOP_DY = 0.20             # shift the trolley-top box toward the robot (covers the base area)
+
+
+def write_box_stl(path, size_m):
+    """Binary STL (mm) of a box centred at the origin."""
+    import struct
+    hx, hy, hz = (v * 500.0 for v in size_m)
+    V = np.array([[x, y, z] for x in (-hx, hx) for y in (-hy, hy) for z in (-hz, hz)])
+    F = [(0, 2, 3), (0, 3, 1), (4, 5, 7), (4, 7, 6), (0, 1, 5), (0, 5, 4),
+         (2, 6, 7), (2, 7, 3), (0, 4, 6), (0, 6, 2), (1, 3, 7), (1, 7, 5)]
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as f:
+        f.write(b"box".ljust(80, b" ")); f.write(struct.pack("<I", len(F)))
+        for a, b, c in F:
+            n = np.cross(V[b] - V[a], V[c] - V[a]); n = n / np.linalg.norm(n)
+            f.write(struct.pack("<12fH", *n, *V[a], *V[b], *V[c], 0))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--trolley-surface-z", type=float, default=0.0,
-                    help="z of the trolley top (plate undersides) in the robot base frame [m]")
+                    help="z of the trolley top (robot mounting plane) in the robot base frame [m]")
+    ap.add_argument("--fixture-thickness", type=float, default=0.0125,
+                    help="slotted aluminium fixture plate thickness [m] (12.5 mm from the ur3_lfd trolley mesh)")
     args = ap.parse_args()
 
     man = load("cad/manifest.yaml")["meshes"]
@@ -64,13 +96,17 @@ def main():
     resid = meas - (local @ R.T + origin)
 
     ins = tcp_xyz("v1_insertion_end")
-    s = args.trolley_surface_z
+    t = args.trolley_surface_z
+    s = t + args.fixture_thickness            # blue plate undersides
 
     out = {
         "status": "PROVISIONAL - derived from TCP measurements, not a verified calibration",
         "frame": "base",
-        "trolley_surface_z_m": s,
-        "trolley_surface_z_source": "ASSUMED (robot base mounted on trolley top). Replace with value from ur3_lfd trolley model.",
+        "trolley_surface_z_m": t,
+        "trolley_surface_z_source": "robot base sits on the trolley top (lab photo 30 Oct 2026)",
+        "fixture_thickness_m": args.fixture_thickness,
+        "fixture_thickness_source": "ur3_lfd trolley mesh, measured in Bambu Studio (12.5 mm); NOT yet measured on the real plate",
+        "plate_underside_z_m": s,
         "pickup_plate": {
             "xyz_m": [round(float(origin[0]), 5), round(float(origin[1]), 5), s],
             "yaw_rad": round(yaw, 6),
@@ -85,15 +121,31 @@ def main():
             "yaw_deg": round(math.degrees(yaw), 3),
             "source": "origin xy = v1_insertion_end TCP xy; yaw ASSUMED parallel to pickup plate",
         },
-        "trolley_patch": {
-            "comment": "Visual-only translucent patch marking the trolley-top height under both plates",
-            "size_m": [0.50, 0.20, 0.002],
-        },
     }
-    # centre the visual patch under both plates
-    mid = (origin + R @ np.array([0.08, 0.0]) + ins[:2] + R @ np.array([0.10, 0.0])) / 2.0
-    out["trolley_patch"]["xyz_m"] = [round(float(mid[0]), 4), round(float(mid[1]), 4), s - 0.001]
-    out["trolley_patch"]["yaw_rad"] = round(yaw, 6)
+    # ---- environment boxes (in the plates' yaw frame)
+    c, sn = math.cos(yaw), math.sin(yaw)
+    Rm = np.array([[c, -sn], [sn, c]])
+    corners = []
+    for o, (x0, x1) in ((origin, PICKUP_X), (ins[:2], PLACEMENT_X)):
+        for x in (x0, x1):
+            for y in (-PLATE_HALF_W, PLATE_HALF_W):
+                corners.append(Rm.T @ (o + Rm @ np.array([x, y])))      # into the yaw frame
+    corners = np.array(corners)
+    lo = corners.min(0) - FIXTURE_MARGIN; hi = corners.max(0) + FIXTURE_MARGIN
+    ctr = Rm @ ((lo + hi) / 2)
+    out["environment"] = {
+        "fixture_plate": {"size_m": [round(float(hi[0] - lo[0]), 4), round(float(hi[1] - lo[1]), 4), args.fixture_thickness],
+                          "xyz_m": [round(float(ctr[0]), 5), round(float(ctr[1]), 5), round(t + args.fixture_thickness / 2, 5)],
+                          "yaw_rad": round(yaw, 6),
+                          "comment": f"slotted aluminium plate under both blue plates; footprint = plates + {FIXTURE_MARGIN*1000:.0f} mm "
+                                     "(minimum; the real plate is larger)"},
+        "trolley_top": {"size_m": list(TROLLEY_TOP_SIZE), "xyz_m": [round(float(ctr[0]), 5), round(float(ctr[1]) + TROLLEY_TOP_DY, 5),
+                                                                   round(t - 0.0005 - TROLLEY_TOP_SIZE[2] / 2, 5)],
+                        "yaw_rad": round(yaw, 6),
+                        "comment": "trolley top under the workspace, top 0.5 mm below the robot mounting plane"},
+    }
+    write_box_stl(os.path.join(PKG, "cad", "environment", "fixture_plate.stl"), out["environment"]["fixture_plate"]["size_m"])
+    write_box_stl(os.path.join(PKG, "cad", "environment", "trolley_top.stl"), out["environment"]["trolley_top"]["size_m"])
 
     dst = os.path.join(PKG, "config", "scene", "scene_registration.yaml")
     os.makedirs(os.path.dirname(dst), exist_ok=True)

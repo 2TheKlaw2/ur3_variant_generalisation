@@ -152,7 +152,7 @@ def main():
     meshes, poses = scene_links(xml)
     reg = yaml.safe_load(open(os.path.join(PKG, "config/scene/scene_registration.yaml")))
     calib = yaml.safe_load(open(os.path.join(PKG, "config/ur3e_lab_calibration.yaml")))
-    s = reg["trolley_surface_z_m"]
+    s = reg.get("plate_underside_z_m", reg["trolley_surface_z_m"])
     sp = lambda n: yaml.safe_load(open(os.path.join(PKG, "config/saved_poses", n + ".yaml")))
 
     # ---- A. dimensions and units (mm-accurate extents in metres)

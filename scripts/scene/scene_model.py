@@ -77,7 +77,7 @@ def scene_objects():
     """Return {object_id: {"T": 4x4 base pose [m], "mesh": abs path, "plate": key}}.
 
     Object ids match the URDF link names: pickup_plate, placement_plate,
-    pickup_V1..V5, fitting_V1..V5.
+    pickup_V1..V5, fitting_V1..V5, and the environment boxes fixture_plate, trolley_top.
     """
     man = _load("cad/manifest.yaml")["meshes"]
     frames = plate_frames()
@@ -92,6 +92,9 @@ def scene_objects():
             local[:3, :3] = rpy_matrix(*[math.radians(a) for a in p["rpy_deg"]])
             objs[f"{kind}_V{v}"] = {"T": frames[plate] @ local,
                                     "mesh": os.path.join(PKG, "cad", man[mkey]["file"]), "plate": plate}
+    for key, e in _load("config/scene/scene_registration.yaml").get("environment", {}).items():
+        objs[key] = {"T": translate(e["xyz_m"]) @ rot_z(e["yaw_rad"]),
+                     "mesh": os.path.join(PKG, "cad", "environment", f"{key}.stl"), "plate": "environment"}
     return objs
 
 

@@ -1,0 +1,62 @@
+{
+  "experiment": "B2",
+  "initial": {
+    "centre_offset_mm": 2.0283748968904627,
+    "lateral_mm": [
+      1.2911257415498256,
+      1.564384556892201
+    ],
+    "tilt_deg": 3.807492107359788,
+    "yaw_deg": 0.3511283594727388,
+    "bottom_z_mm": 7.675170993349984
+  },
+  "stages": {
+    "CORRECTION": {
+      "duration_s": 2.0,
+      "samples": 101,
+      "after": {
+        "centre_offset_mm": 6.773573546023058e-11,
+        "tilt_deg": 0.0,
+        "yaw_deg": -1.2505552149377763e-12,
+        "bottom_z_mm": 7.6751709933822605
+      },
+      "timing": "SIM 2.0 s min-jerk"
+    },
+    "INSERT": {
+      "cdmp_duration_s": 12.998915308,
+      "samples_commanded": 651,
+      "samples_feasible": 651,
+      "handoff_mm": 6.863517945419274e-11,
+      "commanded_descent_mm": 5.416718620000004,
+      "max_unused_commanded_descent_mm": 0.0,
+      "seated": false
+    },
+    "ROTATE": {
+      "status": "NOT_EXECUTED"
+    }
+  },
+  "first_unacceptable": null,
+  "final": {
+    "stage": "INSERT",
+    "centre_offset_mm": 1.0362350028799739e-11,
+    "tilt_deg": 0.0,
+    "yaw_deg": -0.025212144526335578,
+    "lowest_z_mm": 2.258452373350943,
+    "seating_error_mm": 0.2584523733509432
+  },
+  "max_insertion_depth_mm": 4.7759956156535015,
+  "min_clearance_mm": 0.22400438434649497,
+  "max_penetration_mm": 0.0,
+  "contact_samples": 0,
+  "outcome": "FAIL",
+  "outcome_criteria": {
+    "no_unacceptable_contact": true,
+    "seated": false,
+    "rotate_completed": false,
+    "final_cw_rotation_in_range": false,
+    "rotation_range_deg": [
+      23.5,
+      26.5
+    ]
+  }
+}

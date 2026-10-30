@@ -17,7 +17,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "scene"))
 import scene_model as sm  # noqa: E402
 
-OBJECT_IDS = ["pickup_plate", "placement_plate"] + [f"{k}_V{v}" for v in range(1, 6) for k in ("pickup", "fitting")]
+OBJECT_IDS = (["pickup_plate", "placement_plate"] + [f"{k}_V{v}" for v in range(1, 6) for k in ("pickup", "fitting")]
+              + ["fixture_plate", "trolley_top"])
 
 
 def require_sim_domain():

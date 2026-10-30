@@ -86,3 +86,35 @@ Fake hardware and the offline preview agree exactly. Executed end states match t
 
 ## Figures
 `python3 scripts/figures/make_stage8_figures.py` → `docs/figures/stage8_insert_A_B1_B2.png` (centre offset and depth during INSERT) and `docs/figures/stage8_b2r_rotate.png` (B2R rotation and height, with the ring-underside contact window).
+
+## Scene height correction (30 Oct 2026)
+**Finding (from lab photos):** the robot base sits on the trolley top. The two blue plates sit on a slotted aluminium fixture plate, which lies on the same trolley top. Before this correction, the blue plate undersides were **assumed** to be at the robot mounting plane (z = 0).
+
+**Correction:**
+- The blue plate undersides are now at z = **12.5 mm**. The thickness of the fixture plate is taken from the ur3_lfd trolley mesh (measured in Bambu Studio) and has **not yet been measured on the real plate**.
+- Re-run with `compute_scene_registration.py --fixture-thickness <m>`.
+- Two collision boxes were added to MoveIt and RViz:
+  - `fixture_plate`: the minimum footprint (both blue plates plus 40 mm);
+  - `trolley_top`: its top is 0.5 mm below the mounting plane.
+
+**Why the measured robot poses did not reveal this:** both blue plates sit on the same plate, so a common height error moves the parts and the fittings together. The insertion consistency check (+0.65 mm) is unchanged. A common height offset changes:
+- the grasp transform (the gripper holds each part lower on its block);
+- the finger clearance at pickup;
+- the robot ↔ environment clearance.
+
+**Plausibility check:** at the measured pickup poses the fingertips are now 0.7–4.2 mm above the part discs for V1–V4 (V3: 0.7 mm). A fixture plate thicker than about 13 mm would put the V3 fingertips into the disc, so 12.5 mm is consistent with the recorded grip poses.
+
+**Effect on results (offline, re-run):** every PASS/FAIL outcome is unchanged. The numbers shift slightly because the grasp offset is now 12.5 mm shorter along a tool axis tilted 2.6°:
+
+| | plates at z = 0 (previous) | plates at z = 12.5 mm |
+|---|---|---|
+| Stage 7 arrival offset / tilt | 2.598 mm / 3.81° | 2.028 mm / 3.81° |
+| A: first contact, depth | INSERT 3.58 s, 0.61 mm | INSERT 3.42 s, 0.50 mm |
+| B1: first contact, depth | INSERT 3.78 s, 0.32 mm | INSERT 3.78 s, 0.34 mm |
+| B2: depth, gap above floor, min clearance | 4.75 mm, 0.286 mm, 0.249 mm | 4.78 mm, 0.258 mm, 0.224 mm |
+| B2R | functional PASS, ring touch max 0.015 mm, end gap 0.497 mm | functional PASS, **no contact** (min clearance 0.013 mm), end gap 0.469 mm |
+| Stage 9 (all variants, L0/L1/L2/CAD) | outcomes as tabulated | identical outcomes, seat depths −0.02 mm |
+
+- New references: `results/sim_reference/stage8_offline_20261030_fixture12p5/`, `results/sim_reference/stage9_offline_20261030_fixture12p5/`, `results/scene_check_fixture12p5/`.
+- The earlier references are kept unchanged as the z = 0 history. The Stage 8 fake-hardware references were run on the z = 0 scene.
+- Fingertip check (TCP model only): over the fixture plate, the lowest fingertip in REACH, ALIGN, TRANSPORT and ALIGN_INSERT is ≥ 5.6 mm above the blue plate top. The full MoveIt check (robot links vs fixture_plate and trolley_top) runs on the next fake-hardware run.

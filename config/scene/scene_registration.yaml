@@ -2,13 +2,16 @@
 status: PROVISIONAL - derived from TCP measurements, not a verified calibration
 frame: base
 trolley_surface_z_m: 0.0
-trolley_surface_z_source: ASSUMED (robot base mounted on trolley top). Replace with
-  value from ur3_lfd trolley model.
+trolley_surface_z_source: robot base sits on the trolley top (lab photo 30 Oct 2026)
+fixture_thickness_m: 0.0125
+fixture_thickness_source: ur3_lfd trolley mesh, measured in Bambu Studio (12.5 mm);
+  NOT yet measured on the real plate
+plate_underside_z_m: 0.0125
 pickup_plate:
   xyz_m:
   - 0.22856
   - -0.34508
-  - 0.0
+  - 0.0125
   yaw_rad: -3.12351
   yaw_deg: -178.964
   source: Kabsch fit of v1_pickup_V1..V5_geometry TCP xy to CAD pocket centres
@@ -28,19 +31,32 @@ placement_plate:
   xyz_m:
   - -0.0271
   - -0.34515
-  - 0.0
+  - 0.0125
   yaw_rad: -3.12351
   yaw_deg: -178.964
   source: origin xy = v1_insertion_end TCP xy; yaw ASSUMED parallel to pickup plate
-trolley_patch:
-  comment: Visual-only translucent patch marking the trolley-top height under both
-    plates
-  size_m:
-  - 0.5
-  - 0.2
-  - 0.002
-  xyz_m:
-  - 0.0107
-  - -0.3467
-  - -0.001
-  yaw_rad: -3.12351
+environment:
+  fixture_plate:
+    size_m:
+    - 0.5806
+    - 0.1546
+    - 0.0125
+    xyz_m:
+    - -0.00175
+    - -0.34697
+    - 0.00625
+    yaw_rad: -3.12351
+    comment: slotted aluminium plate under both blue plates; footprint = plates +
+      40 mm (minimum; the real plate is larger)
+  trolley_top:
+    size_m:
+    - 0.8
+    - 0.8
+    - 0.02
+    xyz_m:
+    - -0.00175
+    - -0.14697
+    - -0.0105
+    yaw_rad: -3.12351
+    comment: trolley top under the workspace, top 0.5 mm below the robot mounting
+      plane

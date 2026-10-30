@@ -1,0 +1,2 @@
+stage,sample,t_s,status,contact,penetration_mm,regions,v1_centre_offset_mm,v1_lowest_z_mm,v1_yaw_deg,v1_tilt_deg
+INSERT,212,4.2396,INTERFERENCE,feature,0.12809,"{""feature"": 0.1281, ""bore_wall"": 0.0469}",0.0,6.1197,0.00076,0.0

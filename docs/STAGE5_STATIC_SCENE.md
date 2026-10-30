@@ -22,7 +22,12 @@ The robot uses the lab calibration (`config/ur3e_lab_calibration.yaml`). Joints 
 ## Registration (how the plates were placed)
 - **Pickup plate:** 2D rigid fit of the five measured pickup TCPs to the CAD pocket centres. Yaw −178.96°, RMS 2.1 mm (mostly perpendicular scatter of where the TCP sat on each block).
 - **Placement plate:** V1 axis = `v1_insertion_end` TCP xy. Yaw **assumed** parallel to the pickup plate (one point gives no yaw; the photo supports parallel rows).
-- **Trolley-top z = 0.0 in `base`.** Consistent with `ur3_lfd/urdf/trolley.urdf.xacro`: the robot is mounted at 1.047 m, described there as approximately the trolley top. It is not measured; if it changes, re-run `compute_scene_registration.py --trolley-surface-z <z>`.
+- **Heights (corrected 30 Oct):**
+  - The robot base sits on the trolley top (z = 0).
+  - The blue plates sit on a slotted aluminium fixture plate, 12.5 mm thick (from the ur3_lfd trolley mesh; not yet measured on the real plate), so their undersides are at z = 12.5 mm.
+  - Re-run `compute_scene_registration.py --fixture-thickness <m>` to change it.
+  - `fixture_plate` and `trolley_top` collision boxes are generated in `cad/environment/`.
+  - See the Stage 8 doc, "Scene height correction".
 
 ## Validation (`results/scene_check/scene_check.txt`, 72 checks)
 - All 12 mesh sizes match CAD. Parts rest on the 1.0 mm pocket floor; fittings rest on the 3.0 mm plate top.
