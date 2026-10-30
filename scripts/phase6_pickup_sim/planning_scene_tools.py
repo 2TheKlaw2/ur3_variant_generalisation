@@ -223,8 +223,16 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--load", action="store_true"); g.add_argument("--reset", action="store_true"); g.add_argument("--clear", action="store_true")
+    ap.add_argument("--physical", action="store_true",
+                    help="allow ROS_DOMAIN_ID=0 (real robot's MoveIt): loads/clears collision objects ONLY, never moves "
+                         "anything; used by the physical full-cycle runner's state-validity checks")
     a = ap.parse_args()
-    require_sim_domain()
+    if a.physical:
+        if os.environ.get("ROS_DOMAIN_ID", "0") != "0":
+            raise SystemExit("--physical expects the real robot's ROS_DOMAIN_ID=0")
+        print("PHYSICAL MoveIt: collision objects only, no robot motion", flush=True)
+    else:
+        require_sim_domain()
     import rclpy
     rclpy.init()
     node = rclpy.create_node("v1_scene_tools_SIM")
