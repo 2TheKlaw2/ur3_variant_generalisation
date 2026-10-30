@@ -51,7 +51,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--library", required=True)
     ap.add_argument("--rg2-mesh-dir", required=True)
-    ap.add_argument("--cases", nargs="+", default=[c[0] for c in CASES])
+    ap.add_argument("--cases", nargs="+", default=[c[0].split()[0] for c in CASES],
+                    help="x+30 x-30 y+20 y-20 yaw+5 yaw-5")
     ap.add_argument("--out", default=str(PKG / "results/simulation/relocation"))
     a = ap.parse_args()
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
@@ -63,7 +64,7 @@ def main():
     if sp.exists():
         summary = json.load(open(sp))
     for name, dx, dy, dyaw in CASES:
-        if name not in a.cases:
+        if name.split()[0] not in a.cases:
             continue
         d = out / name.split()[0]; d.mkdir(exist_ok=True)
         dy_base = dy * away                                      # "away" from the robot in base y
