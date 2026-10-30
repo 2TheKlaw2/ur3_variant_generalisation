@@ -1,6 +1,5 @@
 stage,sample,t_s,status,contact,penetration_mm,regions,v1_centre_offset_mm,v1_lowest_z_mm,v1_yaw_deg,v1_tilt_deg
-INSERT,297,5.9395,touching,touching(bore_wall),0.00969,"{""bore_wall"": 0.0097}",0.0,13.99926,-11.5465,0.0
-INSERT,298,5.9595,touching,touching,0.0,{},0.0,13.94047,-11.5465,0.0
-INSERT,299,5.9795,touching,bore_wall,0.00368,"{""bore_wall"": 0.0037}",0.0,13.88162,-11.5465,0.0
-INSERT,300,5.9995,touching,bore_wall,0.01223,"{""bore_wall"": 0.0122}",0.0,13.82271,-11.5465,0.0
-INSERT,301,6.0195,INTERFERENCE,bore_wall,0.07097,"{""bore_wall"": 0.071}",0.0,13.76375,-11.5465,0.0
+INSERT,297,5.9395,touching,touching(bore_wall),0.00938,"{""bore_wall"": 0.0094}",0.0,13.99926,-11.531,0.0
+INSERT,298,5.9595,touching,bore_wall,0.00468,"{""bore_wall"": 0.0047}",0.0,13.94047,-11.531,0.0
+INSERT,299,5.9795,touching,bore_wall,0.01989,"{""bore_wall"": 0.0199}",0.0,13.88162,-11.531,0.0
+INSERT,300,5.9995,INTERFERENCE,bore_wall,0.07871,"{""bore_wall"": 0.0787}",0.0,13.82271,-11.531,0.0

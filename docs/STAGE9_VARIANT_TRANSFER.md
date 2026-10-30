@@ -159,3 +159,10 @@ Level `CAD`: the **same CAD path as L2** (seat depth, corridor yaw, seat yaw) wi
 - New references: `results/sim_reference/stage8_offline_20261030_fixture12p5/`, `results/sim_reference/stage9_offline_20261030_fixture12p5/`, `results/scene_check_fixture12p5/`.
 - The earlier references are kept unchanged as the z = 0 history. The Stage 8 fake-hardware references were run on the z = 0 scene.
 - Fingertip check (TCP model only): over the fixture plate, the lowest fingertip in REACH, ALIGN, TRANSPORT and ALIGN_INSERT is ≥ 5.6 mm above the blue plate top. The full MoveIt check (robot links vs fixture_plate and trolley_top) runs on the next fake-hardware run.
+
+## Revised V5 fitting (30 Oct 2026, Enrique's `Varient5.STL`)
+- The new fitting is in the same frame as the previous one: 99% of the old surface lies within 0.05 mm of the new one. The bottom of the bore changed: it is now r 14.00 between 2.75 and 6.75 mm above the base (previously r 13.78–13.91).
+- **Still blocked.** The CAD corridor closes at a part-bottom height of 13.9 mm (8.1 mm in), as before. L0, L1, L2 and CAD-only all FAIL (L2 reaches 8.44 mm).
+- **Cause:** a flat patch at 13.727 mm from the axis, on both sides of the slot axis (±x). It is about 3.8 mm wide (|y| ≤ 1.9 mm) and runs about 11.4–13.4 mm above the fitting base. It sits 0.27 mm inside the Ø28 bore and 0.023 mm inside the part's Ø27.50 disc. The other fittings have no fitting material inside the bore at that radius above the floor, except V3, whose corridor is open.
+- **Diagnostic only (not a result):** with the part disc 0.03 mm smaller, the corridor opens all the way. It goes straight in, helixes to about −22° CW, then reverses to about −1.5° at the floor. So that patch is the only obstruction.
+- Fix suggestion: cut the flat back to the bore (r ≥ 14.0) between about 11 and 14 mm above the fitting base.

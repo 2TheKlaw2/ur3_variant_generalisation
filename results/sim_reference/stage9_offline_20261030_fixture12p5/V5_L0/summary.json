@@ -14,7 +14,7 @@
     },
     "ROTATE": {
       "samples_commanded": 851,
-      "samples_feasible": 148,
+      "samples_feasible": 147,
       "commanded_rotation_deg": -24.388262866938312,
       "goal_yaw_deg": -24.38826286693761,
       "started_seated": false
@@ -22,33 +22,32 @@
   },
   "first_unacceptable": {
     "stage": "ROTATE",
-    "sample": 148,
-    "t_s": 2.959671155,
+    "sample": 147,
+    "t_s": 2.939673377,
     "status": "INTERFERENCE",
     "contact": "bore_wall",
-    "pen_mm": 0.048525316794466124,
+    "pen_mm": 0.023396094672097714,
     "regions": {
-      "bore_wall": 0.0485,
-      "feature": 0.039
+      "bore_wall": 0.0234
     },
-    "lat_mm": 4.996003610813204e-13,
-    "bottom_z_mm": 17.268466736350017,
-    "yaw_deg": -5.282821640797238
+    "lat_mm": 6.335327934766281e-13,
+    "bottom_z_mm": 17.268394655350253,
+    "yaw_deg": -5.139808241207447
   },
   "ik_error": null,
   "final": {
     "stage": "ROTATE",
-    "yaw_deg": -5.139808241207447,
-    "lowest_z_mm": 17.26839465535025,
-    "seating_gap_mm": 15.26839465535025,
-    "centre_offset_mm": 6.335327934766281e-13,
-    "tilt_deg": 1.4787793334710982e-06
+    "yaw_deg": -4.989716440849577,
+    "lowest_z_mm": 17.26832112435012,
+    "seating_gap_mm": 15.26832112435012,
+    "centre_offset_mm": 7.021666937153402e-13,
+    "tilt_deg": 8.537736462515939e-07
   },
   "max_insertion_depth_mm": 5.451166609053434,
   "cad_seat_depth_mm": 20.675170993349983,
   "min_clearance_mm": 0.0,
-  "max_penetration_mm": 0.048525316794466124,
-  "touching_samples": 1,
+  "max_penetration_mm": 0.023396094672097714,
+  "touching_samples": 0,
   "cad_seat_yaw_deg": 0.0,
   "peak_joint_speed_deg_s": [
     0.06840358426372864,

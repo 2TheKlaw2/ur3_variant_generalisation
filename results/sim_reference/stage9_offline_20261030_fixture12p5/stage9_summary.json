@@ -527,30 +527,29 @@
   },
   "final": {
    "stage": "ROTATE",
-   "yaw_deg": -5.139808241207447,
-   "lowest_z_mm": 17.26839465535025,
-   "seating_gap_mm": 15.26839465535025,
-   "centre_offset_mm": 6.335327934766281e-13,
-   "tilt_deg": 1.4787793334710982e-06
+   "yaw_deg": -4.989716440849577,
+   "lowest_z_mm": 17.26832112435012,
+   "seating_gap_mm": 15.26832112435012,
+   "centre_offset_mm": 7.021666937153402e-13,
+   "tilt_deg": 8.537736462515939e-07
   },
   "max_insertion_depth_mm": 5.451166609053434,
   "cad_seat_depth_mm": 20.675170993349983,
-  "max_penetration_mm": 0.048525316794466124,
-  "touching_samples": 1,
+  "max_penetration_mm": 0.023396094672097714,
+  "touching_samples": 0,
   "first_unacceptable": {
    "stage": "ROTATE",
-   "sample": 148,
-   "t_s": 2.959671155,
+   "sample": 147,
+   "t_s": 2.939673377,
    "status": "INTERFERENCE",
    "contact": "bore_wall",
-   "pen_mm": 0.048525316794466124,
+   "pen_mm": 0.023396094672097714,
    "regions": {
-    "bore_wall": 0.0485,
-    "feature": 0.039
+    "bore_wall": 0.0234
    },
-   "lat_mm": 4.996003610813204e-13,
-   "bottom_z_mm": 17.268466736350017,
-   "yaw_deg": -5.282821640797238
+   "lat_mm": 6.335327934766281e-13,
+   "bottom_z_mm": 17.268394655350253,
+   "yaw_deg": -5.139808241207447
   },
   "cad_seat_yaw_deg": 0.0
  },
@@ -576,7 +575,7 @@
   },
   "max_insertion_depth_mm": 6.129843147212696,
   "cad_seat_depth_mm": 20.675170993349983,
-  "max_penetration_mm": 0.036477335480094714,
+  "max_penetration_mm": 0.02956933719144521,
   "touching_samples": 0,
   "first_unacceptable": {
    "stage": "INSERT",
@@ -584,9 +583,9 @@
    "t_s": 3.919672924,
    "status": "INTERFERENCE",
    "contact": "bore_wall",
-   "pen_mm": 0.036477335480094714,
+   "pen_mm": 0.02956933719144521,
    "regions": {
-    "bore_wall": 0.0365
+    "bore_wall": 0.0296
    },
    "lat_mm": 1.47130882163179e-10,
    "bottom_z_mm": 16.172761980619253,
@@ -608,29 +607,29 @@
   },
   "final": {
    "stage": "INSERT",
-   "yaw_deg": -11.546499999981563,
-   "lowest_z_mm": 13.838094273524764,
-   "seating_gap_mm": 11.838094273524764,
-   "centre_offset_mm": 4.793940605055797e-09,
-   "tilt_deg": 8.537736462515939e-07
+   "yaw_deg": -10.24279493919255,
+   "lowest_z_mm": 14.23487286862938,
+   "seating_gap_mm": 12.23487286862938,
+   "centre_offset_mm": 1.6035913788805792e-08,
+   "tilt_deg": 0.0
   },
-  "max_insertion_depth_mm": 8.83707671982522,
+  "max_insertion_depth_mm": 8.440298124720604,
   "cad_seat_depth_mm": 20.675170993349983,
-  "max_penetration_mm": 0.20384973710035967,
-  "touching_samples": 1,
+  "max_penetration_mm": 0.06333569270040983,
+  "touching_samples": 0,
   "first_unacceptable": {
    "stage": "INSERT",
-   "sample": 203,
-   "t_s": 4.059661242,
+   "sample": 202,
+   "t_s": 4.039662911,
    "status": "INTERFERENCE",
    "contact": "bore_wall",
-   "pen_mm": 0.20384973710035967,
+   "pen_mm": 0.06333569270040983,
    "regions": {
-    "bore_wall": 0.2038
+    "bore_wall": 0.0633
    },
-   "lat_mm": 1.811864864366811e-10,
-   "bottom_z_mm": 13.440291284659317,
-   "yaw_deg": -11.54649999999981
+   "lat_mm": 4.6266477776148e-09,
+   "bottom_z_mm": 13.83809427369457,
+   "yaw_deg": -11.530999999982896
   },
   "cad_seat_yaw_deg": 0.0
  },
@@ -648,29 +647,29 @@
   },
   "final": {
    "stage": "INSERT",
-   "yaw_deg": -11.546500000000037,
-   "lowest_z_mm": 13.822712196865371,
-   "seating_gap_mm": 11.822712196865371,
-   "centre_offset_mm": 7.850462293418876e-14,
+   "yaw_deg": -11.531000000000006,
+   "lowest_z_mm": 13.88161996834075,
+   "seating_gap_mm": 11.88161996834075,
+   "centre_offset_mm": 6.206335383118183e-14,
    "tilt_deg": 8.537736462515939e-07
   },
-  "max_insertion_depth_mm": 8.852458796484612,
+  "max_insertion_depth_mm": 8.793551025009233,
   "cad_seat_depth_mm": 20.675170993349983,
-  "max_penetration_mm": 0.07097171467045452,
-  "touching_samples": 4,
+  "max_penetration_mm": 0.07871106686453705,
+  "touching_samples": 3,
   "first_unacceptable": {
    "stage": "INSERT",
-   "sample": 301,
-   "t_s": 6.019497704,
+   "sample": 300,
+   "t_s": 5.999499373,
    "status": "INTERFERENCE",
    "contact": "bore_wall",
-   "pen_mm": 0.07097171467045452,
+   "pen_mm": 0.07871106686453705,
    "regions": {
-    "bore_wall": 0.071
+    "bore_wall": 0.0787
    },
-   "lat_mm": 1.1443916996305594e-13,
-   "bottom_z_mm": 13.763748295937878,
-   "yaw_deg": -11.54649999999998
+   "lat_mm": 1.570092458683775e-13,
+   "bottom_z_mm": 13.822712196865101,
+   "yaw_deg": -11.531000000000006
   },
   "cad_seat_yaw_deg": 0.0
  }

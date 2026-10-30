@@ -22,9 +22,9 @@
     "t_s": 3.919672924,
     "status": "INTERFERENCE",
     "contact": "bore_wall",
-    "pen_mm": 0.036477335480094714,
+    "pen_mm": 0.02956933719144521,
     "regions": {
-      "bore_wall": 0.0365
+      "bore_wall": 0.0296
     },
     "lat_mm": 1.47130882163179e-10,
     "bottom_z_mm": 16.172761980619253,
@@ -42,7 +42,7 @@
   "max_insertion_depth_mm": 6.129843147212696,
   "cad_seat_depth_mm": 20.675170993349983,
   "min_clearance_mm": 0.0,
-  "max_penetration_mm": 0.036477335480094714,
+  "max_penetration_mm": 0.02956933719144521,
   "touching_samples": 0,
   "cad_seat_yaw_deg": 0.0,
   "peak_joint_speed_deg_s": [
