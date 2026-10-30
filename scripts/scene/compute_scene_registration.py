@@ -12,8 +12,10 @@ Output:
 Method:
   * Pickup plate: least-squares fit of the five measured TCP xy points to the CAD
     pocket centres (plate-local x = 0, 40, ..., 160 mm). Gives plate origin xy and yaw.
-  * Placement plate: origin xy = V1 TCP xy at insertion end (TCP assumed on the
-    part axis). Yaw ASSUMED parallel to the pickup plate (one point cannot give yaw).
+  * Placement plate: if config/saved_poses/v1_place_V{i}_geometry.yaml exist for >= 2 fittings
+    (lab registration: the robot's own grasp, part seated in each fitting), Kabsch fit of their
+    TCP xy to the CAD fitting centres. Otherwise origin xy = V1 TCP xy at insertion end and
+    yaw ASSUMED parallel to the pickup plate (one point cannot give yaw).
   * Heights: the robot base sits on the trolley top (z = trolley_surface_z, 0 = robot
     mounting plane). The slotted aluminium fixture plate lies on the trolley top and both
     blue plates lie on it, so plate underside z = trolley_surface_z + fixture thickness.
@@ -96,6 +98,23 @@ def main():
     resid = meas - (local @ R.T + origin)
 
     ins = tcp_xyz("v1_insertion_end")
+    # Placement plate: if the lab "place" poses exist (part seated in each fitting, measured with
+    # the same grasp), fit xy + yaw to them like the pickup plate; otherwise keep the single
+    # V1 insertion-end point and assume yaw parallel to the pickup plate.
+    place = {v: f"v1_place_V{v}_geometry" for v in range(1, 6)
+             if os.path.exists(os.path.join(PKG, "config", "saved_poses", f"v1_place_V{v}_geometry.yaml"))}
+    place_fit = None
+    if len(place) >= 2:
+        lp_ = np.array([np.array(man[f"V{v}_fitting"]["pose_in_placement_plate"]["xyz_mm"][:2]) / 1000.0 for v in place])
+        mp_ = np.array([tcp_xyz(n)[:2] for n in place.values()])
+        lc2, mc2 = lp_.mean(0), mp_.mean(0)
+        U2, _, Vt2 = np.linalg.svd((lp_ - lc2).T @ (mp_ - mc2))
+        R2 = Vt2.T @ U2.T
+        if np.linalg.det(R2) < 0:
+            Vt2[-1] *= -1; R2 = Vt2.T @ U2.T
+        o2 = mc2 - R2 @ lc2
+        r2 = mp_ - (lp_ @ R2.T + o2)
+        place_fit = {"origin": o2, "yaw": math.atan2(R2[1, 0], R2[0, 0]), "resid": r2, "used": list(place.values())}
     t = args.trolley_surface_z
     s = t + args.fixture_thickness            # blue plate undersides
 
@@ -115,12 +134,19 @@ def main():
             "fit_residual_mm": [[round(float(a) * 1000, 2), round(float(b) * 1000, 2)] for a, b in resid],
             "fit_rms_mm": round(float(np.sqrt((resid ** 2).sum(1).mean())) * 1000, 2),
         },
-        "placement_plate": {
+        "placement_plate": ({
             "xyz_m": [round(float(ins[0]), 5), round(float(ins[1]), 5), s],
             "yaw_rad": round(yaw, 6),
             "yaw_deg": round(math.degrees(yaw), 3),
             "source": "origin xy = v1_insertion_end TCP xy; yaw ASSUMED parallel to pickup plate",
-        },
+        } if place_fit is None else {
+            "xyz_m": [round(float(place_fit["origin"][0]), 5), round(float(place_fit["origin"][1]), 5), s],
+            "yaw_rad": round(place_fit["yaw"], 6),
+            "yaw_deg": round(math.degrees(place_fit["yaw"]), 3),
+            "source": "Kabsch fit of " + ", ".join(place_fit["used"]) + " TCP xy to CAD fitting centres",
+            "fit_residual_mm": [[round(float(a) * 1000, 2), round(float(b) * 1000, 2)] for a, b in place_fit["resid"]],
+            "fit_rms_mm": round(float(np.sqrt((place_fit["resid"] ** 2).sum(1).mean())) * 1000, 2),
+        }),
     }
     # ---- environment boxes (in the plates' yaw frame)
     c, sn = math.cos(yaw), math.sin(yaw)
