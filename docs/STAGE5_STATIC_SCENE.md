@@ -68,5 +68,4 @@ Fix in CAD (not applied here): move the holes 2 mm away from the prongs, or leng
 `validate_scene` checks this ("holes on slot lines"), using `SLOT_FIRST_EDGE_MM`, `SLOT_PITCH_MM`, `SLOT_WIDTH_MM`.
 
 Pickup plate re-export (30 Oct, evening): holes moved 2 mm toward the robot (plate now 143 mm wide; prong tip and
-pockets unchanged). 9/10 holes on gap centres; the hole at x = 20 mm, 131 mm from the far edge, was not moved
-(still 2 mm off). Placement plate not yet re-exported: all 8 holes still 2 mm off.
+pockets unchanged). Second re-export fixed the last hole: all 10 holes on gap centres (M5 clears the rails). Placement plate not yet re-exported: all 8 holes still 2 mm off.
