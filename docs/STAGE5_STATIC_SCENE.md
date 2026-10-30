@@ -68,4 +68,6 @@ Fix in CAD (not applied here): move the holes 2 mm away from the prongs, or leng
 `validate_scene` checks this ("holes on slot lines"), using `SLOT_FIRST_EDGE_MM`, `SLOT_PITCH_MM`, `SLOT_WIDTH_MM`.
 
 Pickup plate re-export (30 Oct, evening): holes moved 2 mm toward the robot (plate now 143 mm wide; prong tip and
-pockets unchanged). Second re-export fixed the last hole: all 10 holes on gap centres (M5 clears the rails). Placement plate not yet re-exported: all 8 holes still 2 mm off.
+pockets unchanged). Second re-export fixed the last hole: all 10 holes on gap centres (M5 clears the rails). Placement plate re-exported (Base.STL, plate body only, 143 mm wide): all 8 holes on gap centres. Fitting positions
+kept from PlaceAssem.STL (hole x positions and prong side unchanged, so the plate frame is the same).
+Scene validation: 69 checks, 1 FAIL (the known V4 part-in-pocket notch contact).

@@ -10,12 +10,12 @@ assumptions:
 meshes:
   pickup_plate:
     file: pickup_plate/pickup_plate.stl
-    source: 'Basea.STL (30 Oct 2026 revision: two prongs to the aluminium top-layer
-      far edge, pocket fillets)'
+    source: 'Basea.STL (30 Oct 2026 final: 143 mm wide, prongs to the fixture far
+      edge, holes on the real fixture gaps 33/83/133 mm)'
   placement_plate:
     file: placement_plate/placement_plate.stl
-    source: 'PlaceAssem.STL base body (30 Oct 2026 revision: two prongs to the aluminium
-      top-layer far edge)'
+    source: 'Base.STL (30 Oct 2026 final: 143 mm wide, prongs to the fixture far edge,
+      holes on the real fixture gaps 33/83/133 mm); fitting positions from PlaceAssem.STL'
   V1_moving:
     file: moving_parts/V1_moving.stl
     source: Varient1a.STEP via OpenCascade, 0.01 mm / 1 deg
