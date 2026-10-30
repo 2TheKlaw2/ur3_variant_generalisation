@@ -162,6 +162,13 @@ def home_move(q0, vmax):
 
 # ------------------------------------------------------------------ physical execution
 def execute(i, plans, G, objs, args):
+    import yaml
+    reg = yaml.safe_load(open(ROOT / "config/scene/scene_registration.yaml"))
+    s10 = json.load(open(args.plans / "stage10_summary.json"))
+    if reg.get("layout") != "session" or s10.get("layout") != "session":
+        raise SystemExit("BLOCKED: the plate registration / plans are not from a lab calibration session "
+                         f"(registration layout '{reg.get('layout')}', plans layout '{s10.get('layout')}'). "
+                         "Run CALIBRATE_PLATES.sh and UPDATE_SIM.sh first.")
     if os.environ.get("ROS_DOMAIN_ID", "0") != "0":
         raise SystemExit("BLOCKED: physical execution requires ROS_DOMAIN_ID=0 (the real robot), "
                          f"not {os.environ.get('ROS_DOMAIN_ID')}")
