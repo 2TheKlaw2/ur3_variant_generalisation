@@ -31,10 +31,10 @@ results = []
 
 # Gaps (slots) of the aluminium fixture plate, measured from its far edge (away from the robot):
 #   first gap edge 30 mm from the far edge on the REAL plate (ruler, 30 Oct 2026; the ur3_lfd trolley
-#   CAD says 28 mm - do not use it), gap pitch 50 mm (confirmed). Gap width NOT measured yet (assumed).
+#   CAD says 28 mm - do not use it), gap pitch 50 mm (confirmed). Gap width 6 mm (measured).
 SLOT_FIRST_EDGE_MM = 30.0
 SLOT_PITCH_MM = 50.0
-SLOT_WIDTH_MM = 6.0         # ASSUMED - measure on the real plate
+SLOT_WIDTH_MM = 6.0         # measured on the real plate (30 Oct 2026)
 SLOT_LINES_MM = tuple(SLOT_FIRST_EDGE_MM + SLOT_WIDTH_MM / 2 + k * SLOT_PITCH_MM for k in range(4))
 SLOT_TOL_MM = 0.5           # hole centre vs gap centre
 HOLE_R = 0.00275            # Ø5.5 mm clearance holes in the blue plates
@@ -169,7 +169,7 @@ def main():
 
     # ---- A. dimensions and units (mm-accurate extents in metres)
     # expected local extents (x = tab/slot axis, y, z) in metres; part tab span differs (V4/V5 revised)
-    exp = {"pickup_plate": (0.200, 0.141, 0.003), "placement_plate": (0.250, 0.141, 0.003)}   # 141 = 70 + 71 mm prongs (30 Oct)
+    exp = {"pickup_plate": (0.200, 0.143, 0.003), "placement_plate": (0.250, 0.141, 0.003)}   # 141 = 70 + 71 mm prongs (30 Oct)
     hts_p, hts_f, span = [25, 25, 30, 30, 40], [7, 7, 12, 12, 22], [32.06, 32.06, 32.06, 31.46, 31.46]
     for i in range(5):
         exp[f"pickup_V{i+1}"] = (span[i] / 1000, 0.0275, hts_p[i] / 1000)
@@ -225,7 +225,7 @@ def main():
             check(f"holes on slot lines {key}", len(holes) > 0 and max(off) <= SLOT_TOL_MM,
                   f"{len(holes)} x Ø{2*HOLE_R*1000:.1f} holes at {dists} mm from the far edge; gap centres "
                   f"{[round(v, 1) for v in SLOT_LINES_MM[:3]]} mm (first edge {SLOT_FIRST_EDGE_MM:.0f}, pitch "
-                  f"{SLOT_PITCH_MM:.0f}, width {SLOT_WIDTH_MM:.0f} ASSUMED); worst hole-to-gap-centre {max(off or [0]):.2f} mm; "
+                  f"{SLOT_PITCH_MM:.0f}, width {SLOT_WIDTH_MM:.0f}); worst hole-to-gap-centre {max(off or [0]):.2f} mm; "
                   f"M5 bolt clears the rails in {nfit}/{len(holes)} holes")
     for i in range(1, 5):
         for kind in ("pickup", "fitting"):

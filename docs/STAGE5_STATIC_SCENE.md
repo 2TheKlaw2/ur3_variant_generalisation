@@ -60,9 +60,13 @@ were recorded in the measured layout, so grasp offsets are computed there (`scen
 ### Bolt holes vs the fixture gaps
 
 Real fixture plate (ruler, 30 Oct 2026): first gap edge **30 mm** from the far edge (the ur3_lfd trolley CAD says
-28 mm, which is wrong), gap pitch **50 mm** (confirmed). Gap width not measured yet (6 mm assumed).
+28 mm, which is wrong), gap pitch **50 mm** (confirmed). Gap width 6 mm (measured 30 Oct).
 Both plates have Ø5.5 holes at 31 / 81 / 131 mm from the prong tips, i.e. centred on the trolley-CAD gaps
 (28 + 3). On the real plate the gap centres are at 30 + w/2 = 33 / 83 / 133 mm (w = 6), so every hole is 2 mm
 too close to the far edge and an M5 bolt would hit the rail (one pickup hole, x = 140 mm, is already at 133.03).
 Fix in CAD (not applied here): move the holes 2 mm away from the prongs, or lengthen the prongs by 2 mm.
 `validate_scene` checks this ("holes on slot lines"), using `SLOT_FIRST_EDGE_MM`, `SLOT_PITCH_MM`, `SLOT_WIDTH_MM`.
+
+Pickup plate re-export (30 Oct, evening): holes moved 2 mm toward the robot (plate now 143 mm wide; prong tip and
+pockets unchanged). 9/10 holes on gap centres; the hole at x = 20 mm, 131 mm from the far edge, was not moved
+(still 2 mm off). Placement plate not yet re-exported: all 8 holes still 2 mm off.
