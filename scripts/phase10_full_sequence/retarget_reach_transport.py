@@ -122,19 +122,27 @@ def resample(t, Ts, dt=lp.SAMPLE_DT_S):
     return tt, out
 
 
+class IKFail(RuntimeError):
+    def __init__(self, msg, partial, sample, T):
+        super().__init__(msg); self.partial, self.sample, self.T = partial, sample, T
+
+
 def ik_path(q0, Ts, calib, name):
     import transport_profile as tp
     q, out, T_prev = list(q0), [], uk.tcp(q0, calib)
     for k, T in enumerate(Ts):
         try:
-            q = uk.ik_local(q, T, calib).tolist()
-        except RuntimeError:
-            # DLS did not converge in one step: walk to the same target in 10 sub-steps (same branch)
-            for j in range(1, 11):
-                q = uk.ik_local(q, tp.interp_pose(T_prev, T, j / 10), calib, iters=200).tolist()
+            try:
+                q = uk.ik_local(q, T, calib).tolist()
+            except RuntimeError:
+                # DLS did not converge in one step: walk to the same target in 10 sub-steps (same branch)
+                for j in range(1, 11):
+                    q = uk.ik_local(q, tp.interp_pose(T_prev, T, j / 10), calib, iters=200).tolist()
+        except RuntimeError as e:
+            raise IKFail(f"{name}: IK failed at sample {k} ({e})", out, k, T)
         T_prev = T
         if out and lp.maxdiff(out[-1], q) > MAX_STEP_RAD * 5:
-            raise RuntimeError(f"{name}: IK branch jump at sample {k}")
+            raise IKFail(f"{name}: IK branch jump at sample {k}", out, k, T)
         out.append(q)
     return out
 
@@ -265,6 +273,8 @@ def main():
         q_start_i = q1 if i == 1 else vc.ik_continuation(q1, T_tcp1, T_start_i, calib, steps=200)
         T_grip_i = objs[f"pickup_V{i}"]["T"] @ np.linalg.inv(G[i])
         T_home = uk.tcp(q_home, calib)
+        st_fail = [None]
+
         def plan(tau_r, tau_t):
             t_r, Ts_r, info_r = rollout(reach, pr, qr, T_home, T_grip_i, tau_r)
             t_r, Ts_r = resample(t_r, Ts_r)
@@ -277,10 +287,20 @@ def main():
             Q_l = ik_path(Q_ag[-1], Ts_l, calib, "LIFT")
             t_t, Ts_t, info_t = rollout(trans, pt, qt, Ts_l[-1], T_start_i, tau_t)
             t_t, Ts_t = resample(t_t, Ts_t)
-            Q_t = ik_path(Q_l[-1], Ts_t, calib, "TRANSPORT")
-            t_ai, Q_ai = align(Q_t[-1], T_start_i, calib, "ALIGN_INSERT")
-            st = [("REACH", t_r, Q_r), ("ALIGN_GRIP", t_ag, Q_ag), ("LIFT", t_l, Q_l),
-                  ("TRANSPORT", t_t, Q_t), ("ALIGN_INSERT", t_ai, Q_ai)]
+            try:
+                Q_t = ik_path(Q_l[-1], Ts_t, calib, "TRANSPORT")
+                fail_ = None
+            except IKFail as e:            # keep the feasible part so it can be watched up to the failure
+                Q_t, t_t = e.partial, t_t[:len(e.partial)]
+                q_last = np.asarray(Q_t[-1])
+                fail_ = {"stage": "TRANSPORT", "sample": e.sample, "t_s": float(t_t[-1]) if len(t_t) else 0.0,
+                         "target_tcp_mm": (e.T[:3, 3] * 1000).round(1).tolist(), "last_q": q_last.round(3).tolist(),
+                         "elbow_rad": round(float(q_last[2]), 3), "reason": str(e)}
+            st = [("REACH", t_r, Q_r), ("ALIGN_GRIP", t_ag, Q_ag), ("LIFT", t_l, Q_l), ("TRANSPORT", t_t, Q_t)]
+            if fail_ is None:
+                t_ai, Q_ai = align(Q_t[-1], T_start_i, calib, "ALIGN_INSERT")
+                st.append(("ALIGN_INSERT", t_ai, Q_ai))
+            st_fail[0] = fail_
             v = {n: speeds(np.asarray(t), Q) for n, t, Q in st}
             return st, v, info_r, info_t, Ts_r, Ts_t
 
@@ -303,8 +323,10 @@ def main():
                "max_joint_step_rad": {k: round(x[1], 5) for k, x in v.items()},
                "within_physical_speed_guard": bool(peak <= PHYS_GUARD_RAD_S),
                "align_grip_correction_mm": float(np.linalg.norm(Ts_r[-1][:3, 3] - T_grip_i[:3, 3]) * 1000),
-               "align_insert_correction_mm": float(np.linalg.norm(Ts_t[-1][:3, 3] - T_start_i[:3, 3]) * 1000),
-               "handover_to_stage9_joint_gap_rad": float(lp.maxdiff(S["ALIGN_INSERT"][1][-1], q_start_i)),
+               "align_insert_correction_mm": float(np.linalg.norm(Ts_t[-1][:3, 3] - T_start_i[:3, 3]) * 1000),  # CDMP end vs goal
+               "handover_to_stage9_joint_gap_rad": (float(lp.maxdiff(S["ALIGN_INSERT"][1][-1], q_start_i))
+                                                    if "ALIGN_INSERT" in S else None),
+               "failure": st_fail[0],
                "transport_min_tcp_z_mm": float(min(T[2, 3] for T in Ts_t) * 1000)}
         part = f"pickup_V{i}"
         z0 = (objs[part]["T"])[2, 3]
@@ -315,7 +337,7 @@ def main():
                                               part if held else None, G[i], z0,
                                               stride=a.stride if n in ("REACH", "TRANSPORT") else 1)
         ok = all(c_["collision_free"] for c_ in res["collision"].values())
-        res["PASS"] = bool(ok and res["handover_to_stage9_joint_gap_rad"] < 1e-3)
+        res["PASS"] = bool(ok and st_fail[0] is None and res["handover_to_stage9_joint_gap_rad"] < 1e-3)
         summary["variants"][f"V{i}"] = res
         d = os.path.join(a.out, f"V{i}"); os.makedirs(d, exist_ok=True)
         with open(os.path.join(d, "joint_trajectory.csv"), "w", newline="") as f:
@@ -327,7 +349,9 @@ def main():
         D = res["durations_s"]
         print(f"V{i}: {'PASS' if res['PASS'] else 'FAIL'}  tau R/T {tau_r}/{tau_t}  REACH {D['REACH']:.1f}s  TRANSPORT {D['TRANSPORT']:.1f}s  "
               f"peak {peak:.3f} rad/s  ALIGN {res['align_grip_correction_mm']:.2f}/{res['align_insert_correction_mm']:.2f} mm  "
-              f"hand-over gap {res['handover_to_stage9_joint_gap_rad']:.1e} rad  min clearance "
+              + (f"hand-over gap {res['handover_to_stage9_joint_gap_rad']:.1e} rad  " if st_fail[0] is None
+                 else f"STOPPED: {st_fail[0]['reason']} at t={st_fail[0]['t_s']:.1f}s, elbow {st_fail[0]['elbow_rad']} rad  ")
+              + f"min clearance "
               + "/".join(f"{c[n]['min_clearance_mm']:.1f}" for n in c) + " mm  "
               + "  ".join(f"{k}: {v_['first_collision']}" for k, v_ in c.items() if v_["first_collision"]), flush=True)
         json.dump(summary, open(os.path.join(a.out, "stage10_summary.json"), "w"), indent=1, default=float)

@@ -14,7 +14,7 @@
 --full: replaces APPROACH/ATTACH/DESCEND with the Stage 10 CDMP-retargeted sequence
   REACH -> ALIGN_GRIP -> GRIP + ATTACH -> LIFT 30 mm -> TRANSPORT -> ALIGN_INSERT
   (joint trajectories from scripts/phase10_full_sequence/retarget_reach_transport.py; it ends exactly
-  on the INSERT/ROTATE start state). Only variants with a Stage 10 trajectory (V1-V3 so far).
+  on the INSERT/ROTATE start state). V4/V5: plays up to where the TRANSPORT IK fails (elbow singularity), then stops.
 
 Sequence per variant:
   HOME -> OPEN -> APPROACH (joint-space, min-jerk) to 40 mm above the Stage 9 start
@@ -195,6 +195,19 @@ def execute(node, i, level, p, calib, objs, run_dir, args):
             print(f"  wrist_3 shifted by {k} x 2pi to stay near HOME (same poses)", flush=True)
         summary["note"] = "Full sequence: Stage 10 CDMP-retargeted REACH/TRANSPORT (offline plan), executed and MoveIt-checked here"
         run_full(node, i, full, G, objs, calib, summary)
+        if "ALIGN_INSERT" not in full:      # Stage 10 plan stops where its IK failed (V4/V5): show it and stop
+            import json as _json
+            sf = Path(args.full_dir) / "stage10_summary.json"
+            fail = _json.load(open(sf))["variants"].get(f"V{i}", {}).get("failure") if sf.exists() else None
+            print(f"\nSTOPPED: V{i} TRANSPORT ends here - the planned CDMP path could not be continued.\n  {fail}",
+                  flush=True)
+            res["functional_outcome"] = res["strict_outcome"] = "FAIL"
+            res["first_unacceptable"] = {"stage": "TRANSPORT", "sample": (fail or {}).get("sample"),
+                                         "t_s": (fail or {}).get("t_s"), "status": "IK_FAIL (elbow singularity)",
+                                         "contact": str((fail or {}).get("target_tcp_mm"))}
+            res["pre_stages"] = summary
+            out8.write_outputs(str(folder), res)
+            return res
         node.scene.set_allowed(obj_id, f"fitting_V{i}", True)
         return finish_insert(node, i, level, p, calib, objs, folder, res, geom, G, feas, summary, obj_id)
     k = unwrap_to(q_home, [p["q_desc"], [r["q"] for r in feas]])
@@ -240,6 +253,8 @@ def load_full(d, i):
 def run_full(node, i, full, G, objs, calib, summary):
     obj_id = f"pickup_V{i}"
     for stage in ("REACH", "ALIGN_GRIP", "LIFT", "TRANSPORT", "ALIGN_INSERT"):
+        if stage not in full:
+            continue
         t, q = full[stage]
         if stage == "LIFT":
             node.run_gripper("GRIP", sm.RG2_GRIP_M)

@@ -297,6 +297,210 @@
     }
    },
    "PASS": true
+  },
+  "V4": {
+   "tau_reach": 2.0,
+   "tau_transport": 2.0,
+   "reach_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     1.1018480577310301,
+     0.04806050097881291
+    ],
+    "final_goal_err_mm_deg": [
+     1.1018480577310301,
+     0.04806050097881291
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "transport_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     0.3786621766489189,
+     0.10582024311061376
+    ],
+    "final_goal_err_mm_deg": [
+     0.3786621766489189,
+     0.10582024311061376
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "durations_s": {
+    "REACH": 31.879361370000503,
+    "ALIGN_GRIP": 1.0,
+    "LIFT": 3.0,
+    "TRANSPORT": 11.56
+   },
+   "peak_joint_speed_rad_s": {
+    "REACH": 0.3081,
+    "ALIGN_GRIP": 0.004,
+    "LIFT": 0.0867,
+    "TRANSPORT": 0.9259
+   },
+   "max_joint_step_rad": {
+    "REACH": 0.00616,
+    "ALIGN_GRIP": 8e-05,
+    "LIFT": 0.00173,
+    "TRANSPORT": 0.01852
+   },
+   "within_physical_speed_guard": false,
+   "align_grip_correction_mm": 1.1018480577310301,
+   "align_insert_correction_mm": 0.3786621766489189,
+   "handover_to_stage9_joint_gap_rad": null,
+   "failure": {
+    "stage": "TRANSPORT",
+    "sample": 579,
+    "t_s": 11.56,
+    "target_tcp_mm": [
+     -169.0,
+     -350.1,
+     201.1
+    ],
+    "last_q": [
+     -1.681,
+     -2.219,
+     -0.038,
+     -2.456,
+     1.579,
+     -4.817
+    ],
+    "elbow_rad": -0.038,
+    "reason": "TRANSPORT: IK failed at sample 579 (IK did not converge (pos err 0.0072 mm))"
+   },
+   "transport_min_tcp_z_mm": 57.19009743495503,
+   "collision": {
+    "REACH": {
+     "samples_checked": 320,
+     "min_clearance_mm": 7.538,
+     "closest_pair": "r_inner_finger<->pickup_V4",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "ALIGN_GRIP": {
+     "samples_checked": 51,
+     "min_clearance_mm": 11.117,
+     "closest_pair": "l_inner_finger<->pickup_V4",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "LIFT": {
+     "samples_checked": 151,
+     "min_clearance_mm": 0.834,
+     "closest_pair": "pickup_V4<->pickup_plate",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "TRANSPORT": {
+     "samples_checked": 117,
+     "min_clearance_mm": 17.627,
+     "closest_pair": "pickup_V4<->pickup_V3",
+     "first_collision": null,
+     "collision_free": true
+    }
+   },
+   "PASS": false
+  },
+  "V5": {
+   "tau_reach": 2.0,
+   "tau_transport": 2.0,
+   "reach_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     1.4639648833999122,
+     0.03395743527498243
+    ],
+    "final_goal_err_mm_deg": [
+     1.4639648833999122,
+     0.03395743527498243
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "transport_cdmp": {
+    "nominal_goal_err_mm_deg": [
+     0.40947833260309324,
+     0.10582024311061325
+    ],
+    "final_goal_err_mm_deg": [
+     0.40947833260309324,
+     0.10582024311061325
+    ],
+    "settle_steps": 0,
+    "start_err_mm": 0.0
+   },
+   "durations_s": {
+    "REACH": 31.879361370000503,
+    "ALIGN_GRIP": 1.0,
+    "LIFT": 3.0,
+    "TRANSPORT": 9.42
+   },
+   "peak_joint_speed_rad_s": {
+    "REACH": 0.3351,
+    "ALIGN_GRIP": 0.0065,
+    "LIFT": 0.0872,
+    "TRANSPORT": 1.8643
+   },
+   "max_joint_step_rad": {
+    "REACH": 0.0067,
+    "ALIGN_GRIP": 0.00013,
+    "LIFT": 0.00174,
+    "TRANSPORT": 0.03729
+   },
+   "within_physical_speed_guard": false,
+   "align_grip_correction_mm": 1.4639648833999122,
+   "align_insert_correction_mm": 0.40947833260309324,
+   "handover_to_stage9_joint_gap_rad": null,
+   "failure": {
+    "stage": "TRANSPORT",
+    "sample": 472,
+    "t_s": 9.42,
+    "target_tcp_mm": [
+     -118.6,
+     -355.3,
+     222.6
+    ],
+    "last_q": [
+     -1.52,
+     -2.138,
+     -0.06,
+     -2.488,
+     1.558,
+     -4.627
+    ],
+    "elbow_rad": -0.06,
+    "reason": "TRANSPORT: IK failed at sample 472 (IK did not converge (pos err 0.0402 mm))"
+   },
+   "transport_min_tcp_z_mm": 76.40825047971884,
+   "collision": {
+    "REACH": {
+     "samples_checked": 320,
+     "min_clearance_mm": 8.938,
+     "closest_pair": "r_inner_finger<->pickup_V5",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "ALIGN_GRIP": {
+     "samples_checked": 51,
+     "min_clearance_mm": 14.715,
+     "closest_pair": "r_inner_finger<->pickup_V5",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "LIFT": {
+     "samples_checked": 151,
+     "min_clearance_mm": 0.915,
+     "closest_pair": "pickup_V5<->pickup_plate",
+     "first_collision": null,
+     "collision_free": true
+    },
+    "TRANSPORT": {
+     "samples_checked": 96,
+     "min_clearance_mm": 17.594,
+     "closest_pair": "pickup_V5<->pickup_V4",
+     "first_collision": null,
+     "collision_free": true
+    }
+   },
+   "PASS": false
   }
  }
 }
