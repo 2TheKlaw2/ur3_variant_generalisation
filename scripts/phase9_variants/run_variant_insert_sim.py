@@ -8,7 +8,13 @@
   python3 scripts/phase9_variants/run_variant_insert_sim.py --variant 4 --level L2 --run    # type START
   python3 scripts/phase9_variants/run_variant_insert_sim.py --variant all --level L1 --run  # V1..V5 in turn
   python3 scripts/phase9_variants/run_variant_insert_sim.py --variant 4 --level L2 --plan-only   # no ROS at all
+  python3 scripts/phase9_variants/run_variant_insert_sim.py --variant 2 --level L2 --full --run   # whole sequence
   python3 scripts/phase6_pickup_sim/planning_scene_tools.py --reset                         # afterwards
+
+--full: replaces APPROACH/ATTACH/DESCEND with the Stage 10 CDMP-retargeted sequence
+  REACH -> ALIGN_GRIP -> GRIP + ATTACH -> LIFT 30 mm -> TRANSPORT -> ALIGN_INSERT
+  (joint trajectories from scripts/phase10_full_sequence/retarget_reach_transport.py; it ends exactly
+  on the INSERT/ROTATE start state). Only variants with a Stage 10 trajectory (V1-V3 so far).
 
 Sequence per variant:
   HOME -> OPEN -> APPROACH (joint-space, min-jerk) to 40 mm above the Stage 9 start
@@ -177,6 +183,15 @@ def execute(node, i, level, p, calib, objs, run_dir, args):
     node.run_gripper("OPEN", sm.RG2_OPEN_M)
     q_home = node.fresh()
     feas = [r for r in res["rows"] if r["feasible"]]
+    if args.full:
+        full = load_full(Path(args.full_dir), i)
+        k = unwrap_to(q_home, [q for _, q in full.values()] + [[r["q"] for r in feas]])
+        if k:
+            print(f"  wrist_3 shifted by {k} x 2pi to stay near HOME (same poses)", flush=True)
+        summary["note"] = "Full sequence: Stage 10 CDMP-retargeted REACH/TRANSPORT (offline plan), executed and MoveIt-checked here"
+        run_full(node, i, full, G, objs, calib, summary)
+        node.scene.set_allowed(obj_id, f"fitting_V{i}", True)
+        return finish_insert(node, i, level, p, calib, objs, folder, res, geom, G, feas, summary, obj_id)
     k = unwrap_to(q_home, [p["q_desc"], [r["q"] for r in feas]])
     if k:
         print(f"  wrist_3 shifted by {k} x 2pi to stay near HOME (same poses)", flush=True)
@@ -202,6 +217,41 @@ def execute(node, i, level, p, calib, objs, run_dir, args):
                                     "height_mm": ABOVE_M * 1000}
     # INSERT / ROTATE: MoveIt checks all but the part<->own-fitting pair (CAD classifier)
     node.scene.set_allowed(obj_id, f"fitting_V{i}", True)
+    return finish_insert(node, i, level, p, calib, objs, folder, res, geom, G, feas, summary, obj_id)
+
+
+def load_full(d, i):
+    import csv
+    f = d / f"V{i}" / "joint_trajectory.csv"
+    if not f.exists():
+        raise RuntimeError(f"No Stage 10 trajectory for V{i} ({f}); run retarget_reach_transport.py first")
+    out = {}
+    for r in csv.DictReader(open(f)):
+        t, q = out.setdefault(r["stage"], ([], []))
+        t.append(float(r["t_s"])); q.append([float(r[j]) for j in JOINTS])
+    return out
+
+
+def run_full(node, i, full, G, objs, calib, summary):
+    obj_id = f"pickup_V{i}"
+    for stage in ("REACH", "ALIGN_GRIP", "LIFT", "TRANSPORT", "ALIGN_INSERT"):
+        t, q = full[stage]
+        if stage == "LIFT":
+            node.run_gripper("GRIP", sm.RG2_GRIP_M)
+            node.scene.attach_part(obj_id, G, objs[obj_id]["mesh"])
+            node.scene.set_allowed(obj_id, "pickup_plate", True)          # resting in its pocket (Stage 6)
+            print(f"ATTACH: {obj_id} at grasp xyz {np.round(G[:3, 3]*1000, 3).tolist()} mm", flush=True)
+        bad, n = node.check_path(stage, t, q, calib)
+        if bad:
+            raise RuntimeError(f"{stage} collisions (MoveIt): {bad[:3]}")
+        node.run_arm(f"V{i} {stage}", t, q)
+        if stage == "LIFT":
+            node.scene.set_allowed(obj_id, "pickup_plate", False)
+        summary["stages"][stage] = {"samples": len(q), "duration_s": t[-1], "states_checked": n,
+                                    "timing": "CDMP tau 2" if stage in ("REACH", "TRANSPORT") else "min-jerk"}
+
+
+def finish_insert(node, i, level, p, calib, objs, folder, res, geom, G, feas, summary, obj_id):
     other = []
     for r in feas:
         ok, contacts = node.valid(r["q"])
@@ -254,6 +304,8 @@ def main():
     ap.add_argument("--skip-home", action="store_true")
     ap.add_argument("--plan-only", action="store_true", help="Plan and print; no ROS")
     ap.add_argument("--features", default=str(ROOT / "results/cad_features"))
+    ap.add_argument("--full", action="store_true", help="whole sequence: Stage 10 CDMP REACH/TRANSPORT before INSERT/ROTATE")
+    ap.add_argument("--full-dir", default=str(ROOT / "results/sim_reference/stage10_retarget_20261030_tau2"))
     sim_node.add_speed_arg(ap)
     args = ap.parse_args()
     variants = [1, 2, 3, 4, 5] if args.variant == "all" else [int(args.variant)]
@@ -274,10 +326,15 @@ def main():
     try:
         preflight(node, f"STAGE 9 V{'/V'.join(map(str, variants))} {args.level} INSERT/ROTATE — FAKE HARDWARE ONLY "
                   "(ROS_DOMAIN_ID=73)",
-                  ["APPROACH      HOME -> 40 mm above the start (joint min-jerk)",
-                      "ATTACH        part attached in the gripper (pickup/transport NOT simulated)",
-                      f"DESCEND       40 mm straight down, {DESCEND_S:.1f} s min-jerk",
-                      f"INSERT/ROTATE {args.level} plan, original CDMP timestamps"])
+                  (["REACH         CDMP (V1 demo, goal = this variant's pocket), tau 2",
+                    "ALIGN_GRIP    1 s straight to the exact grip pose; GRIP + ATTACH",
+                    "LIFT          30 mm, 3 s min-jerk",
+                    "TRANSPORT     CDMP (V1 demo, goal = this variant's fitting), tau 2",
+                    "ALIGN_INSERT  1 s straight to the INSERT start"] if args.full else
+                   ["APPROACH      HOME -> 40 mm above the start (joint min-jerk)",
+                    "ATTACH        part attached in the gripper (pickup/transport NOT simulated)",
+                    f"DESCEND       40 mm straight down, {DESCEND_S:.1f} s min-jerk"])
+                  + [f"INSERT/ROTATE {args.level} plan, original CDMP timestamps"])
         if not (args.run or args.auto):
             print("PREFLIGHT PASS — NO ROBOT MOVEMENT. Re-run with --run or --auto."); return 0
         if args.run and input(f"Type START to run {args.level} on V{', V'.join(map(str, variants))}: ").strip() != "START":
