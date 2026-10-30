@@ -93,7 +93,7 @@ def plan(i, level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, features_dir):
             "T_tcp_start": T_tcp_start}
 
 
-PLAN_FILES = ["scripts/phase9_variants/variant_core.py", "scripts/phase9_variants/run_variant_insert_sim.py",
+PLAN_FILES = ["scripts/phase9_variants/variant_core.py",
               "scripts/phase8_insert_sim/stage8_core.py", "scripts/scene/ur_kinematics.py",
               "config/scene/scene_registration.yaml", "config/ur3e_lab_calibration.yaml",
               "config/trajectories/v1/v1_align_to_grip_joint_plan_001.csv", "config/trajectories/v1/v1_align_to_insertion_joint_plan_001.csv",
@@ -104,7 +104,9 @@ def plan_cached(i, level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, features_d
     files = PLAN_FILES + [objs[f"pickup_V{i}"]["mesh"], objs[f"fitting_V{i}"]["mesh"],
                           os.path.join(features_dir, f"V{i}_corridor.csv"), os.path.join(features_dir, "V1_corridor.csv")]
     files += [f"config/saved_poses/v1_pickup_V{k}_geometry.yaml" for k in range(2, 6)]
-    k = plan_cache.key(f"stage9_V{i}_{level}", {}, files)
+    # key on the planning code itself (not the whole runner), so UI/playback edits keep the cache
+    import inspect
+    k = plan_cache.key(f"stage9_V{i}_{level}", {"plan_src": inspect.getsource(plan), "ver": 2}, files)
     p = plan_cache.get(k)
     if p is not None:
         print(f"  V{i} {level}: cached plan", flush=True)
@@ -113,6 +115,37 @@ def plan_cached(i, level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, features_d
     p = plan(i, level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, features_dir)
     plan_cache.put(k, {kk: v for kk, v in p.items() if kk != "geom"})
     return p
+
+
+def _plan_worker(a):
+    plan_cached(*a)          # result goes to the cache; the geometry object is not picklable
+    return a[0]
+
+
+def prewarm(variants, level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, features_dir):
+    """Plan every uncached variant in parallel (one process each), with progress, before the run."""
+    import time
+    from concurrent.futures import ProcessPoolExecutor, as_completed
+    todo = []
+    for i in variants:
+        files = PLAN_FILES + [objs[f"pickup_V{i}"]["mesh"], objs[f"fitting_V{i}"]["mesh"],
+                              os.path.join(features_dir, f"V{i}_corridor.csv"), os.path.join(features_dir, "V1_corridor.csv")]
+        files += [f"config/saved_poses/v1_pickup_V{k}_geometry.yaml" for k in range(2, 6)]
+        import inspect
+        k = plan_cache.key(f"stage9_V{i}_{level}", {"plan_src": inspect.getsource(plan), "ver": 2}, files)
+        if plan_cache.get(k) is None:
+            todo.append(i)
+    if not todo:
+        return
+    n = min(len(todo), max(1, (os.cpu_count() or 2) - 1))
+    print(f"  planning V{', V'.join(map(str, todo))} in parallel ({n} processes, ~1 min; once per geometry change)...",
+          flush=True)
+    t0 = time.monotonic()
+    args_ = [(i, level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, features_dir) for i in todo]
+    with ProcessPoolExecutor(n) as ex:
+        futs = [ex.submit(_plan_worker, a) for a in args_]
+        for f in as_completed(futs):
+            print(f"  V{f.result()} planned ({time.monotonic() - t0:.0f} s)", flush=True)
 
 
 def unwrap_to(q_ref, paths):
@@ -371,7 +404,9 @@ def main():
     G, _ = rvo.grasps(objs, calib)
     prof = vc.demo_profiles(str(ROOT))
     q1, T_tcp1, z1, yaw0 = rvo.v1_start(objs, calib, G[1])
-    print("Planning (CAD classifier, ~20-60 s per variant the first time; cached after)...", flush=True)
+    print("Planning (CAD classifier; ~1 min the first time after a geometry change, then cached: a few seconds)...",
+          flush=True)
+    prewarm(variants, args.level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, args.features)
     plans = {i: plan_cached(i, args.level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, args.features) for i in variants}
     for i in variants:
         print_plan(i, args.level, plans[i])

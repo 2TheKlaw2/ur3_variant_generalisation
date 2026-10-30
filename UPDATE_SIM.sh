@@ -9,7 +9,7 @@
 #   3. Stage 9 INSERT/ROTATE, all levels, all variants              -> results/simulation/stage9_<session>/
 #   4. Stage 10 REACH/TRANSPORT CDMP retargeting, tau 2              -> results/simulation/stage10_<session>/
 #   5. RELEASE / RETREAT / HOME after assembly                       -> same folder
-#   6. results/simulation/stage10_current -> stage10_<session>   (the RViz runner's --full uses it)
+#   6. results/simulation/stage10_current -> stage10_<session>   (the RViz runner's --full uses it); pre-plans V1-V5 L2
 # Kinematic simulation only. Old poses, demos and reference results are never overwritten.
 set -Eeo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -54,9 +54,11 @@ step "5/6 RELEASE / RETREAT / HOME"
 python3 scripts/phase10_full_sequence/plan_release_retreat.py --rg2-mesh-dir "$RG2" \
   --stage9 "results/simulation/stage9_${NAME}" --out "results/simulation/stage10_${NAME}" 2>&1 \
   | tee -a "$LOG" | grep -E "^V[1-5]" || true
-step "6/6 point the RViz runner at the new plans"
+step "6/6 point the RViz runner at the new plans and pre-plan its INSERT/ROTATE (so RViz runs start at once)"
 ln -sfn "stage10_${NAME}" results/simulation/stage10_current
 echo "  results/simulation/stage10_current -> stage10_${NAME}"
+python3 scripts/phase9_variants/run_variant_insert_sim.py --variant all --level L2 --plan-only 2>&1 \
+  | grep -E "planned|cached|expected outcome" || true
 echo
 echo "Done. Restart terminals 1-2 (fake robot + MoveIt/RViz) so RViz loads the new plate positions."
 echo "Next (fake hardware, ROS_DOMAIN_ID=73):"
