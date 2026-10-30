@@ -29,6 +29,18 @@ GRIP_W, OPEN_W = 0.0082, 0.040  # physical RG2 settings (run_v1_physical_sequenc
 results = []
 
 
+# Gaps (slots) of the aluminium fixture plate, measured from its far edge (away from the robot):
+#   first gap edge 30 mm from the far edge on the REAL plate (ruler, 30 Oct 2026; the ur3_lfd trolley
+#   CAD says 28 mm - do not use it), gap pitch 50 mm (confirmed). Gap width NOT measured yet (assumed).
+SLOT_FIRST_EDGE_MM = 30.0
+SLOT_PITCH_MM = 50.0
+SLOT_WIDTH_MM = 6.0         # ASSUMED - measure on the real plate
+SLOT_LINES_MM = tuple(SLOT_FIRST_EDGE_MM + SLOT_WIDTH_MM / 2 + k * SLOT_PITCH_MM for k in range(4))
+SLOT_TOL_MM = 0.5           # hole centre vs gap centre
+HOLE_R = 0.00275            # Ø5.5 mm clearance holes in the blue plates
+BOLT_D_MM = 5.0             # M5
+
+
 def check(name, ok, detail):
     tag = "INFO" if ok is None else ("PASS" if ok else "FAIL")
     results.append((tag, name, detail))
@@ -182,13 +194,56 @@ def main():
         check(f"no penetration {n} vs plate", not col, f"min dist {d*1000:.3f} mm (resting contact excluded)")
     d, col = dist(meshes["pickup_plate"], meshes["placement_plate"])
     check("plates do not overlap", not col, f"gap {d*1000:.1f} mm")
+
+    # ---- C2. revised plates: prongs on the fixture far edge, bolt holes over the slot lines
+    if "fixture_plate" in meshes:
+        Fi = np.linalg.inv(poses["fixture_plate"]); fx = meshes["fixture_plate"].copy(); fx.apply_transform(Fi)
+        robot_local = (Fi @ np.array([0, 0, 0, 1.0]))[1]
+        far = fx.bounds[1][1] if abs(fx.bounds[1][1] - robot_local) > abs(fx.bounds[0][1] - robot_local) else fx.bounds[0][1]
+        sgn = 1.0 if far > robot_local else -1.0
+        rows_all = {}
+        for key in ("pickup_plate", "placement_plate"):
+            m = meshes[key].copy(); m.apply_transform(Fi)
+            tip = m.bounds[1][1] if sgn > 0 else m.bounds[0][1]
+            mode = reg.get("layout", "measured")
+            check(f"prongs on far edge {key}", abs(tip - far) < 5e-4 or mode != "prongs",
+                  f"prong tip {abs(far - tip)*1000:.2f} mm from the fixture far edge (layout: {mode})")
+            sec = m.section([0, 0, 1], [0, 0, m.bounds[0][2] + 0.0015])
+            holes = []
+            for e in sec.discrete:
+                c = e[:, :2].mean(0); r = np.linalg.norm(e[:, :2] - c, axis=1)
+                if abs(r.mean() - HOLE_R) < 2e-4 and r.std() < 1e-4:
+                    holes.append(c)
+            dists = sorted(round(float(sgn * (far - c[1])) * 1000, 2) for c in holes)
+            off = [min(abs(dd - L) for L in SLOT_LINES_MM) for dd in dists]
+            rows_all[key] = dists
+            # does an M5 bolt through each hole drop into a gap without touching the rails?
+            def bolt_fits(dd):
+                return any(L - SLOT_WIDTH_MM / 2 <= dd - BOLT_D_MM / 2 and dd + BOLT_D_MM / 2 <= L + SLOT_WIDTH_MM / 2
+                           for L in SLOT_LINES_MM)
+            nfit = sum(bolt_fits(dd) for dd in dists)
+            check(f"holes on slot lines {key}", len(holes) > 0 and max(off) <= SLOT_TOL_MM,
+                  f"{len(holes)} x Ø{2*HOLE_R*1000:.1f} holes at {dists} mm from the far edge; gap centres "
+                  f"{[round(v, 1) for v in SLOT_LINES_MM[:3]]} mm (first edge {SLOT_FIRST_EDGE_MM:.0f}, pitch "
+                  f"{SLOT_PITCH_MM:.0f}, width {SLOT_WIDTH_MM:.0f} ASSUMED); worst hole-to-gap-centre {max(off or [0]):.2f} mm; "
+                  f"M5 bolt clears the rails in {nfit}/{len(holes)} holes")
     for i in range(1, 5):
         for kind in ("pickup", "fitting"):
             d, col = dist(meshes[f"{kind}_V{i}"], meshes[f"{kind}_V{i+1}"])
             check(f"gap {kind}_V{i}-V{i+1}", not col, f"{d*1000:.2f} mm")
 
     # ---- D. order and orientation vs measured robot data
-    def axis_xy(n): return poses[n][:2, 3]
+    # Taught TCP poses belong to the layout they were taught in (measured), so in the predicted
+    # "prongs" layout compare them with the plates' measured positions and report the shift separately.
+    shift = {}
+    for key in ("pickup_plate", "placement_plate"):
+        r = reg[key]
+        shift[key] = np.array(r["xyz_m"][:2]) - np.array(r.get("measured_xyz_m", r["xyz_m"])[:2])
+        if np.linalg.norm(shift[key]) > 0:
+            check(f"predicted re-teach shift {key}", True, f"{np.linalg.norm(shift[key])*1000:.2f} mm away from the robot "
+                  "(taught poses compared at the measured layout below; re-teach/register in the lab)")
+    def axis_xy(n):
+        return poses[n][:2, 3] - shift["pickup_plate" if n.startswith("pickup") else "placement_plate"]
     def xdir(n): return poses[n][:3, 0]
     for i in range(1, 6):
         tcp = sp(f"v1_pickup_V{i}_geometry")["tcp"]

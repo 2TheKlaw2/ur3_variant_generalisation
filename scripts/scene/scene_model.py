@@ -64,23 +64,26 @@ def pose_to_matrix(xyz, quat_xyzw):
     M = np.eye(4); M[:3, :3] = quat_to_matrix(quat_xyzw); M[:3, 3] = xyz; return M
 
 
-def plate_frames():
+def plate_frames(measured=False):
+    """measured=True: where the lab TCP poses put the plates (use for grasp offsets taught there)."""
     reg = _load("config/scene/scene_registration.yaml")
     out = {}
     for key in ("pickup_plate", "placement_plate"):
         r = reg[key]
-        out[key] = translate(r["xyz_m"]) @ rot_z(r["yaw_rad"])
+        xyz, yaw = (r.get("measured_xyz_m", r["xyz_m"]), r.get("measured_yaw_rad", r["yaw_rad"])) if measured \
+            else (r["xyz_m"], r["yaw_rad"])
+        out[key] = translate(xyz) @ rot_z(yaw)
     return out
 
 
-def scene_objects():
+def scene_objects(measured=False):
     """Return {object_id: {"T": 4x4 base pose [m], "mesh": abs path, "plate": key}}.
 
     Object ids match the URDF link names: pickup_plate, placement_plate,
     pickup_V1..V5, fitting_V1..V5, and the environment boxes fixture_plate, trolley_top.
     """
     man = _load("cad/manifest.yaml")["meshes"]
-    frames = plate_frames()
+    frames = plate_frames(measured)
     objs = {}
     for key in ("pickup_plate", "placement_plate"):
         objs[key] = {"T": frames[key], "mesh": os.path.join(PKG, "cad", man[key]["file"]), "plate": key}

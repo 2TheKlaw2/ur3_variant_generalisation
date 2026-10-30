@@ -53,6 +53,9 @@ PLACEMENT_X = (-0.025, 0.225)     # placement plate extent, 250 mm
 PLATE_HALF_W = 0.035              # both plates 70 mm wide
 FIXTURE_LENGTH = 0.495            # aluminium fixture plate along the row (lab ruler, 30 Oct 2026)
 FIXTURE_WIDTH = 0.320             # across the row (lab ruler)
+# Revised plates (30 Oct 2026): prongs on the side away from the robot butt against the fixture's far
+# edge. Prong tip in each plate frame (+y = away from the robot), from Basea.STL / PlaceAssem.STL.
+PRONG_TIP_Y = {"pickup_plate": 0.10602, "placement_plate": 0.10752}
 FIXTURE_FAR_EDGE = 0.077          # far edge beyond the blue plates' far long edge (lab ruler, 3 readings 76-77 mm)
 TROLLEY_TOP_SIZE = (0.80, 0.80, 0.020)
 TROLLEY_TOP_DY = 0.20             # shift the trolley-top box toward the robot (covers the base area)
@@ -75,6 +78,9 @@ def write_box_stl(path, size_m):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--layout", choices=("prongs", "measured"), default="prongs",
+                    help="prongs: plates pushed out until the prongs touch the fixture far edge (predicted for the "
+                         "revised plates); measured: plates where the lab TCP poses put them (old plates)")
     ap.add_argument("--trolley-surface-z", type=float, default=0.0,
                     help="z of the trolley top (robot mounting plane) in the robot base frame [m]")
     ap.add_argument("--fixture-thickness", type=float, default=0.0125,
@@ -183,6 +189,24 @@ def main():
                         "yaw_rad": round(yaw, 6),
                         "comment": "trolley top under the workspace, top 0.5 mm below the robot mounting plane"},
     }
+    # ---- layout: the fixture plate stays where it was measured; with the revised plates the prongs
+    # set the across-row position (and yaw = fixture yaw, i.e. both plates parallel to its far edge).
+    out["layout"] = args.layout
+    sign = 1.0 if far_is_hi else -1.0
+    for key in ("pickup_plate", "placement_plate"):
+        r = out[key]
+        r["measured_xyz_m"] = list(r["xyz_m"]); r["measured_yaw_rad"] = r["yaw_rad"]
+        if args.layout != "prongs":
+            continue
+        o = np.array(r["xyz_m"][:2])
+        o_y = Rm.T @ o                                         # plate origin in the fixture yaw frame
+        dy = (y_far - sign * PRONG_TIP_Y[key]) - o_y[1]       # move along the across-row axis only
+        new = Rm @ np.array([o_y[0], o_y[1] + dy])
+        r["xyz_m"] = [round(float(new[0]), 5), round(float(new[1]), 5), r["xyz_m"][2]]
+        r["yaw_rad"] = round(yaw, 6); r["yaw_deg"] = round(math.degrees(yaw), 3)
+        r["prong_shift_mm"] = round(float(dy * sign) * 1000, 2)
+        r["source"] = ("PREDICTED: " + r["source"] + f"; then moved {dy * sign * 1000:+.2f} mm away from the robot so the "
+                       "prongs touch the fixture far edge (revised plates, not yet measured in the lab)")
     write_box_stl(os.path.join(PKG, "cad", "environment", "fixture_plate.stl"), out["environment"]["fixture_plate"]["size_m"])
     write_box_stl(os.path.join(PKG, "cad", "environment", "trolley_top.stl"), out["environment"]["trolley_top"]["size_m"])
 

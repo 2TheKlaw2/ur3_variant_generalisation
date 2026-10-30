@@ -50,7 +50,19 @@ away from the robot that butt against the far edge of the aluminium top layer, p
 Pocket and fitting positions in the plate frame are unchanged (fittings match the manifest exactly), so the existing
 robot-taught poses and registration still apply. The prongs set plate yaw/parallelism mechanically.
 
-Prong length ≈71 mm beyond the old far edge, but the far-edge gap measured in the current lab setup is 76–77 mm:
-with the prongs butted against the edge, the plates should sit ~5.5 mm farther from the robot than the current
-registration. The simulation keeps the measured registration until the lab calibration (`CALIBRATE_PLATES`) re-measures it.
-Scene validation: 63 checks, 1 FAIL (the known V4 part-in-pocket notch contact).
+Layout (`compute_scene_registration.py --layout prongs`, now the default): the aluminium fixture plate stays where
+it was measured; each blue plate is moved along the across-row axis until its prong tips touch the fixture far edge
+and is set parallel to that edge. Predicted shift away from the robot: pickup 5.98 mm, placement 9.03 mm (prong length
+≈71 mm vs the measured 76–77 mm far-edge gap). `--layout measured` restores the old-plate positions. The taught poses
+were recorded in the measured layout, so grasp offsets are computed there (`scene_objects(measured=True)`), and
+`validate_scene` compares the taught TCPs at the measured layout and reports the shift as the re-teach amount.
+
+### Bolt holes vs the fixture gaps
+
+Real fixture plate (ruler, 30 Oct 2026): first gap edge **30 mm** from the far edge (the ur3_lfd trolley CAD says
+28 mm, which is wrong), gap pitch **50 mm** (confirmed). Gap width not measured yet (6 mm assumed).
+Both plates have Ø5.5 holes at 31 / 81 / 131 mm from the prong tips, i.e. centred on the trolley-CAD gaps
+(28 + 3). On the real plate the gap centres are at 30 + w/2 = 33 / 83 / 133 mm (w = 6), so every hole is 2 mm
+too close to the far edge and an M5 bolt would hit the rail (one pickup hole, x = 140 mm, is already at 133.03).
+Fix in CAD (not applied here): move the holes 2 mm away from the prongs, or lengthen the prongs by 2 mm.
+`validate_scene` checks this ("holes on slot lines"), using `SLOT_FIRST_EDGE_MM`, `SLOT_PITCH_MM`, `SLOT_WIDTH_MM`.
