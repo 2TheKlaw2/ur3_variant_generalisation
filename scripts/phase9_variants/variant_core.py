@@ -38,7 +38,7 @@ np = sm.np
 LEVELS = ("L0", "L1", "L2", "CAD")   # CAD = CAD-only baseline: L2 path, min-jerk timing, no demonstration data
 CORRIDOR_MARGIN_DEG = 1.0        # L2 keeps at least this far from a corridor wall (or the centre if narrower)
 YAW_TARGET_TOL_DEG = 1.5         # final yaw accepted within this of the CAD seat yaw (V1 Stage 8: 23.5-26.5)
-RETAIN_LIFT_MM = 1.0             # "retained": lifting the part straight up by this much collides
+RETAIN_LIFT_MM = None            # "retained": a straight pull-out along the fitting axis collides (see VariantGeometry.retained)
 # IK continuity: a real branch jump is ~pi; 0.1 rad per 20 ms sample allows the faster motions that
 # scaled depth goals produce at the original timestamps. Joint speeds are then checked separately
 # against the UR3e limits (base/shoulder/elbow 180 deg/s, wrists 360 deg/s).
@@ -82,12 +82,18 @@ class VariantGeometry(s8.Geometry):
             return "bore_wall"
         return "feature"
 
-    def retained(self, T_v1, lift_mm=RETAIN_LIFT_MM):
-        """True if lifting the part straight up (fitting axis) by lift_mm collides."""
-        T = T_v1.copy(); T[:3, 3] = T_v1[:3, 3] + self.T_fit[:3, 2] * lift_mm / 1000
-        self.v1_obj.setTransform(self.fcl.Transform(T[:3, :3], T[:3, 3]))
-        r = self.fcl.CollisionResult(); self.fcl.collide(self.v1_obj, self.fit_obj, self.fcl.CollisionRequest(), r)
-        return bool(r.is_collision)
+    def retained(self, T_v1, step_mm=0.25):
+        """True if the part cannot be pulled straight out: lifting it along the fitting axis
+        until its bottom clears the fitting top collides somewhere on the way. (Was a fixed
+        1 mm lift; V5 locks by its reverse helix, which only blocks after a few mm.)"""
+        clear_mm = self.top_mm - self.lowest_z_mm(T_v1) + 0.5
+        for k in range(1, int(clear_mm / step_mm) + 2):
+            T = T_v1.copy(); T[:3, 3] = T_v1[:3, 3] + self.T_fit[:3, 2] * (k * step_mm) / 1000
+            self.v1_obj.setTransform(self.fcl.Transform(T[:3, :3], T[:3, 3]))
+            r = self.fcl.CollisionResult(); self.fcl.collide(self.v1_obj, self.fit_obj, self.fcl.CollisionRequest(), r)
+            if r.is_collision:
+                return True
+        return False
 
 
 # ------------------------------------------------------------------ CAD features

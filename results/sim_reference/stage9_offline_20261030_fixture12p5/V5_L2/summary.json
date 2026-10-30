@@ -4,76 +4,68 @@
   "stages": {
     "INSERT": {
       "samples_commanded": 651,
-      "samples_feasible": 202,
+      "samples_feasible": 651,
       "commanded_depth_mm": 20.675170993349983,
       "cad_seat_depth_mm": 20.675170993349983,
       "depth_scale": 3.8169180353972254,
-      "max_unused_commanded_descent_mm": 0.0,
-      "seated": false,
-      "end_seating_gap_mm": 12.23487286862938
+      "max_unused_commanded_descent_mm": 0.1314851504972594,
+      "seated": true,
+      "end_seating_gap_mm": 7.568612403474617e-12
     },
     "ROTATE": {
-      "status": "NOT_EXECUTED (INSERT stopped)"
+      "samples_commanded": 851,
+      "samples_feasible": 851,
+      "commanded_rotation_deg": 1.111737133062423,
+      "goal_yaw_deg": -1.638262866937609,
+      "started_seated": true
     }
   },
-  "first_unacceptable": {
-    "stage": "INSERT",
-    "sample": 202,
-    "t_s": 4.039662911,
-    "status": "INTERFERENCE",
-    "contact": "bore_wall",
-    "pen_mm": 0.06333569270040983,
-    "regions": {
-      "bore_wall": 0.0633
-    },
-    "lat_mm": 4.6266477776148e-09,
-    "bottom_z_mm": 13.83809427369457,
-    "yaw_deg": -11.530999999982896
-  },
+  "first_unacceptable": null,
   "ik_error": null,
   "final": {
-    "stage": "INSERT",
-    "yaw_deg": -10.24279493919255,
-    "lowest_z_mm": 14.23487286862938,
-    "seating_gap_mm": 12.23487286862938,
-    "centre_offset_mm": 1.6035913788805792e-08,
-    "tilt_deg": 0.0
+    "stage": "ROTATE",
+    "yaw_deg": -1.638262866936202,
+    "lowest_z_mm": 2.2107540602104025,
+    "seating_gap_mm": 0.21075406021040255,
+    "centre_offset_mm": 3.707486562161432e-09,
+    "tilt_deg": 1.2074182697257333e-06
   },
-  "max_insertion_depth_mm": 8.440298124720604,
+  "max_insertion_depth_mm": 20.675170993350264,
   "cad_seat_depth_mm": 20.675170993349983,
   "min_clearance_mm": 0.0,
-  "max_penetration_mm": 0.06333569270040983,
+  "max_penetration_mm": 2.788880237858393e-13,
   "touching_samples": 0,
-  "cad_seat_yaw_deg": 0.0,
+  "cad_seat_yaw_deg": -1.638262866937609,
   "peak_joint_speed_deg_s": [
-    0.7070735106955933,
-    1.0050862627455701,
-    6.670845454518896,
-    5.876356410282677,
-    1.2902966008994992,
-    93.2724683203273
+    0.6485509191691193,
+    0.9121181746082351,
+    6.523428185270097,
+    5.8138112669400055,
+    1.1474170347168478,
+    82.84931499597734
   ],
-  "peak_speed_fraction_of_limit": 0.259090189778687,
+  "peak_speed_fraction_of_limit": 0.23013698609993705,
   "criteria": {
     "within_ur3e_joint_speed_limits": true,
-    "no_unacceptable_contact": false,
-    "insert_completed": false,
-    "rotate_completed": false,
-    "final_yaw_within_tol_of_cad_seat": false,
-    "retained_by_fitting": false,
-    "seated_at_insert_end": false
+    "no_unacceptable_contact": true,
+    "insert_completed": true,
+    "rotate_completed": true,
+    "final_yaw_within_tol_of_cad_seat": true,
+    "retained_by_fitting": true,
+    "seated_at_insert_end": true
   },
-  "functional_outcome": "FAIL",
-  "strict_outcome": "FAIL",
+  "functional_outcome": "PASS",
+  "strict_outcome": "PASS",
   "cad_features": {
-    "seat_corridor_deg": null,
-    "lock_end_deg": null,
-    "centre_deg": null,
-    "demo_margin_deg": null,
-    "target_deg": 0.0,
-    "yaw_at_seat_on_path_deg": null,
-    "corridor_closed_at_bottom_z_mm": 13.9,
-    "note": "CAD corridor closes before the seat; seat yaw undefined, 0 deg (slot axis) used as goal"
+    "seat_corridor_deg": [
+      -3.75,
+      0.625
+    ],
+    "lock_end_deg": -3.75,
+    "centre_deg": -1.5625,
+    "demo_margin_deg": 2.111737133062391,
+    "target_deg": -1.638262866937609,
+    "yaw_at_seat_on_path_deg": -2.75
   },
   "start": {
     "bottom_z_mm": 22.675170993349983,

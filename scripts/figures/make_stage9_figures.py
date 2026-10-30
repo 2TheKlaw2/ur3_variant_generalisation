@@ -91,8 +91,6 @@ def fig_corridors(out):
         ax.set_title(f"V{i}", loc="left", fontsize=10, color=INK)
         ax.set_xlabel("rotation (° CW)")
     axs[0].set_ylabel("part bottom below fitting top (mm)")
-    axs[2].annotate("free corridor closes\n(bore narrower than part\ndisc, CAD issue #1)", (12.5, top - 13.9),
-                    xytext=(13, 2.5), fontsize=7.5, color=INK, arrowprops=dict(arrowstyle="-", color=INK2, lw=0.8))
     h, l = axs[1].get_legend_handles_labels()
     from matplotlib.patches import Patch
     h.append(Patch(color=FREE)); l.append("CAD collision-free yaw (exact FCL, 0.02 mm tol.)")

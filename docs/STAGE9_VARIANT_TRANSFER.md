@@ -166,3 +166,19 @@ Level `CAD`: the **same CAD path as L2** (seat depth, corridor yaw, seat yaw) wi
 - **Cause:** a flat patch at 13.727 mm from the axis, on both sides of the slot axis (±x). It is about 3.8 mm wide (|y| ≤ 1.9 mm) and runs about 11.4–13.4 mm above the fitting base. It sits 0.27 mm inside the Ø28 bore and 0.023 mm inside the part's Ø27.50 disc. The other fittings have no fitting material inside the bore at that radius above the floor, except V3, whose corridor is open.
 - **Diagnostic only (not a result):** with the part disc 0.03 mm smaller, the corridor opens all the way. It goes straight in, helixes to about −22° CW, then reverses to about −1.5° at the floor. So that patch is the only obstruction.
 - Fix suggestion: cut the flat back to the bore (r ≥ 14.0) between about 11 and 14 mm above the fitting base.
+
+## Second revised V5 fitting (30 Oct 2026, 14:07): V5 now assembles with L2
+- Enrique removed the flat. No fitting material remains inside r 13.99 mm above the floor, and 99.4% of the previous surface is unchanged.
+- **CAD corridor now reaches the floor:**
+  - straight entry down to a part-bottom height of 16.2 mm;
+  - CW helix to about −19 to −26° (11–15 mm);
+  - a straight section;
+  - a reverse helix back to a seat corridor of −3.75 … +0.63°.
+- The CAD seat yaw from the existing rule is −1.64°.
+- **"Retained" definition corrected:** the test is now "a straight pull-out along the fitting axis collides", instead of a fixed 1 mm lift. V5 is held by its reverse helix, which blocks a straight pull only after a few mm. V1–V4 were re-run under the new definition and every outcome is identical; their passes already collided within 1 mm.
+
+| V5 | L0 | L1 | L2 | CAD-only |
+|---|---|---|---|---|
+| Outcome | FAIL (5.45/20.68 mm; ROTATE hits at −5°) | FAIL (straight descent stops at 6.50 mm) | **PASS** (seated, −1.64°, out-and-back helix followed) | **PASS** |
+
+**Totals (offline, kinematic, fixture plate 12.5 mm):** L0 1/5, L1 3/5, **L2 5/5**, CAD-only 5/5. References: `results/sim_reference/stage9_offline_20261030_fixture12p5/`. Figures regenerated.
