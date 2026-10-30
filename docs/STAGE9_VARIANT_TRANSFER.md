@@ -111,3 +111,19 @@ For each variant, the part is placed centred and upright. For every 0.1 mm of he
 - Pickup → lift → transport for V2–V5: the reach and transport CDMPs need retargeting to each pickup pocket and fitting.
 - MoveIt robot-vs-scene check and a fake-hardware run of these INSERT/ROTATE paths.
 - A CAD-only baseline (the L2 path with min-jerk timing, no demo), for the "ordinary CDMP vs geometry-conditioned CDMP vs CAD-only" comparison in `PROJECT_BOUNDARY.md`.
+
+## CAD-only baseline (added 30 Oct, offline)
+Level `CAD`: the **same CAD path as L2** (seat depth, corridor yaw, seat yaw) with generic minimum-jerk timing over the same INSERT (13 s) and ROTATE (17 s) durations, and **no demonstration data** (no demo speed profile, pause or end lift). Run it with `--levels CAD`; it is also available in the RViz runner.
+
+| | V1 | V2 | V3 | V4 | V5 |
+|---|---|---|---|---|---|
+| L2 (CAD path + demo profile) | PASS | PASS | PASS | PASS | FAIL (CAD block) |
+| CAD-only | PASS | PASS | PASS | PASS | FAIL (CAD block) |
+| Peak wrist-3 speed L2 / CAD (°/s) | 10 / 3 | 10 / 3 | 9 / 3 | 38 / 7 | — |
+| Final gap L2 / CAD (mm) | 0.211 / 0.000 | 0.211 / 0.000 | 0.211 / 0.000 | 0.211 / 0.000 | — |
+
+- Minimum bore clearance during descent is 0.05 mm for both.
+- **Reading (honest):** in a rigid kinematic simulation, the demonstration adds nothing measurable over the CAD-only path. Pass/fail is identical.
+  - The CAD-only motion is smoother: no demo overshoot (L2's 0.04–0.07 mm unused descent), no 0.21 mm end lift, and lower peak speeds.
+  - What the demonstration could add (contact behaviour, seating strategy, speed near contact, robustness to registration error) cannot appear without contact and tolerance effects.
+- **So the demo-vs-CAD question has to be tested physically**, or in a simulation with compliance and registration error. That is the next experimental design decision.

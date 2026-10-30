@@ -35,7 +35,7 @@ import stage8_core as s8  # noqa: E402
 import ur_kinematics as uk  # noqa: E402
 
 np = sm.np
-LEVELS = ("L0", "L1", "L2")
+LEVELS = ("L0", "L1", "L2", "CAD")   # CAD = CAD-only baseline: L2 path, min-jerk timing, no demonstration data
 CORRIDOR_MARGIN_DEG = 1.0        # L2 keeps at least this far from a corridor wall (or the centre if narrower)
 YAW_TARGET_TOL_DEG = 1.5         # final yaw accepted within this of the CAD seat yaw (V1 Stage 8: 23.5-26.5)
 RETAIN_LIFT_MM = 1.0             # "retained": lifting the part straight up by this much collides
@@ -178,9 +178,25 @@ def part_pose(T_fit, z_mm, yaw_deg):
     return T_fit @ L
 
 
+def min_jerk(t):
+    tau = np.clip(np.asarray(t) / t[-1], 0, 1)
+    return 10 * tau**3 - 15 * tau**4 + 6 * tau**5
+
+
 def condition_targets(level, prof, z_start, feat, rows):
     """Per-sample (bottom z mm, yaw deg) of the part in the fitting frame, INSERT and ROTATE."""
     D_cad = z_start - s8.FLOOR_Z_MM
+    if level == "CAD":
+        # CAD-only baseline: the same CAD path as L2 (seat depth, corridor yaw, seat yaw) with
+        # generic minimum-jerk timing over the same INSERT/ROTATE durations; no demo profile,
+        # no demo pause or end lift. Isolates what the demonstration contributes.
+        path = corridor_yaw_path(rows)
+        pz = np.array([p[0] for p in path][::-1]); py = np.array([p[1] for p in path][::-1])
+        z_ins = z_start - D_cad * min_jerk(prof["t_ins"])
+        yaw_ins = np.interp(np.maximum(z_ins, s8.FLOOR_Z_MM), pz, py)
+        y_goal = feat["target_deg"]; y0 = yaw_ins[-1]
+        yaw_rot = y0 + (y_goal - y0) * min_jerk(prof["t_rot"])
+        return z_ins, yaw_ins, np.zeros_like(prof["t_rot"]), yaw_rot, y_goal, D_cad, 1.0
     sc = 1.0 if level == "L0" else D_cad / prof["D_demo"]
     z_ins = z_start + prof["dz_ins"] * sc
     if level == "L2":

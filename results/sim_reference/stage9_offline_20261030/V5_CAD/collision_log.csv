@@ -1,0 +1,5 @@
+stage,sample,t_s,status,contact,penetration_mm,regions,v1_centre_offset_mm,v1_lowest_z_mm,v1_yaw_deg,v1_tilt_deg
+INSERT,298,5.9595,touching,touching,0.0,{},0.0,13.9564,-11.5465,0.0
+INSERT,299,5.9795,touching,bore_wall,0.00547,"{""bore_wall"": 0.0055}",0.0,13.89748,-11.5465,0.0
+INSERT,300,5.9995,touching,bore_wall,0.00524,"{""bore_wall"": 0.0052}",0.0,13.83849,-11.5465,0.0
+INSERT,301,6.0195,INTERFERENCE,bore_wall,0.05529,"{""bore_wall"": 0.0553}",0.0,13.77945,-11.5465,0.0
