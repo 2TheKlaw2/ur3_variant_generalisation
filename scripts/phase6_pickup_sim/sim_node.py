@@ -61,6 +61,7 @@ def densify_joint_path(q, calib, max_tcp_step_m=0.001):
 
 
 MAX_SPEED = 5.0
+DEFAULT_CAP_RAD_S = 0.65     # half of the ~1.3 rad/s peak seen at --speed 3 (user, 30 Oct 2026)
 
 
 def add_speed_arg(ap):
@@ -71,14 +72,20 @@ def add_speed_arg(ap):
     Not for physical hardware (these scripts are fake-hardware only)."""
     ap.add_argument("--speed", type=float, default=1.0,
                     help=f"fake-hardware playback speed-up, 1-{MAX_SPEED:g} (results unchanged; default 1)")
+    ap.add_argument("--max-joint-speed", type=float, default=DEFAULT_CAP_RAD_S,
+                    help="playback cap [rad/s]: a stage is never played faster than this, whatever --speed is "
+                         f"(default {DEFAULT_CAP_RAD_S}; 0 = no cap). Planned timing and all checks unchanged")
 
 
-def set_speed(node, speed):
+def set_speed(node, speed, cap=DEFAULT_CAP_RAD_S):
+    node.cap = float(cap or 0.0)
     if not 1.0 <= speed <= MAX_SPEED:
         raise SystemExit(f"--speed must be between 1 and {MAX_SPEED:g}")
     node.speed = float(speed)
     if speed != 1.0:
         print(f"PLAYBACK x{speed:g} (fake hardware only; planned timing and all checks unchanged)", flush=True)
+    if node.cap:
+        print(f"PLAYBACK CAP {node.cap:g} rad/s per joint (each stage slowed to stay under it)", flush=True)
 
 
 def make_node(name="v1_sim_SIM_ONLY"):
@@ -182,21 +189,27 @@ def make_node(name="v1_sim_SIM_ONLY"):
             self.guard(); live = self.fresh()
             if lp.maxdiff(live, q[0]) > start_tol:
                 raise RuntimeError(f"{name}: start mismatch {lp.maxdiff(live, q[0]):.5f} rad")
+            # playback rate for this stage: --speed, but never above the joint-speed cap
+            Q = np.asarray(q, float); dts = np.diff(np.asarray(t, float))
+            peak = float((np.abs(np.diff(Q, axis=0)) / np.maximum(dts, 1e-9)[:, None]).max()) if len(Q) > 1 else 0.0
+            sp = self.speed
+            if getattr(self, "cap", 0.0) and peak > 0:
+                sp = min(sp, self.cap / peak)
             jt = JointTrajectory(); jt.joint_names = list(JOINTS)
             for ti, qi in zip(t, q):
                 p = JointTrajectoryPoint(); p.positions = [float(v) for v in qi]
-                p.time_from_start = Duration(seconds=float(ti) / self.speed).to_msg(); jt.points.append(p)
+                p.time_from_start = Duration(seconds=float(ti) / sp).to_msg(); jt.points.append(p)
             self.samples = []; self.t0 = time.monotonic(); self.rec = True
             start = time.monotonic()
             try:
-                self.send(self.arm, jt, t[-1] / self.speed + 10)
+                self.send(self.arm, jt, t[-1] / sp + 10)
             finally:
                 self.rec = False
             elapsed = time.monotonic() - start
             err = lp.maxdiff(self.fresh(), q[-1])
             if err > end_tol:
                 raise RuntimeError(f"{name}: endpoint error {err:.5f} rad")
-            shown = f"{t[-1]:.2f} s" + (f" played in {t[-1]/self.speed:.2f} s" if self.speed != 1.0 else "")
+            shown = f"{t[-1]:.2f} s" + (f" played in {t[-1]/sp:.2f} s, peak {peak*sp:.2f} rad/s" if sp != 1.0 else "")
             print(f"{name}: PASS ({len(q)} pts, {shown}, endpoint err {err:.6f} rad)", flush=True)
             self.last_elapsed = elapsed
             return list(self.samples), err

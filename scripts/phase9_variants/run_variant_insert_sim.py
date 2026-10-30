@@ -177,9 +177,14 @@ def execute(node, i, level, p, calib, objs, run_dir, args):
                "stages": {}}
     print(f"\n================ V{i} {level} ================", flush=True)
     if not args.skip_home:
-        print("HOME", flush=True)
-        subprocess.run([sys.executable, str(ROOT / "scripts/phase1_reach/sim_reach_action.py"), "--home"],
-                       cwd=str(ROOT), check=True, input="HOME\n", text=True)
+        # joint min-jerk to the taught HOME, collision-checked; scales with --speed (was a fixed 10 s move)
+        q_now = node.fresh()
+        if lp.maxdiff(q_now, HOME) > 1e-3:
+            t_h, q_h = approach_path(q_now, HOME)
+            bad, _ = node.check_path("HOME", t_h, q_h, calib)
+            if bad:
+                raise RuntimeError(f"HOME collisions: {bad[:3]}")
+            node.run_arm("HOME", t_h, q_h)
     node.run_gripper("OPEN", sm.RG2_OPEN_M)
     q_home = node.fresh()
     feas = [r for r in res["rows"] if r["feasible"]]
@@ -322,7 +327,7 @@ def main():
         return 0
     pst.require_sim_domain()
     rclpy, node = sim_node.make_node("variant_insert_SIM_ONLY")
-    sim_node.set_speed(node, args.speed)
+    sim_node.set_speed(node, args.speed, args.max_joint_speed)
     try:
         preflight(node, f"STAGE 9 V{'/V'.join(map(str, variants))} {args.level} INSERT/ROTATE — FAKE HARDWARE ONLY "
                   "(ROS_DOMAIN_ID=73)",

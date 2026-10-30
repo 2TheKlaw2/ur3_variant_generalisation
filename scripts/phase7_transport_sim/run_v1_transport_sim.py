@@ -226,7 +226,7 @@ def main():
     traj, transport, align = load_stage7_inputs()
 
     rclpy, node = sim_node.make_node("v1_transport_SIM_ONLY")
-    sim_node.set_speed(node, args.speed)
+    sim_node.set_speed(node, args.speed, args.max_joint_speed)
     try:
         poses0, frame = s6.preflight(
             node, "V1 PICKUP -> TRANSPORT -> ALIGN_INSERT — FAKE HARDWARE ONLY (ROS_DOMAIN_ID=73)", traj,

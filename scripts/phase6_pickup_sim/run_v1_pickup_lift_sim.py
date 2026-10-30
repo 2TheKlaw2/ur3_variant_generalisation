@@ -228,7 +228,7 @@ def main():
     pst.require_sim_domain()
     traj = load_pickup_trajectories()
     rclpy, node = sim_node.make_node("v1_pickup_lift_SIM_ONLY")
-    sim_node.set_speed(node, args.speed)
+    sim_node.set_speed(node, args.speed, args.max_joint_speed)
     try:
         poses0, frame = preflight(node, "V1 PICKUP + LIFT — FAKE HARDWARE ONLY (ROS_DOMAIN_ID=73)", traj)
         if not (args.run or args.auto):

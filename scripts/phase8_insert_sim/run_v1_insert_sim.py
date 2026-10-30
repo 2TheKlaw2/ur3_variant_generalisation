@@ -172,7 +172,7 @@ def main():
     inputs = s7.load_stage7_inputs()
     exps = ["A", "B1", "B2"] if args.experiment == "all" else [args.experiment]
     rclpy, node = sim_node.make_node("v1_insert_SIM_ONLY")
-    sim_node.set_speed(node, args.speed)
+    sim_node.set_speed(node, args.speed, args.max_joint_speed)
     try:
         poses0, frame = s6.preflight(node, "V1 STAGE 8 INSERT/ROTATE EXPERIMENTS — FAKE HARDWARE ONLY (ROS_DOMAIN_ID=73)",
                                      inputs[0], s7.STAGE7_LINES + [f"EXPERIMENTS   {', '.join(exps)}"])
