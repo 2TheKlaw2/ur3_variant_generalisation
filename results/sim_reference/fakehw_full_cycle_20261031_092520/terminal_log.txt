@@ -1,0 +1,163 @@
+================ V1 L2 ================
+OPEN: PASS (RG2 40.0 mm)
+REACH: collision check 1595 samples + 158 interpolated states -> none
+V1 REACH: PASS (1595 pts, 31.88 s played in 14.86 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+ALIGN_GRIP: collision check 51 samples + 0 interpolated states -> none
+V1 ALIGN_GRIP: PASS (51 pts, 1.00 s played in 0.33 s, peak 0.00 rad/s, endpoint err 0.000000 rad)
+GRIP: PASS (RG2 8.2 mm)
+ATTACH: pickup_V1 at grasp xyz [0.862, 1.768, 22.361] mm
+LIFT: collision check 151 samples + 0 interpolated states -> none
+V1 LIFT: PASS (151 pts, 3.00 s played in 1.00 s, peak 0.25 rad/s, endpoint err 0.000000 rad)
+TRANSPORT: collision check 1241 samples + 201 interpolated states -> none
+V1 TRANSPORT: PASS (1241 pts, 24.80 s played in 17.03 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+ALIGN_INSERT: collision check 51 samples + 0 interpolated states -> none
+V1 ALIGN_INSERT: PASS (51 pts, 1.00 s played in 0.33 s, peak 0.01 rad/s, endpoint err 0.000000 rad)
+Planned INSERT/ROTATE: MoveIt FK agreement 0.000000 mm; other collisions: none
+V1 L2 INSERT: PASS (651 pts, 13.00 s played in 4.33 s, peak 0.08 rad/s, endpoint err 0.000000 rad)
+V1 L2 ROTATE: PASS (851 pts, 17.00 s played in 5.67 s, peak 0.50 rad/s, endpoint err 0.000000 rad)
+
+V1 L2: functional PASS, strict PASS
+  end state (TF): 24.39 deg CW, gap 0.213 mm, offset 0.000 mm, retained True, contact clear
+RELEASE: PASS (RG2 40.0 mm)
+DETACH: pickup_V1 left in fitting_V1
+RETREAT: collision check 151 samples + 0 interpolated states -> none
+V1 RETREAT: PASS (151 pts, 3.00 s played in 1.00 s, peak 0.26 rad/s, endpoint err 0.000000 rad)
+HOME: collision check 431 samples + 169 interpolated states -> none
+V1 HOME: PASS (431 pts, 8.59 s played in 3.97 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+
+Resetting scene (parts back to their pockets)...
+Preparing V2
+Fake hardware verified. Loading planning scene...
+Planning scene: 14 objects verified (MoveIt frame 'world')
+
+================ V2 L2 ================
+OPEN: PASS (RG2 40.0 mm)
+REACH: collision check 1595 samples + 154 interpolated states -> none
+V2 REACH: PASS (1595 pts, 31.88 s played in 14.91 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+ALIGN_GRIP: collision check 51 samples + 0 interpolated states -> none
+V2 ALIGN_GRIP: PASS (51 pts, 1.00 s played in 0.33 s, peak 0.00 rad/s, endpoint err 0.000000 rad)
+GRIP: PASS (RG2 8.2 mm)
+ATTACH: pickup_V2 at grasp xyz [0.461, -2.498, 21.389] mm
+LIFT: collision check 151 samples + 0 interpolated states -> none
+V2 LIFT: PASS (151 pts, 3.00 s played in 1.00 s, peak 0.26 rad/s, endpoint err 0.000000 rad)
+TRANSPORT: collision check 1241 samples + 206 interpolated states -> none
+V2 TRANSPORT: PASS (1241 pts, 24.80 s played in 15.46 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+ALIGN_INSERT: collision check 51 samples + 0 interpolated states -> none
+V2 ALIGN_INSERT: PASS (51 pts, 1.00 s played in 0.33 s, peak 0.01 rad/s, endpoint err 0.000000 rad)
+Planned INSERT/ROTATE: MoveIt FK agreement 0.000000 mm; other collisions: none
+V2 L2 INSERT: PASS (651 pts, 13.00 s played in 4.33 s, peak 0.08 rad/s, endpoint err 0.000000 rad)
+V2 L2 ROTATE: PASS (851 pts, 17.00 s played in 5.67 s, peak 0.52 rad/s, endpoint err 0.000000 rad)
+
+V2 L2: functional PASS, strict PASS
+  end state (TF): 24.39 deg CCW, gap 0.211 mm, offset 0.000 mm, retained True, contact clear
+RELEASE: PASS (RG2 40.0 mm)
+DETACH: pickup_V2 left in fitting_V2
+RETREAT: collision check 151 samples + 0 interpolated states -> none
+V2 RETREAT: PASS (151 pts, 3.00 s played in 1.00 s, peak 0.26 rad/s, endpoint err 0.000000 rad)
+HOME: collision check 433 samples + 175 interpolated states -> none
+V2 HOME: PASS (433 pts, 8.62 s played in 3.98 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+
+Resetting scene (parts back to their pockets)...
+Preparing V3
+Fake hardware verified. Loading planning scene...
+Planning scene: 14 objects verified (MoveIt frame 'world')
+
+================ V3 L2 ================
+OPEN: PASS (RG2 40.0 mm)
+REACH: collision check 1595 samples + 147 interpolated states -> none
+V3 REACH: PASS (1595 pts, 31.88 s played in 15.29 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+ALIGN_GRIP: collision check 51 samples + 0 interpolated states -> none
+V3 ALIGN_GRIP: PASS (51 pts, 1.00 s played in 0.33 s, peak 0.01 rad/s, endpoint err 0.000000 rad)
+GRIP: PASS (RG2 8.2 mm)
+ATTACH: pickup_V3 at grasp xyz [0.498, 0.809, 25.445] mm
+LIFT: collision check 151 samples + 0 interpolated states -> none
+V3 LIFT: PASS (151 pts, 3.00 s played in 1.00 s, peak 0.26 rad/s, endpoint err 0.000000 rad)
+TRANSPORT: collision check 1241 samples + 210 interpolated states -> none
+V3 TRANSPORT: PASS (1241 pts, 24.80 s played in 16.85 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+ALIGN_INSERT: collision check 51 samples + 0 interpolated states -> none
+V3 ALIGN_INSERT: PASS (51 pts, 1.00 s played in 0.33 s, peak 0.01 rad/s, endpoint err 0.000000 rad)
+Planned INSERT/ROTATE: MoveIt FK agreement 0.000000 mm; other collisions: none
+V3 L2 INSERT: PASS (651 pts, 13.00 s played in 4.33 s, peak 0.14 rad/s, endpoint err 0.000000 rad)
+V3 L2 ROTATE: PASS (851 pts, 17.00 s played in 5.67 s, peak 0.49 rad/s, endpoint err 0.000000 rad)
+
+V3 L2: functional PASS, strict PASS
+  end state (TF): 24.33 deg CW, gap 0.211 mm, offset 0.000 mm, retained True, contact clear
+RELEASE: PASS (RG2 40.0 mm)
+DETACH: pickup_V3 left in fitting_V3
+RETREAT: collision check 151 samples + 0 interpolated states -> none
+V3 RETREAT: PASS (151 pts, 3.00 s played in 1.00 s, peak 0.26 rad/s, endpoint err 0.000000 rad)
+HOME: collision check 409 samples + 186 interpolated states -> none
+V3 HOME: PASS (409 pts, 8.14 s played in 3.76 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+
+Resetting scene (parts back to their pockets)...
+Preparing V4
+Fake hardware verified. Loading planning scene...
+Planning scene: 14 objects verified (MoveIt frame 'world')
+
+================ V4 L2 ================
+OPEN: PASS (RG2 40.0 mm)
+REACH: collision check 1595 samples + 133 interpolated states -> none
+V4 REACH: PASS (1595 pts, 31.88 s played in 15.11 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+ALIGN_GRIP: collision check 51 samples + 0 interpolated states -> none
+V4 ALIGN_GRIP: PASS (51 pts, 1.00 s played in 0.33 s, peak 0.01 rad/s, endpoint err 0.000000 rad)
+GRIP: PASS (RG2 8.2 mm)
+ATTACH: pickup_V4 at grasp xyz [1.302, -0.436, 28.982] mm
+LIFT: collision check 151 samples + 0 interpolated states -> none
+V4 LIFT: PASS (151 pts, 3.00 s played in 1.00 s, peak 0.26 rad/s, endpoint err 0.000000 rad)
+TRANSPORT: collision check 1241 samples + 160 interpolated states -> none
+V4 TRANSPORT: PASS (1241 pts, 24.80 s played in 11.60 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+ALIGN_INSERT: collision check 51 samples + 0 interpolated states -> none
+V4 ALIGN_INSERT: PASS (51 pts, 1.00 s played in 0.33 s, peak 0.01 rad/s, endpoint err 0.000000 rad)
+Planned INSERT/ROTATE: MoveIt FK agreement 0.000000 mm; other collisions: none
+V4 L2 INSERT: PASS (651 pts, 13.00 s played in 13.73 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+V4 L2 ROTATE: PASS (851 pts, 17.00 s played in 5.67 s, peak 0.12 rad/s, endpoint err 0.000000 rad)
+
+V4 L2: functional PASS, strict PASS
+  end state (TF): 23.55 deg CW, gap 0.211 mm, offset 0.000 mm, retained True, contact clear
+RELEASE: PASS (RG2 40.0 mm)
+DETACH: pickup_V4 left in fitting_V4
+RETREAT: collision check 151 samples + 0 interpolated states -> none
+V4 RETREAT: PASS (151 pts, 3.00 s played in 1.00 s, peak 0.26 rad/s, endpoint err 0.000000 rad)
+HOME: collision check 401 samples + 194 interpolated states -> none
+V4 HOME: PASS (401 pts, 8.00 s played in 3.69 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+
+Resetting scene (parts back to their pockets)...
+Preparing V5
+Fake hardware verified. Loading planning scene...
+Planning scene: 14 objects verified (MoveIt frame 'world')
+
+================ V5 L2 ================
+OPEN: PASS (RG2 40.0 mm)
+REACH: collision check 1595 samples + 121 interpolated states -> none
+V5 REACH: PASS (1595 pts, 31.88 s played in 16.43 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+ALIGN_GRIP: collision check 51 samples + 0 interpolated states -> none
+V5 ALIGN_GRIP: PASS (51 pts, 1.00 s played in 0.33 s, peak 0.02 rad/s, endpoint err 0.000000 rad)
+GRIP: PASS (RG2 8.2 mm)
+ATTACH: pickup_V5 at grasp xyz [-1.001, 1.778, 38.297] mm
+LIFT: collision check 151 samples + 0 interpolated states -> none
+V5 LIFT: PASS (151 pts, 3.00 s played in 1.00 s, peak 0.26 rad/s, endpoint err 0.000000 rad)
+TRANSPORT: collision check 1241 samples + 111 interpolated states -> none
+V5 TRANSPORT: PASS (1241 pts, 24.80 s played in 9.25 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+ALIGN_INSERT: collision check 51 samples + 0 interpolated states -> none
+V5 ALIGN_INSERT: PASS (51 pts, 1.00 s played in 0.33 s, peak 0.01 rad/s, endpoint err 0.000000 rad)
+Planned INSERT/ROTATE: MoveIt FK agreement 0.000000 mm; other collisions: none
+V5 L2 INSERT: PASS (651 pts, 13.00 s played in 28.78 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+V5 L2 ROTATE: PASS (851 pts, 17.00 s played in 5.67 s, peak 0.02 rad/s, endpoint err 0.000000 rad)
+
+V5 L2: functional PASS, strict PASS
+  end state (TF): 1.61 deg CW, gap 0.212 mm, offset 0.000 mm, retained True, contact clear
+RELEASE: PASS (RG2 40.0 mm)
+DETACH: pickup_V5 left in fitting_V5
+RETREAT: collision check 151 samples + 0 interpolated states -> none
+V5 RETREAT: PASS (151 pts, 3.00 s played in 1.00 s, peak 0.28 rad/s, endpoint err 0.000000 rad)
+HOME: collision check 367 samples + 272 interpolated states -> none
+V5 HOME: PASS (367 pts, 7.32 s played in 3.38 s, peak 0.65 rad/s, endpoint err 0.000000 rad)
+
+================ STAGE 9 SUMMARY (fake hardware) ================
+  V1 L2: functional PASS strict PASS  first bad: none
+  V2 L2: functional PASS strict PASS  first bad: none
+  V3 L2: functional PASS strict PASS  first bad: none
+  V4 L2: functional PASS strict PASS  first bad: none
+  V5 L2: functional PASS strict PASS  first bad: none
+Results -> /home/enriques/ros2_ws/src/ur3_variant_generalisation/results/simulation/stage9/20261031_092520
+Reset afterwards: python3 scripts/phase6_pickup_sim/planning_scene_tools.py --reset

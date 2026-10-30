@@ -143,3 +143,22 @@ Caveats:
   relocation) is what the lab calibration has to deliver.
 
 Results: `results/sim_reference/relocation_20261031/` (summaries and the moved registrations).
+
+## Fake hardware: full cycle V1–V5 (31 Oct 2026, Enrique's laptop, 09:25)
+`run_variant_insert_sim.py --variant all --level L2 --full --run --speed 3`. MoveIt checked the whole arm at
+every sample and at the interpolated states. Reference: `results/sim_reference/fakehw_full_cycle_20261031_092520/`.
+
+Sequence for every variant: HOME, REACH, ALIGN_GRIP, GRIP + ATTACH, LIFT, TRANSPORT, ALIGN_INSERT, INSERT, ROTATE,
+RELEASE (part left seated), RETREAT, HOME. **No collisions in any stage, and all five functional and strict PASS.**
+
+| Variant | End yaw (TF) | Seating gap |
+|---|---|---|
+| V1 | 24.39° CW | 0.213 mm |
+| V2 | 24.39° CCW | 0.211 mm |
+| V3 | 24.33° CW | 0.211 mm |
+| V4 | 23.55° CW | 0.211 mm |
+| V5 | 1.61° CW | 0.212 mm |
+
+The INSERT of V4 and V5 was played back slower than ×3 because the 0.65 rad/s playback cap held it back.
+Wrist 3 peaks during the helical insertion (V5: 82°/s in real time), which is relevant to the L2 temporal-scaling question.
+This is kinematic simulation on fake hardware, not a physical result.

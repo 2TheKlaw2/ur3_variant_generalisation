@@ -1,0 +1,8 @@
+stage,sample,t_s,status,contact,penetration_mm,regions,v1_centre_offset_mm,v1_lowest_z_mm,v1_yaw_deg,v1_tilt_deg
+ROTATE,37,0.7399,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,0.0035,0.0
+ROTATE,38,0.7599,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,0.00351,0.0
+ROTATE,59,1.1799,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-0.00013,0.0
+ROTATE,60,1.1999,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,3e-05,0.0
+ROTATE,61,1.2199,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,0.00029,0.0
+ROTATE,62,1.2399,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,0.00064,0.0
+ROTATE,63,1.2599,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,0.00109,0.0
