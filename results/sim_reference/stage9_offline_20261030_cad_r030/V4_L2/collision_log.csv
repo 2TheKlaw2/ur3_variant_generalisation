@@ -1,0 +1,21 @@
+stage,sample,t_s,status,contact,penetration_mm,regions,v1_centre_offset_mm,v1_lowest_z_mm,v1_yaw_deg,v1_tilt_deg
+ROTATE,38,0.7599,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90681,0.0
+ROTATE,40,0.7999,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90679,0.0
+ROTATE,41,0.8199,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90677,0.0
+ROTATE,42,0.8399,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90673,0.0
+ROTATE,43,0.8599,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90669,0.0
+ROTATE,44,0.8799,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90665,0.0
+ROTATE,45,0.8999,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90659,0.0
+ROTATE,46,0.9199,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90653,0.0
+ROTATE,47,0.9399,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90647,0.0
+ROTATE,48,0.9599,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.9064,0.0
+ROTATE,49,0.9799,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90634,0.0
+ROTATE,50,0.9999,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90627,0.0
+ROTATE,51,1.0199,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.9062,0.0
+ROTATE,52,1.0399,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90614,0.0
+ROTATE,53,1.0599,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90608,0.0
+ROTATE,54,1.0799,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90603,0.0
+ROTATE,55,1.0999,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90599,0.0
+ROTATE,56,1.1199,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90597,0.0
+ROTATE,57,1.1399,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90595,0.0
+ROTATE,63,1.2599,intended_contact,floor,0.0,"{""floor"": 0.0}",0.0,2.0,-17.90625,0.0

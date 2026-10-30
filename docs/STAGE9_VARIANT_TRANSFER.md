@@ -186,3 +186,30 @@ Level `CAD`: the **same CAD path as L2** (seat depth, corridor yaw, seat yaw) wi
 | Outcome | FAIL (5.45/20.68 mm; ROTATE hits at −5°) | FAIL (straight descent stops at 6.50 mm) | **PASS** (seated, −1.64°, out-and-back helix followed) | **PASS** |
 
 **Totals (offline, kinematic, fixture plate 12.5 mm):** L0 1/5, L1 3/5, **L2 5/5**, CAD-only 5/5. References: `results/sim_reference/stage9_offline_20261030_fixture12p5/`. Figures regenerated.
+
+## Revised fittings: Ø28.10 bores and edge fillets (30 Oct 2026, evening)
+Enrique revised all five fittings for physical assembly.
+- **V1–V4:** bore **Ø28.10** (radial clearance **0.30 mm**, was 0.25; V3 was 0.22), checked from the meshes at every 0.5 mm of depth.
+- **V5:** bore **Ø28.20** (**0.35 mm**), Enrique's choice; report this difference.
+- All five have small fillets (≤ 0.2 mm) on the slot and channel edges. The top rim already had a lead-in (about Ø29.4 at the rim).
+- The parts (`Varient{i}a`) are unchanged: disc Ø27.50.
+
+**Code changes:**
+- `stage8_core`: `BORE_R_MM` is 14.05 and `RADIAL_CLEARANCE_MM` is 0.30.
+- `VariantGeometry` now measures each fitting's bore radius from its mesh, for region labels.
+- Classifier tests: exactly-seated poses may report `clear` (coincident faces are no longer counted as contact for these meshes). The test accepts `clear` or `intended_contact`; 15/15 pass.
+
+**Re-run (offline, kinematic; fixture plate 12.5 mm):** every outcome is unchanged.
+
+| | L0 | L1 | L2 | CAD-only |
+|---|---|---|---|---|
+| Totals | 1/5 | 3/5 | **5/5** | 5/5 |
+
+| Stage 8 | A | B1 | B2 | B2R |
+|---|---|---|---|---|
+| First contact | INSERT 3.42 s (0.025 mm) | INSERT 3.78 s (0.041 mm) | none | none |
+| Depth / end gap | 0.50 mm | 0.34 mm | 4.78 mm / 0.258 mm | functional PASS, end gap 0.469 mm |
+
+- CAD seat yaws: V4 −23.55° (was −23.58°), V5 −1.61° (was −1.64°).
+- References: `results/sim_reference/stage9_offline_20261030_cad_r030/`, `results/sim_reference/stage8_offline_20261030_cad_r030/`. Figures regenerated.
+- The wider bore cannot help a rigid kinematic replay that is already centred; it matters on the robot, where registration and accuracy errors are about 1 mm.

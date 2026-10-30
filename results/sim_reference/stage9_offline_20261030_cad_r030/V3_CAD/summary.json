@@ -1,0 +1,87 @@
+{
+  "variant": "V3",
+  "level": "CAD",
+  "stages": {
+    "INSERT": {
+      "samples_commanded": 651,
+      "samples_feasible": 651,
+      "commanded_depth_mm": 10.675170993349983,
+      "cad_seat_depth_mm": 10.675170993349983,
+      "depth_scale": 1.0,
+      "max_unused_commanded_descent_mm": 0.0,
+      "seated": true,
+      "end_seating_gap_mm": 3.878214980268524e-07
+    },
+    "ROTATE": {
+      "samples_commanded": 851,
+      "samples_feasible": 851,
+      "commanded_rotation_deg": -24.32626286693761,
+      "goal_yaw_deg": -24.32626286693761,
+      "started_seated": true
+    }
+  },
+  "first_unacceptable": null,
+  "ik_error": null,
+  "final": {
+    "stage": "ROTATE",
+    "yaw_deg": -24.32626286693761,
+    "lowest_z_mm": 2.0000003878216788,
+    "seating_gap_mm": 3.878216787711608e-07,
+    "centre_offset_mm": 6.206335383118183e-14,
+    "tilt_deg": 1.7075472925031877e-06
+  },
+  "max_insertion_depth_mm": 10.6751706176173,
+  "cad_seat_depth_mm": 10.675170993349983,
+  "min_clearance_mm": 3.757326814059093e-07,
+  "max_penetration_mm": 0.0,
+  "touching_samples": 0,
+  "cad_seat_yaw_deg": -24.32626286693761,
+  "peak_joint_speed_deg_s": [
+    0.02175723128110305,
+    0.05878306569611156,
+    0.34848889739168964,
+    0.40659707832989256,
+    0.02933489296016301,
+    2.704372552973389
+  ],
+  "peak_speed_fraction_of_limit": 0.0075121459804816364,
+  "criteria": {
+    "within_ur3e_joint_speed_limits": true,
+    "no_unacceptable_contact": true,
+    "insert_completed": true,
+    "rotate_completed": true,
+    "final_yaw_within_tol_of_cad_seat": true,
+    "retained_by_fitting": true,
+    "seated_at_insert_end": true
+  },
+  "functional_outcome": "PASS",
+  "strict_outcome": "PASS",
+  "cad_features": {
+    "seat_corridor_deg": [
+      -26.469,
+      1.312
+    ],
+    "lock_end_deg": -26.469,
+    "centre_deg": -12.5785,
+    "demo_margin_deg": 2.14273713306239,
+    "target_deg": -24.32626286693761,
+    "yaw_at_seat_on_path_deg": 0.0
+  },
+  "start": {
+    "bottom_z_mm": 12.675170993349983,
+    "q": [
+      -1.5495283134367315,
+      -1.7544949731656894,
+      -1.5242127889135677,
+      -1.419816519623699,
+      1.565479611243003,
+      -4.702787505673317
+    ],
+    "grasp_xyz_mm": [
+      0.4979721556024608,
+      0.8089688250882965,
+      25.445486567662954
+    ]
+  },
+  "type": "KINEMATIC SIMULATION (offline) - not a physical result"
+}

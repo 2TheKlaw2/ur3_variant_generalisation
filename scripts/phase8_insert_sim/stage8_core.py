@@ -43,9 +43,9 @@ EXPERIMENTS = {"A": "v1_original_alignment", "B1": "v1_corrected_cdmp", "B2": "v
 B2_FAMILY = ("B2", "B2R")
 
 # Fitting geometry (fitting frame, mm) from cad/CAD_CHECKS.md
-FLOOR_Z_MM, TOP_Z_MM, BORE_R_MM = 2.0, 7.0, 14.0
+FLOOR_Z_MM, TOP_Z_MM, BORE_R_MM = 2.0, 7.0, 14.05   # bore Ø28.10 (revised CAD 30 Oct; was Ø28.0)
 CHANNEL_TOP_Z_MM = 5.5         # V1 rotation channel occupies z 2.0..5.5 (above it: entry slots only)
-RADIAL_CLEARANCE_MM, SLOT_HALF_ANGLE_DEG = 0.25, 1.0
+RADIAL_CLEARANCE_MM, SLOT_HALF_ANGLE_DEG = 0.30, 1.0   # disc Ø27.50 in bore Ø28.10 (was 0.25)
 # Tolerances (documented): STL chord deviation 0.01 mm -> contact tolerance 2x
 CONTACT_TOL_MM = 0.02
 FLOOR_TOL_MM = 0.05            # seating tolerance agreed for Stage 8

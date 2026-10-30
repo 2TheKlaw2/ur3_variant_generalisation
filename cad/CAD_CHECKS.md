@@ -19,7 +19,7 @@ Kinematic/geometric CAD analysis only — not physical results.
 | Fitting height (mm) | 7 | 7 | 12 | 12 | 22 |
 | Bore depth (mm) | 5 | 5 | 10 | 10 | 20 |
 
-- Part disc Ø27.50 in bore Ø28.00 → **0.25 mm radial clearance**. Fitting floor 2.0 mm.
+- Part disc Ø27.50 in bore **Ø28.10 (V1–V4) / Ø28.20 (V5)** → **0.30 / 0.35 mm radial clearance** (revised 30 Oct 2026; was Ø28.00 / 0.25 mm). Fitting floor 2.0 mm. Slot and channel edges filleted (≤ 0.2 mm); rim lead-in to about Ø29.4.
 - Two tabs at 180°, reaching r = 16.03 mm. Tab width: 4.80 mm (V1–V3); V4/V5 revised (not re-measured).
 - Grip block 15 × 10 mm.
 

@@ -86,8 +86,8 @@ meshes:
       - 90.0
   V1_fitting:
     file: stationary_fittings/V1_fitting.stl
-    source: PlaceAssem - Varient1-1-1.STL (assembly frame)
-    triangles: 62980
+    source: 'Varient1.STL (30 Oct 2026 revision: bore 28.10 mm, edge fillets)'
+    triangles: 108086
     watertight: true
     pose_in_placement_plate:
       xyz_mm:
@@ -100,8 +100,8 @@ meshes:
       - -90.0
   V2_fitting:
     file: stationary_fittings/V2_fitting.stl
-    source: PlaceAssem - Varient2-1-1.STL (assembly frame)
-    triangles: 62980
+    source: 'Varient2.STL (30 Oct 2026 revision: bore 28.10 mm, edge fillets)'
+    triangles: 108312
     watertight: true
     pose_in_placement_plate:
       xyz_mm:
@@ -114,8 +114,8 @@ meshes:
       - -90.0
   V3_fitting:
     file: stationary_fittings/V3_fitting.stl
-    source: PlaceAssem - Varient3-1-1.STL (assembly frame)
-    triangles: 62020
+    source: 'Varient3.STL (30 Oct 2026 revision: bore 28.10 mm, edge fillets)'
+    triangles: 105806
     watertight: true
     pose_in_placement_plate:
       xyz_mm:
@@ -128,8 +128,8 @@ meshes:
       - -90.0
   V4_fitting:
     file: stationary_fittings/V4_fitting.stl
-    source: PlaceAssem - Varient4-1-1.STL (assembly frame)
-    triangles: 70598
+    source: 'Varient4.STL (30 Oct 2026 revision: bore 28.10 mm, edge fillets)'
+    triangles: 115638
     watertight: true
     pose_in_placement_plate:
       xyz_mm:
@@ -142,8 +142,8 @@ meshes:
       - -90.0
   V5_fitting:
     file: stationary_fittings/V5_fitting.stl
-    source: PlaceAssem - Varient5-1-1.STL (assembly frame)
-    triangles: 71394
+    source: 'Varient5.STL (30 Oct 2026 revision: bore 28.20 mm, edge fillets)'
+    triangles: 126366
     watertight: true
     pose_in_placement_plate:
       xyz_mm:

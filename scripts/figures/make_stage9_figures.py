@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
 PKG = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-RES = os.path.join(PKG, "results/sim_reference/stage9_offline_20261030_fixture12p5")
+RES = os.path.join(PKG, "results/sim_reference/stage9_offline_20261030_cad_r030")
 CAD = os.path.join(PKG, "results/cad_features")
 C = {"L0": "#2a78d6", "L1": "#eb6834", "L2": "#1baf7a"}
 INK, INK2, GRID, SURF, FREE = "#0b0b0b", "#52514e", "#e4e3df", "#fcfcfb", "#dcdad3"

@@ -1,0 +1,3 @@
+stage,sample,t_s,status,contact,penetration_mm,regions,v1_centre_offset_mm,v1_lowest_z_mm,v1_yaw_deg,v1_tilt_deg
+INSERT,170,3.3997,touching,touching(entry_slot_or_ring_edge),0.00594,"{""entry_slot_or_ring_edge"": 0.0059}",2.39375,6.58052,0.35084,3.80871
+INSERT,171,3.4197,INTERFERENCE,entry_slot_or_ring_edge,0.02508,"{""entry_slot_or_ring_edge"": 0.0251}",2.41055,6.56602,0.35094,3.80884

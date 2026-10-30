@@ -35,6 +35,7 @@ import stage8_core as s8  # noqa: E402
 import ur_kinematics as uk  # noqa: E402
 
 np = sm.np
+FLOOR_MM = 2.0
 LEVELS = ("L0", "L1", "L2", "CAD")   # CAD = CAD-only baseline: L2 path, min-jerk timing, no demonstration data
 CORRIDOR_MARGIN_DEG = 1.0        # L2 keeps at least this far from a corridor wall (or the centre if narrower)
 YAW_TARGET_TOL_DEG = 1.5         # final yaw accepted within this of the CAD seat yaw (V1 Stage 8: 23.5-26.5)
@@ -67,6 +68,9 @@ class VariantGeometry(s8.Geometry):
         self.fit_obj.setTransform(fcl.Transform(T_fit[:3, :3], T_fit[:3, 3]))
         self.v1_verts = v
         self.top_mm = float(fv[:, 2].max() * 1000)
+        # bore radius measured from the mesh (V1-V4 14.05 mm, V5 14.10 mm in the 30 Oct CAD)
+        sec = self.fit.section(plane_origin=[0, 0, (FLOOR_MM + self.top_mm) / 2000], plane_normal=[0, 0, 1])
+        self.bore_r_mm = float(np.hypot(*np.vstack(sec.discrete)[:, :2].T).min() * 1000) if sec is not None else s8.BORE_R_MM
         rng = np.random.default_rng(0)
         self.v1_pts = np.vstack([v, self._sample(self.v1, rng)])
         self.fit_pts = np.vstack([fv, self._sample(self.fit, rng)])
@@ -78,7 +82,7 @@ class VariantGeometry(s8.Geometry):
             return "floor"
         if z >= self.top_mm - s8.CONTACT_TOL_MM:
             return "rim"
-        if r < s8.BORE_R_MM + 0.05:
+        if r < self.bore_r_mm + 0.05:
             return "bore_wall"
         return "feature"
 
