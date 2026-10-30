@@ -5,9 +5,10 @@
 #   bash START_LAB.sh            # full check
 #   bash START_LAB.sh --offline  # only the laptop/repo checks (no robot needed)
 # Checklist: docs/LAB_DAY_CHECKLIST.md
-set -uo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"; cd "$HERE"
+# source ROS BEFORE 'set -u': the ROS setup scripts reference unset variables
 source /opt/ros/humble/setup.bash 2>/dev/null; source "${HOME}/ros2_ws/install/setup.bash" 2>/dev/null
+set -o pipefail
 IP="${UR3E_IP:-192.168.0.192}"
 ok=0; bad=0
 pass() { echo "  [ OK ] $*"; ok=$((ok+1)); }
