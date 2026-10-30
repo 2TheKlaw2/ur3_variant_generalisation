@@ -223,10 +223,12 @@ def main():
     ap.add_argument("--run", action="store_true", help="Run with one START confirmation")
     ap.add_argument("--auto", action="store_true", help="Run without prompts (fake hardware only)")
     ap.add_argument("--skip-home", action="store_true", help="Robot already at taught home")
+    sim_node.add_speed_arg(ap)
     args = ap.parse_args()
     pst.require_sim_domain()
     traj = load_pickup_trajectories()
     rclpy, node = sim_node.make_node("v1_pickup_lift_SIM_ONLY")
+    sim_node.set_speed(node, args.speed)
     try:
         poses0, frame = preflight(node, "V1 PICKUP + LIFT — FAKE HARDWARE ONLY (ROS_DOMAIN_ID=73)", traj)
         if not (args.run or args.auto):

@@ -36,10 +36,12 @@ for d in (HERE, HERE.parent / "phase8_insert_sim", HERE.parent / "phase7_transpo
           HERE.parent / "scene"):
     sys.path.insert(0, str(d))
 import lift_profile as lp  # noqa: E402
+import plan_cache  # noqa: E402
 import planning_scene_tools as pst  # noqa: E402
 import preview_stage8_offline as out8  # noqa: E402
 import run_variants_offline as rvo  # noqa: E402
 import scene_model as sm  # noqa: E402
+import sim_node  # noqa: E402
 import stage8_core as s8  # noqa: E402
 import ur_kinematics as uk  # noqa: E402
 import variant_core as vc  # noqa: E402
@@ -85,6 +87,28 @@ def plan(i, level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, features_dir):
             "T_tcp_start": T_tcp_start}
 
 
+PLAN_FILES = ["scripts/phase9_variants/variant_core.py", "scripts/phase9_variants/run_variant_insert_sim.py",
+              "scripts/phase8_insert_sim/stage8_core.py", "scripts/scene/ur_kinematics.py",
+              "config/scene/scene_registration.yaml", "config/ur3e_lab_calibration.yaml",
+              "config/trajectories/v1/v1_align_to_grip_joint_plan_001.csv", "config/trajectories/v1/v1_align_to_insertion_joint_plan_001.csv",
+              s8.INSERT_CSV, s8.ROTATE_CSV]
+
+
+def plan_cached(i, level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, features_dir):
+    files = PLAN_FILES + [objs[f"pickup_V{i}"]["mesh"], objs[f"fitting_V{i}"]["mesh"],
+                          os.path.join(features_dir, f"V{i}_corridor.csv"), os.path.join(features_dir, "V1_corridor.csv")]
+    files += [f"config/saved_poses/v1_pickup_V{k}_geometry.yaml" for k in range(2, 6)]
+    k = plan_cache.key(f"stage9_V{i}_{level}", {}, files)
+    p = plan_cache.get(k)
+    if p is not None:
+        print(f"  V{i} {level}: cached plan", flush=True)
+        p["geom"] = vc.VariantGeometry(i, objs, p["ctx"]["T_fit"])
+        return p
+    p = plan(i, level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, features_dir)
+    plan_cache.put(k, {kk: v for kk, v in p.items() if kk != "geom"})
+    return p
+
+
 def unwrap_to(q_ref, paths):
     """Shift wrist_3 of every planned joint vector by the same 2*pi multiple nearest q_ref."""
     k = round((q_ref[5] - paths[0][0][5]) / (2 * math.pi))
@@ -121,7 +145,6 @@ def print_plan(i, level, p):
 # ------------------------------------------------------------------ fake hardware
 def preflight(node, title, lines=()):
     """Verify fake hardware, (re)load the planning scene (detaches any held part), verify poses."""
-    import sim_node
     print(title, flush=True)
     for line in lines:
         print("  " + line)
@@ -139,12 +162,12 @@ def preflight(node, title, lines=()):
 
 
 def execute(node, i, level, p, calib, objs, run_dir, args):
-    import sim_node
     obj_id = f"pickup_V{i}"
     folder = run_dir / f"V{i}_{level}"; folder.mkdir(parents=True, exist_ok=False)
     res, geom, G = p["res"], p["geom"], p["ctx"]["G"]
     summary = {"type": "KINEMATIC SIMULATION (fake hardware) - not a physical result", "variant": f"V{i}", "level": level,
                "note": "Pickup/transport NOT simulated: the part is attached in the gripper 40 mm above its start pose",
+               "playback_speed": getattr(node, "speed", 1.0),
                "stages": {}}
     print(f"\n================ V{i} {level} ================", flush=True)
     if not args.skip_home:
@@ -231,6 +254,7 @@ def main():
     ap.add_argument("--skip-home", action="store_true")
     ap.add_argument("--plan-only", action="store_true", help="Plan and print; no ROS")
     ap.add_argument("--features", default=str(ROOT / "results/cad_features"))
+    sim_node.add_speed_arg(ap)
     args = ap.parse_args()
     variants = [1, 2, 3, 4, 5] if args.variant == "all" else [int(args.variant)]
     calib = yaml.safe_load(open(ROOT / "config/ur3e_lab_calibration.yaml"))
@@ -238,15 +262,15 @@ def main():
     G, _ = rvo.grasps(objs, calib)
     prof = vc.demo_profiles(str(ROOT))
     q1, T_tcp1, z1, yaw0 = rvo.v1_start(objs, calib, G[1])
-    print("Planning (CAD classifier, ~20-60 s per variant)...", flush=True)
-    plans = {i: plan(i, args.level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, args.features) for i in variants}
+    print("Planning (CAD classifier, ~20-60 s per variant the first time; cached after)...", flush=True)
+    plans = {i: plan_cached(i, args.level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, args.features) for i in variants}
     for i in variants:
         print_plan(i, args.level, plans[i])
     if args.plan_only:
         return 0
     pst.require_sim_domain()
-    import sim_node
     rclpy, node = sim_node.make_node("variant_insert_SIM_ONLY")
+    sim_node.set_speed(node, args.speed)
     try:
         preflight(node, f"STAGE 9 V{'/V'.join(map(str, variants))} {args.level} INSERT/ROTATE — FAKE HARDWARE ONLY "
                   "(ROS_DOMAIN_ID=73)",

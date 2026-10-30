@@ -28,6 +28,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 for d in (HERE, HERE.parent / "phase7_transport_sim", HERE.parent / "phase6_pickup_sim", HERE.parent / "scene"):
     sys.path.insert(0, str(d))
+import plan_cache  # noqa: E402
 import planning_scene_tools as pst  # noqa: E402
 import preview_stage8_offline as out8  # noqa: E402
 import run_v1_pickup_lift_sim as s6  # noqa: E402
@@ -57,7 +58,17 @@ def run_one(node, exp, inputs, args, run_dir, poses0):
     T_fit = node.scene.world_poses()[0]["fitting_V1"]
     q_align = node.fresh()
     geom = s8.Geometry(objs, T_fit)
-    res = s8.run_experiment(exp, q_align, calib, T_grasp, T_fit, objs, str(ROOT), geom)
+    files = ["scripts/phase8_insert_sim/stage8_core.py", "scripts/scene/ur_kinematics.py", s8.INSERT_CSV, s8.ROTATE_CSV,
+             objs["pickup_V1"]["mesh"], objs["fitting_V1"]["mesh"]]
+    k = plan_cache.key(f"stage8_{exp}", {"q": [round(float(v), 6) for v in q_align],
+                                         "T_fit": np.round(T_fit, 9).tolist(), "T_grasp": np.round(T_grasp, 9).tolist(),
+                                         "calib": calib}, files)
+    res = plan_cache.get(k)
+    if res is None:
+        res = s8.run_experiment(exp, q_align, calib, T_grasp, T_fit, objs, str(ROOT), geom)
+        plan_cache.put(k, res)
+    else:
+        print(f"{exp}: cached plan (same start state, CAD and code)", flush=True)
 
     # ---- MoveIt cross-checks on the planned samples
     rows = res["rows"]
@@ -112,7 +123,8 @@ def run_one(node, exp, inputs, args, run_dir, poses0):
     res["timing"] = {"cdmp_insert_duration_s": res["stages"]["INSERT"].get("cdmp_duration_s"),
                      "cdmp_rotate_duration_s": res["stages"]["ROTATE"].get("cdmp_duration_s"),
                      "correction_time_s": res["stages"].get("CORRECTION", {}).get("duration_s", 0.0),
-                     "note": "CDMP timestamps preserved; correction uses NEW 2.0 s min-jerk sim timing"}
+                     "note": "CDMP timestamps preserved; correction uses NEW 2.0 s min-jerk sim timing",
+                     "playback_speed": node.speed}
     res["tolerances"] = {"contact_tol_mm": s8.CONTACT_TOL_MM, "floor_tol_mm": s8.FLOOR_TOL_MM,
                          "rotation_stop_from_deg": s8.STOP_YAW_DEG, "radial_clearance_mm": s8.RADIAL_CLEARANCE_MM,
                          "pass_cw_rotation_deg": s8.PASS_YAW_RANGE_DEG}
@@ -150,6 +162,7 @@ def main():
     ap.add_argument("--run", action="store_true", help="Run with one START confirmation")
     ap.add_argument("--auto", action="store_true", help="Run without prompts (fake hardware only)")
     ap.add_argument("--skip-home", action="store_true")
+    sim_node.add_speed_arg(ap)
     args = ap.parse_args()
     pst.require_sim_domain()
     import importlib.util
@@ -159,6 +172,7 @@ def main():
     inputs = s7.load_stage7_inputs()
     exps = ["A", "B1", "B2"] if args.experiment == "all" else [args.experiment]
     rclpy, node = sim_node.make_node("v1_insert_SIM_ONLY")
+    sim_node.set_speed(node, args.speed)
     try:
         poses0, frame = s6.preflight(node, "V1 STAGE 8 INSERT/ROTATE EXPERIMENTS — FAKE HARDWARE ONLY (ROS_DOMAIN_ID=73)",
                                      inputs[0], s7.STAGE7_LINES + [f"EXPERIMENTS   {', '.join(exps)}"])

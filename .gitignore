@@ -15,3 +15,6 @@ __pycache__/
 # Generated experiment logs
 /results/physical/
 /results/simulation/
+
+# offline plan cache (regenerated automatically)
+results/.plan_cache/

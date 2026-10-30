@@ -26,6 +26,10 @@ python3 scripts/phase6_pickup_sim/planning_scene_tools.py --reset
   - MoveIt checks APPROACH and DESCEND (samples plus interpolated states).
   - During INSERT/ROTATE, MoveIt checks every executed sample for everything except V<i>↔fitting_V<i>, which the CAD classifier judges.
 - **Plan only, no ROS:** add `--plan-only`.
+- **Faster runs:**
+  - `--speed N` (1–5) plays every fake-hardware motion back N times faster. Planning, IK and all collision and contact checks use the original timestamps, so results are unchanged.
+  - Plans are cached in `results/.plan_cache/`, so repeat runs skip the ~1 min of planning. Delete that folder to force re-planning; any change to code, CAD, CDMPs or registration re-plans automatically.
+  - The same `--speed` option works on the Stage 6, 7 and 8 runners, and Stage 8 also caches its plans.
 - **Output:** `results/simulation/stage9/<timestamp>/V<i>_<level>/`.
 
 ## Common to all conditions

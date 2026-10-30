@@ -60,6 +60,27 @@ def densify_joint_path(q, calib, max_tcp_step_m=0.001):
     return out
 
 
+MAX_SPEED = 5.0
+
+
+def add_speed_arg(ap):
+    """--speed N: play every fake-hardware motion back N times faster (watching only).
+
+    Planning, IK, collision and contact checks use the original timestamps and are
+    unchanged; only the trajectory times sent to the fake controller are divided by N.
+    Not for physical hardware (these scripts are fake-hardware only)."""
+    ap.add_argument("--speed", type=float, default=1.0,
+                    help=f"fake-hardware playback speed-up, 1-{MAX_SPEED:g} (results unchanged; default 1)")
+
+
+def set_speed(node, speed):
+    if not 1.0 <= speed <= MAX_SPEED:
+        raise SystemExit(f"--speed must be between 1 and {MAX_SPEED:g}")
+    node.speed = float(speed)
+    if speed != 1.0:
+        print(f"PLAYBACK x{speed:g} (fake hardware only; planned timing and all checks unchanged)", flush=True)
+
+
 def make_node(name="v1_sim_SIM_ONLY"):
     import rclpy
     from action_msgs.msg import GoalStatus
@@ -79,6 +100,7 @@ def make_node(name="v1_sim_SIM_ONLY"):
         def __init__(self):
             super().__init__(name)
             self.q = None; self.msg = None; self.width = None; self.q_at = 0.0
+            self.speed = 1.0          # fake-hardware playback speed-up (set_speed)
             self.rec = False; self.samples = []; self.t0 = 0.0
             self.create_subscription(JointState, "/joint_states", self.on_js, qos_profile_sensor_data)
             self.hw = self.create_client(ListHardwareComponents, "/controller_manager/list_hardware_components")
@@ -163,18 +185,19 @@ def make_node(name="v1_sim_SIM_ONLY"):
             jt = JointTrajectory(); jt.joint_names = list(JOINTS)
             for ti, qi in zip(t, q):
                 p = JointTrajectoryPoint(); p.positions = [float(v) for v in qi]
-                p.time_from_start = Duration(seconds=float(ti)).to_msg(); jt.points.append(p)
+                p.time_from_start = Duration(seconds=float(ti) / self.speed).to_msg(); jt.points.append(p)
             self.samples = []; self.t0 = time.monotonic(); self.rec = True
             start = time.monotonic()
             try:
-                self.send(self.arm, jt, t[-1] + 10)
+                self.send(self.arm, jt, t[-1] / self.speed + 10)
             finally:
                 self.rec = False
             elapsed = time.monotonic() - start
             err = lp.maxdiff(self.fresh(), q[-1])
             if err > end_tol:
                 raise RuntimeError(f"{name}: endpoint error {err:.5f} rad")
-            print(f"{name}: PASS ({len(q)} pts, {t[-1]:.2f} s, endpoint err {err:.6f} rad)", flush=True)
+            shown = f"{t[-1]:.2f} s" + (f" played in {t[-1]/self.speed:.2f} s" if self.speed != 1.0 else "")
+            print(f"{name}: PASS ({len(q)} pts, {shown}, endpoint err {err:.6f} rad)", flush=True)
             self.last_elapsed = elapsed
             return list(self.samples), err
 
@@ -182,7 +205,7 @@ def make_node(name="v1_sim_SIM_ONLY"):
             self.guard(); self.fresh()
             target, tol = self.width_target(width_m)
             jt = JointTrajectory(); jt.joint_names = ["finger_width"]
-            p = JointTrajectoryPoint(); p.positions = [target]; p.time_from_start = Duration(seconds=3).to_msg()
+            p = JointTrajectoryPoint(); p.positions = [target]; p.time_from_start = Duration(seconds=max(0.5, 3.0 / self.speed)).to_msg()
             jt.points = [p]; self.send(self.grip, jt, 8); self.fresh()
             if abs(self.width - target) > tol:
                 raise RuntimeError(f"{name}: gripper did not reach {width_m*1000:.1f} mm")
