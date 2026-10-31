@@ -23,7 +23,8 @@ page runs the robot without an explicit typed confirmation at every stage. Keep 
 3. Terminal B: MoveIt for the real robot (only needed for the physical runner in step 6, not for calibration).
 4. **Check the elbow joint limit** on the pendant (Installation → Safety → Joint limits): ______ °.
    The plans keep the elbow within ±160° (max used ≈ 95°).
-5. Low speed slider. Terminal C: `bash START_LAB.sh` → all OK.
+5. Low speed slider (it limits commanded motion only, **not** how fast you move the arm by hand in freedrive:
+   move slowly). Terminal C: `bash START_LAB.sh` → all OK.
 
 **Freedrive and gripper while the driver runs** (arm stationary when switching):
 - `bash scripts/lab/freedrive.sh`: type FREEDRIVE; guide the arm by hand; **Ctrl+C** ends freedrive and switches the arm
@@ -39,10 +40,12 @@ must hang straight.** Lower, `rg2.sh open`, repeat 3×. If it tilts or differs b
 Terminal C: `bash scripts/lab/freedrive.sh` (keep it running). Terminal D: `bash CALIBRATE_PLATES.sh` and follow the prompts;
 close/open the gripper with `bash scripts/lab/rg2.sh grip|open` in Terminal E. When done, Ctrl+C in Terminal C
 (arm back on `scaled_joint_trajectory_controller`). Per variant: freedrive the gripper onto the part in its
-pocket, close the RG2 from the pendant, save; lift it and guide it into **its own** fitting (tabs on the
-slots, entry depth, no twist, never force), save; put it back, open.
+pocket, close the RG2 with `rg2.sh grip`, save; lift it and guide it into **its own** fitting: tabs on the slots,
+**lower only to the entry position; if it catches or needs pressure, stop** (never push with the arm), save; put it back, `rg2.sh open`.
 Limits it checks: pickup RMS ≤ 1.5 mm · placement RMS ≤ 0.5 mm · prong mismatch ≤ 1.5 mm · plate yaw diff ≤ 0.5°.
-Anything outside → redo that variant with `--resume <session> --variants <i>`.
+Anything outside → redo that variant with `--resume <session> --variants <i>`. A failed save asks retry/skip/quit.
+**PASS here = the poses fit the plate model; it does not prove insertion accuracy** (clearance 0.30–0.35 mm):
+the above-entry inspection in step 6 still decides.
 
 ## 4. Update the simulation (offline, ~10–15 min)
 `bash UPDATE_SIM.sh config/calibration/<session>` → registration, scene check, Stage 9, Stage 10 (arc-height

@@ -42,7 +42,7 @@ The simulation places everything relative to the robot from measured robot poses
 Every motion is planned relative to where the robot itself measured the parts and fittings, using the same grasp it will insert with. So the simulation and the robot share one frame, and an error in the trolley model does not matter.
 
 ## New lab tools (31 Oct 2026)
-**`CALIBRATE_PLATES.sh`: guided and read-only.** It never sends motion; you move the robot in freedrive and run the RG2 from the pendant.
+**`CALIBRATE_PLATES.sh`: guided and read-only.** It never sends motion; you move the robot in freedrive and run the RG2 with scripts/lab/rg2.sh.
 - Each run creates a dated session `config/calibration/<YYYYmmdd_HHMM>/`. `config/saved_poses` is never touched.
 - Per variant i, the protocol is the matched part as its own probe:
   1. Grip part i in its pocket exactly as for pickup, and save `v1_pickup_V<i>_geometry`.

@@ -7,7 +7,7 @@
 
 Protocol (per variant i = 1..5, part i is its own probe, so its grasp offset cancels):
   1. With the RG2 open, freedrive the gripper onto part i in its pocket exactly as for pickup
-     (fingers centred on the grip block, tool vertical); close the RG2 from the pendant.
+     (fingers centred on the grip block, tool vertical); close the RG2 with bash scripts/lab/rg2.sh grip.
      -> saves v1_pickup_V<i>_geometry
   2. Lift the part out, freedrive it into fitting i until the bore centres it (tabs on the slots,
      entry depth only, NO twist, never force it).                 -> saves v1_place_V<i>_geometry
@@ -48,6 +48,18 @@ def save_pose(session, name):
     return ok
 
 
+def save_checked(session, name):
+    """Save a pose; on failure ask to retry / skip / quit, so no step continues on a missing or old pose."""
+    while not save_pose(session, name):
+        r = ask(f"  Saving {name} FAILED (driver running? /joint_states?). [r]etry / [s]kip / [q]uit: ", "rsq", "r")
+        if r == "s":
+            print(f"  SKIPPED: {name} is missing; redo it later with --resume")
+            return False
+        if r == "q":
+            raise SystemExit(f"Stopped. Resume with: bash CALIBRATE_PLATES.sh --resume {os.path.basename(session)}")
+    return True
+
+
 def fit_and_check(session, thickness_m):
     cmd = [sys.executable, os.path.join(PKG, "scripts/scene/compute_scene_registration.py"), "--session", session,
            "--dry-run", "--fixture-thickness", str(thickness_m)]
@@ -76,6 +88,8 @@ def fit_and_check(session, thickness_m):
     with open(os.path.join(session, "calibration_report.yaml"), "w") as f:
         yaml.safe_dump(rep, f, sort_keys=False)
     print(f"\n  {'ALL WITHIN LIMITS' if ok_all else 'SOME CHECKS OUTSIDE LIMITS - redo those poses (--resume) or inspect'}")
+    print("  NOTE: these limits measure how well the poses fit the rigid plate model. They do NOT prove insertion accuracy\n"
+          "  (radial clearance 0.30-0.35 mm): the above-entry inspection (--until ALIGN_INSERT) still decides.")
     print(f"  Apply with:  bash UPDATE_SIM.sh {os.path.relpath(session, PKG)}")
     return rep
 
@@ -118,11 +132,11 @@ def main():
         print(f"  1) RG2 open. Freedrive the gripper onto part V{i} in its pocket exactly as for pickup "
               "(fingers centred on the grip block, tool vertical). Close the RG2: bash scripts/lab/rg2.sh grip")
         if ask("     Ready to save the PICKUP pose? [Enter = save, s = skip] ", "s", "save") != "s":
-            save_pose(session, f"v1_pickup_V{i}_geometry")
+            save_checked(session, f"v1_pickup_V{i}_geometry")
         print(f"  2) Lift V{i} out and freedrive it into fitting V{i}: tabs on the slots, entry depth only, "
-              "NO twist, never force it. Let the bore centre it.")
+              "NO twist. Lower only to the entry position; if it catches or needs pressure, STOP: never use the arm to push it in.")
         if ask("     Ready to save the PLACE pose? [Enter = save, s = skip] ", "s", "save") != "s":
-            save_pose(session, f"v1_place_V{i}_geometry")
+            save_checked(session, f"v1_place_V{i}_geometry")
         print(f"  3) Lift V{i} back out, return it to its pocket, open the RG2.")
         ask(f"     Press Enter when V{i} is back in its pocket and the RG2 is open. ")
 

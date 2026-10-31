@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Guided, READ-ONLY calibration of the pickup and placement plates (lab, real robot connected).
-# Sends NO motion commands: you move the robot in freedrive and run the RG2 from the pendant.
+# Sends NO motion commands: you move the robot in freedrive and run the RG2 with scripts/lab/rg2.sh.
 #
 #   bash CALIBRATE_PLATES.sh                      # new session config/calibration/<YYYYmmdd_HHMM>/
 #   bash CALIBRATE_PLATES.sh --resume <session>   # continue or redo poses in a session
