@@ -124,7 +124,7 @@ def main():
         if ask("     Ready to save the PLACE pose? [Enter = save, s = skip] ", "s", "save") != "s":
             save_pose(session, f"v1_place_V{i}_geometry")
         print(f"  3) Lift V{i} back out, return it to its pocket, open the RG2.")
-        ask("     Press Enter when V{i} is back in its pocket and the RG2 is open. ")
+        ask(f"     Press Enter when V{i} is back in its pocket and the RG2 is open. ")
 
     fit_and_check(session, notes["fixture_thickness_mm"] / 1000.0)
     return 0
