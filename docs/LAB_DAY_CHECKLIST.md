@@ -1,4 +1,4 @@
-# Lab day checklist (Thursday 5 Nov 2026)
+# Lab day checklist (Tuesday 3 Nov 2026)
 
 Keep this page open. Steps run in order; **stop at any FAIL** and fix it before going on. Nothing on this
 page runs the robot without an explicit typed confirmation at every stage. Keep the pendant E-stop in reach.
@@ -14,17 +14,31 @@ page runs the robot without an explicit typed confirmation at every stage. Keep 
 3. Parts V1–V5 in their pockets; fittings V1–V5 seated.
 4. Photograph the setup (top view + side view).
 
-## 2. Start the robot (as for the 29 Oct physical V1 run)
+## 2. Start the robot (27–29 Oct method)
 1. Laptop Ethernet on the robot network (static 192.168.0.10/24); `ping 192.168.0.192`.
-2. Start the real UR3e + RG2 driver and MoveIt **the same way as the 29 Oct run**, then press Play on
-   External Control on the pendant. `ROS_DOMAIN_ID` must be **0** (unset) in every robot terminal.
-3. **Check the elbow joint limit** on the pendant (Installation → Safety → Joint limits): ______ °.
-   The plans keep the elbow within ±160° (max used ≈ 95°); write down what the controller says.
-4. Set a low speed slider for the first runs.
-5. New terminal: `bash START_LAB.sh` → all OK.
+2. Terminal A: `bash scripts/lab/start_robot.sh` (UR3e + RG2 driver, robot calibration `~/ur3e_calibration.yaml`),
+   then press **Play** on the pendant's External Control program.
+   Check the robot calibration matches the one the simulation uses: `config/ur3e_lab_calibration.yaml` should hold the
+   same kinematics as `~/ur3e_calibration.yaml`.
+3. Terminal B: MoveIt for the real robot (only needed for the physical runner in step 6, not for calibration).
+4. **Check the elbow joint limit** on the pendant (Installation → Safety → Joint limits): ______ °.
+   The plans keep the elbow within ±160° (max used ≈ 95°).
+5. Low speed slider. Terminal C: `bash START_LAB.sh` → all OK.
+
+**Freedrive and gripper while the driver runs** (arm stationary when switching):
+- `bash scripts/lab/freedrive.sh`: type FREEDRIVE; guide the arm by hand; **Ctrl+C** ends freedrive and switches the arm
+  back to `scaled_joint_trajectory_controller` (it prints the controller states: check it says active).
+- `bash scripts/lab/rg2.sh open` / `bash scripts/lab/rg2.sh grip` (works during freedrive; prints the measured width.
+  On 27 Oct an 8.5 mm command read ≈ 10.1 mm on the part = contact with the grip block).
+
+## 2b. Grip check with V1 (before calibrating)
+In freedrive: gripper vertical over V1, `rg2.sh grip`, lift ~30 mm by hand, look: **the plate must not lift and the part
+must hang straight.** Lower, `rg2.sh open`, repeat 3×. If it tilts or differs between repeats, fix the grip first.
 
 ## 3. Calibrate (read-only, ~20 min)
-`bash CALIBRATE_PLATES.sh` and follow the prompts. Per variant: freedrive the gripper onto the part in its
+Terminal C: `bash scripts/lab/freedrive.sh` (keep it running). Terminal D: `bash CALIBRATE_PLATES.sh` and follow the prompts;
+close/open the gripper with `bash scripts/lab/rg2.sh grip|open` in Terminal E. When done, Ctrl+C in Terminal C
+(arm back on `scaled_joint_trajectory_controller`). Per variant: freedrive the gripper onto the part in its
 pocket, close the RG2 from the pendant, save; lift it and guide it into **its own** fitting (tabs on the
 slots, entry depth, no twist, never force), save; put it back, open.
 Limits it checks: pickup RMS ≤ 1.5 mm · placement RMS ≤ 0.5 mm · prong mismatch ≤ 1.5 mm · plate yaw diff ≤ 0.5°.
@@ -41,6 +55,7 @@ Restart the fake robot + MoveIt so RViz loads the measured plates, then
 → 5× functional PASS, no collisions. Do not continue with any variant that fails here.
 
 ## 6. Physical, staged (ROS_DOMAIN_ID=0)
+0. Freedrive must be OFF and `scaled_joint_trajectory_controller` active (`bash START_LAB.sh` checks it).
 1. Load the scene into the real robot's MoveIt (collision objects only, no motion):
    `python3 scripts/phase6_pickup_sim/planning_scene_tools.py --load --physical`
 2. Preflight (no motion): `python3 scripts/phase11_physical/run_full_cycle_physical.py --variant 1`

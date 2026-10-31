@@ -101,10 +101,10 @@ def main():
     if a.test_from_saved:
         return self_test(session)
 
-    print(f"\nCALIBRATION SESSION: {session}\nREAD-ONLY: this script never moves the robot. You move it in freedrive "
-          "and operate the RG2 from the pendant.\n")
+    print(f"\nCALIBRATION SESSION: {session}\nREAD-ONLY: this script never moves the robot. Freedrive: bash scripts/lab/freedrive.sh "
+          "(other terminal); gripper: bash scripts/lab/rg2.sh grip|open.\n")
     for item in ("Both blue plates are bolted down (M5 through the slots) with their prongs butted against the far edge",
-                 "The robot is in freedrive-capable mode, E-stop within reach, speed slider low",
+                 "Freedrive is on (scripts/lab/freedrive.sh running), E-stop within reach",
                  "Parts V1-V5 are in their pockets"):
         if ask(f"  [ ] {item}?  [y/n] ", "yn") != "y":
             raise SystemExit("Stopped: fix that first.")
@@ -116,7 +116,7 @@ def main():
     for i in a.variants:
         print(f"\n---------------- V{i} ----------------")
         print(f"  1) RG2 open. Freedrive the gripper onto part V{i} in its pocket exactly as for pickup "
-              "(fingers centred on the grip block, tool vertical). Close the RG2 (8.2 mm) from the pendant.")
+              "(fingers centred on the grip block, tool vertical). Close the RG2: bash scripts/lab/rg2.sh grip")
         if ask("     Ready to save the PICKUP pose? [Enter = save, s = skip] ", "s", "save") != "s":
             save_pose(session, f"v1_pickup_V{i}_geometry")
         print(f"  2) Lift V{i} out and freedrive it into fitting V{i}: tabs on the slots, entry depth only, "
