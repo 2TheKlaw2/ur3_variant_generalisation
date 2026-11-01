@@ -48,6 +48,9 @@ pocket, close the RG2 with `rg2.sh grip`, save; lift it and guide it into **its 
 Limits it checks: pickup RMS ≤ 1.5 mm · placement RMS ≤ 0.5 mm · prong mismatch ≤ 1.5 mm · plate yaw diff ≤ 0.5°.
 Anything outside → redo that variant with `--resume <session> --variants <i>`. A failed save asks retry/skip/quit.
 After each save it prints the TOOL tilt of that pose; above 1.0° it recommends and offers a redo (a warning, not a limit).
+- PICKUP pose over 1°: redo it (open the RG2, straighten the tool with tilt_meter.py ≤ 0.5°, grip, save).
+- PLACE pose over 1°: answer **N**. At the fitting the tool tilt just follows the pickup grasp; "straightening"
+  there would push the part sideways. Only worry if PLACE and PICKUP tilt differ by > ~0.5° (part moved in the jaws).
 **PASS here = the poses fit the plate model; it does not prove insertion accuracy** (clearance 0.30–0.35 mm):
 the above-entry inspection in step 6 still decides.
 
@@ -66,15 +69,20 @@ Restart the fake robot + MoveIt so RViz loads the measured plates, then
 1. Load the scene into the real robot's MoveIt (collision objects only, no motion):
    `python3 scripts/phase6_pickup_sim/planning_scene_tools.py --load --physical`
 2. Preflight (no motion): `python3 scripts/phase11_physical/run_full_cycle_physical.py --variant 1`
-3. **First run stops before insertion:**
-   `python3 scripts/phase11_physical/run_full_cycle_physical.py --variant 1 --until ALIGN_INSERT --execute`
-   Type `RUN_<STAGE>` for each stage after checking the real robot. At ALIGN_INSERT **inspect the part above
-   its fitting** (centred? upright? tabs on the slots?). Photograph it.
-4. If the alignment is good: `... --variant 1 --from INSERT --execute` (insert, rotate, release, retreat, home).
+3. **One run per trial (do NOT split it with --until/--from: `--from INSERT` does not check the part is held):**
+   `python3 scripts/phase11_physical/run_full_cycle_physical.py --variant 1 --execute`
+   Type `RUN_<STAGE>` for each stage after checking the real robot.
+   - After GRIP: **look that the part is in the jaws** before `RUN_LIFT` (the width check accepts an empty gripper).
+   - At ALIGN_INSERT: **inspect the part above its fitting** (centred? upright? tabs on the slots?). Photograph it.
+     Type `RUN_INSERT` only if it is good; otherwise Ctrl+C (the arm stays above the fitting).
+4. Before the first run, check the wrench topic once (missing = logged as unavailable, run unaffected):
+   `ros2 topic info -v /force_torque_sensor_broadcaster/wrench` and `ros2 topic hz /force_torque_sensor_broadcaster/wrench`
 5. Record one row per trial on the sheet in docs/PHYSICAL_TRIALS_SHEET.md (assembled and locked? seated? retries,
    protective stops, max |F| / |T| from the run's wrench_summary.json, photos). The runner logs joints,
    gripper and stage results to `results/physical/full_cycle/V1_<time>/`.
-6. Then V2 and V3, then V4 and V5 (same two-step way).
+6. Then V2 and V3, then V4 and V5 (same way).
+7. Plan: **pilot** = one successful run per variant (~1 h); then, if time allows, **5 runs per variant** (~3 h).
+   Between runs: robot at HOME, take the part out of the fitting by hand and put it back in its pocket.
 
 Speeds: every stage is slowed uniformly to ≤ 0.14 rad/s per joint (the pilot guard); the path is unchanged.
 A full V1 cycle is ≈ 3.5 min of arm motion plus reviews; V5's helical insertion alone ≈ 2.2 min.
