@@ -12,7 +12,7 @@ The RG2 is never commanded. Nothing is planned against the scene: keep the area 
 
   python3 scripts/lab/hold_test.py                       # OFFLINE preview from the 27 Oct V1 pickup pose (no ROS)
   python3 scripts/lab/hold_test.py --execute             # REAL robot (ROS_DOMAIN_ID=0), staged
-  python3 scripts/lab/hold_test.py --execute --fake      # fake hardware (ROS_DOMAIN_ID=73) to rehearse at home
+  python3 scripts/lab/hold_test.py --execute --fake --goto-pickup   # fake hardware (domain 73) rehearsal
   ... --speed 0.3                                        # faster repeat (hard cap 0.35 rad/s); default 0.14
 """
 import argparse
@@ -103,7 +103,7 @@ def plan(q0, calib, a):
     out = []
     for name, what, qs in moves:
         if any(abs(q[2]) > math.radians(160) for seg in qs for q in seg):
-            raise RuntimeError(f"{name}: elbow beyond +-160 deg")
+            raise RuntimeError(f"{name}: elbow beyond +-160 deg (start pose near a singularity?); nothing sent")
         p = timed(qs, a.speed); p.update(name=name, what=what); out.append(p)
     for x, y in zip(out, out[1:]):
         assert err(x["q"][-1], y["q"][0]) < 1e-6, "moves do not chain"
@@ -238,7 +238,19 @@ def execute(moves_fn, calib, a):
     status = {"type": "HOLD TEST (fake)" if a.fake else "HOLD TEST (real)", "args": vars(a), "moves": []}
     try:
         q0 = n.fresh(); n.check()
+        if a.fake and a.goto_pickup:
+            qp = yaml.safe_load(open(ROOT / "config/saved_poses/v1_pickup_V1_geometry.yaml"))["arm"]["positions_rad"]
+            g = timed([[np.array(q0) + s * (np.array(qp) - np.array(q0)) for s in np.linspace(0, 1, 200)]], a.speed * 2)
+            g.update(name="GOTO", what="FAKE robot: joint move to the 27 Oct V1 pickup pose")
+            print(f"\n--- GOTO: {g['what']} ({g['duration_s']:.1f} s) ---")
+            if input("Type RUN_GOTO to move (anything else stops): ").strip() != "RUN_GOTO":
+                raise RuntimeError("operator stopped")
+            n.run(g); q0 = n.fresh()
         print(f"Live start q = {np.round(q0, 4).tolist()}  RG2 width {n.width and round(n.width * 1000, 2)} mm")
+        if abs(q0[2]) < math.radians(15):
+            raise RuntimeError("the arm is nearly straight (elbow within 15 deg of 0): no straight lift from here. "
+                               "Start from a bent-elbow pose such as the pickup pose"
+                               + (" (fake: add --goto-pickup)" if a.fake else ""))
         moves = moves_fn(q0)
         preview(moves, q0, calib, "the live robot pose")
         print("\nPart gripped in its pocket? Freedrive OFF? Area above the plates clear? Pendant stop in reach?")
@@ -274,7 +286,11 @@ def main():
     ap.add_argument("--speed", type=float, default=0.14, help="peak joint speed rad/s (default 0.14 = runner guard)")
     ap.add_argument("--execute", action="store_true", help="send motion (staged); default is an offline preview")
     ap.add_argument("--fake", action="store_true", help="with --execute: fake hardware on ROS_DOMAIN_ID=73")
+    ap.add_argument("--goto-pickup", action="store_true",
+                    help="--fake only: first move the fake robot to the 27 Oct V1 pickup pose (typed RUN_GOTO)")
     a = ap.parse_args()
+    if a.goto_pickup and not a.fake:
+        raise SystemExit("--goto-pickup is only for --fake (on the real robot freedrive onto the part)")
     if not 0 < a.speed <= HARD_MAX_SPEED:
         raise SystemExit(f"--speed must be in (0, {HARD_MAX_SPEED}]")
     if not 0 < a.lift <= 150 or not 0 <= a.carry <= 100 or not 0 <= a.twist <= 45:
