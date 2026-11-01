@@ -37,7 +37,9 @@ LIMITS = {"pickup_fit_rms_mm": 1.5, "placement_fit_rms_mm": 0.5, "prong_mismatch
 def ask(msg, choices="", default=""):
     while True:
         r = input(msg).strip().lower() or default
-        if not choices or r in choices:
+        # Enter returns the default even when it is not one of the single-letter choices (e.g. "save");
+        # list(choices) so a typed word is never accepted by a substring match.
+        if not choices or r == default or r in list(choices):
             return r
 
 
@@ -185,7 +187,7 @@ def fit_and_check(session, thickness_m):
         yaml.safe_dump(rep, f, sort_keys=False)
     print(f"\n  {'ALL WITHIN LIMITS' if ok_all else 'SOME CHECKS OUTSIDE LIMITS - redo those poses (--resume) or inspect'}")
     print("  NOTE: these limits measure how well the poses fit the rigid plate model. They do NOT prove insertion accuracy\n"
-          "  (radial clearance 0.30-0.35 mm): the above-entry inspection (--until ALIGN_INSERT) still decides.")
+          "  (radial clearance 0.30-0.35 mm): the inspection above the fitting at ALIGN_INSERT still decides.")
     print(f"  Apply with:  bash UPDATE_SIM.sh {os.path.relpath(session, PKG)}")
     return rep
 
