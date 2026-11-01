@@ -32,9 +32,26 @@ page runs the robot without an explicit typed confirmation at every stage. Keep 
 - `bash scripts/lab/rg2.sh open` / `bash scripts/lab/rg2.sh grip` (works during freedrive; prints the measured width.
   On 27 Oct an 8.5 mm command read ≈ 10.1 mm on the part = contact with the grip block).
 
-## 2b. Grip check with V1 (before calibrating)
-In freedrive: gripper vertical over V1, `rg2.sh grip`, lift ~30 mm by hand, look: **the plate must not lift and the part
-must hang straight.** Lower, `rg2.sh open`, repeat 3×. If it tilts or differs between repeats, fix the grip first.
+## 2b. Grip test session (before calibrating, ~45 min)
+Terminals: A driver, C `bash scripts/lab/freedrive.sh`, D `python3 scripts/lab/tilt_meter.py`, E `rg2.sh`.
+1. **Pre-open close to the part:** `rg2.sh 12` (≈1 mm each side of the ~10 mm grip block: easier to line up
+   than 40 mm). Freedrive down over V1, tilt meter ≤ 0.5°.
+2. **Find the grip width:** `rg2.sh grip` (8.2 mm). Note the printed width (on the part ≈ 10.1 mm; empty ≈ 8.2).
+   Also try `rg2.sh 9` and `rg2.sh 7` (open in between): whether a smaller command squeezes harder depends on the
+   driver, so check by feel which holds firmly without marking or bending the print. Width used: ______ mm, reads ______ mm on the part.
+3. **Force:** check if it can be set: `ros2 control list_hardware_interfaces | grep -i -e finger -e force`,
+   `ros2 param list | grep -i force`. Settable → start 20–25 N, up to 40 N if it slips. Fixed → just note it.
+4. **Lift-and-look by hand** (×3): grip, lift ~30 mm, the part must hang straight and the plate must not lift.
+5. **Freedrive carry:** move it around by hand, over to its fitting and down to entry depth (2–3 mm in, no
+   twist), back. Does it stay straight in the jaws? Repeat for V5 (tallest, helical).
+6. **Powered carry (robot moves, not freedrive):** part gripped in its pocket, **Ctrl+C freedrive** (arm back on
+   `scaled_joint_trajectory_controller`), then
+   `python3 scripts/lab/hold_test.py --execute`
+   It moves from where the arm is: LIFT 80 mm straight up → CARRY ±50 mm sideways → TWIST wrist ±20° → LOWER back
+   into the pocket, each typed (`RUN_LIFT` …), 0.14 rad/s (same as the runner); after each it asks if the part is
+   still straight. Then once faster: `... --execute --speed 0.3`. Log: `results/physical/hold_test/<time>/`.
+   Preview anytime without ROS: `python3 scripts/lab/hold_test.py`.
+If the part tilts or slips at any step: change the grip (width/force/where the fingers sit) before calibrating.
 Optional, read-only: `python3 scripts/lab/pickup_consistency.py` records TCP, TOOL tilt and RG2 width at the closed
 checkpoint over 5 hand pickups (setup consistency only, not part slip). Keep `python3 scripts/lab/tilt_meter.py` open
 in a spare terminal while freedriving: it shows the TOOL tilt (not the part's) live. See docs/PRELAB_TOOLS.md.
