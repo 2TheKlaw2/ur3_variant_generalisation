@@ -13,7 +13,8 @@ __pycache__/
 *.backup
 
 # Generated experiment logs
-/results/physical/
+/results/physical/*
+!/results/physical/trials_template.csv
 /results/simulation/
 
 # offline plan cache (regenerated automatically)

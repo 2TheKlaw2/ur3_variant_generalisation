@@ -12,6 +12,9 @@ Protocol (per variant i = 1..5, part i is its own probe, so its grasp offset can
   2. Lift the part out, freedrive it into fitting i until the bore centres it (tabs on the slots,
      entry depth only, NO twist, never force it).                 -> saves v1_place_V<i>_geometry
   3. Lift it back out, put it back in its pocket, open the RG2.
+After every successful save the TOOL tilt of that pose (gripper_tcp z vs base -z, from the newly saved
+yaml) is printed and recorded in the session notes.yaml; above 1.0 deg a redo is recommended and offered.
+This is TOOL tilt, not measured part tilt, and it is a warning only: it is not one of the LIMITS.
 Then the plates are fitted (dry run, nothing applied) and checked against limits. The old poses in
 config/saved_poses are never touched. Apply the result with UPDATE_SIM.sh <session>.
 """
@@ -25,6 +28,9 @@ import sys
 import yaml
 
 PKG = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, os.path.join(PKG, "scripts", "lab"))
+import tool_tilt as tt  # noqa: E402  (pure numpy, TOOL tilt only)
+
 LIMITS = {"pickup_fit_rms_mm": 1.5, "placement_fit_rms_mm": 0.5, "prong_mismatch_mm": 1.5, "plate_yaw_diff_deg": 0.5}
 
 
@@ -60,6 +66,90 @@ def save_checked(session, name):
     return True
 
 
+# ------------------------------------------------------------------ TOOL tilt (read-only, warning only)
+def tilt_report(session):
+    """TOOL tilt of every pickup pose saved in this session (read from the session yamls only)."""
+    per = {}
+    for i in range(1, 6):
+        f = os.path.join(session, f"v1_pickup_V{i}_geometry.yaml")
+        try:
+            per[f"V{i}"] = round(tt.tool_tilt_from_pose_yaml(f)["tool_tilt_deg"], 3) if os.path.exists(f) else None
+        except ValueError:
+            per[f"V{i}"] = None
+    vals = [v for v in per.values() if v is not None]
+    return {"pickup_tool_tilt_deg": per,
+            "max_pickup_tool_tilt_deg": max(vals) if vals else None,
+            "tool_tilt_warn_deg": tt.WARN_DEG,
+            "tool_tilt_note": "TOOL tilt (gripper_tcp z vs base -z) from the saved TCP orientation; NOT measured part "
+                              "tilt; a warning only, not a LIMIT and not part of all_within_limits; None = pose missing"}
+
+
+def write_notes(notes_f, notes):
+    with open(notes_f, "w") as f:
+        yaml.safe_dump(notes, f, sort_keys=False)
+
+
+def record_tilt(notes, name, entry):
+    notes.setdefault("tool_tilt", {})[name] = entry
+
+
+def save_with_tilt(session, name, notes, notes_f):
+    """save_checked(), then the TOOL tilt of the NEWLY saved yaml; warn > 1 deg and offer a redo.
+
+    Never reads any older pose: only the file save_checked() just wrote in this session. If the operator
+    kept an existing session pose at save_pose()'s 'Redo it?' prompt, that session file is reported as kept.
+    A skipped save is recorded in notes.yaml as missing."""
+    f = os.path.join(session, f"{name}.yaml")
+    while True:
+        before = os.path.getmtime(f) if os.path.exists(f) else None
+        t_call = datetime.datetime.now().timestamp()
+        if not save_checked(session, name):
+            record_tilt(notes, name, {"status": "missing", "reason": "save failed and was skipped",
+                                      "at": datetime.datetime.now().isoformat(timespec="seconds")})
+            write_notes(notes_f, notes)
+            return False
+        if not os.path.exists(f):            # cannot happen after save_checked() == True; never fall back
+            record_tilt(notes, name, {"status": "missing", "reason": "file absent after save"})
+            write_notes(notes_f, notes)
+            return False
+        after = os.path.getmtime(f)
+        kept = before is not None and after == before and after < t_call
+        try:
+            t = tt.tool_tilt_from_pose_yaml(f)
+        except ValueError as e:
+            print(f"  TOOL tilt: cannot read tcp.quaternion_xyzw from {os.path.basename(f)} ({e})")
+            record_tilt(notes, name, {"status": "kept_existing" if kept else "saved", "tool_tilt_deg": None,
+                                      "reason": "no tcp.quaternion_xyzw in the saved yaml"})
+            write_notes(notes_f, notes)
+            return True
+        warn = t["tool_tilt_deg"] > tt.WARN_DEG
+        record_tilt(notes, name, {"status": "kept_existing" if kept else "saved",
+                                  "tool_tilt_deg": round(t["tool_tilt_deg"], 3),
+                                  "lean_about_base_x_deg": round(t["lean_about_base_x_deg"], 3),
+                                  "lean_about_base_y_deg": round(t["lean_about_base_y_deg"], 3),
+                                  "over_warn_1deg": bool(warn),
+                                  "at": datetime.datetime.now().isoformat(timespec="seconds")})
+        write_notes(notes_f, notes)
+        print(f"  {name}: {tt.fmt(t)}{'  [kept existing session pose]' if kept else ''}")
+        if not warn:
+            return True
+        print(f"  WARNING: TOOL tilt {t['tool_tilt_deg']:.2f} deg > {tt.WARN_DEG} deg: redo recommended "
+              "(straighten the tool, then save again). This is TOOL tilt, not measured part tilt.")
+        if ask("  Redo this pose now? [y/N] ", "yn", "n") != "y":
+            notes["tool_tilt"][name]["operator_kept_despite_warning"] = True
+            write_notes(notes_f, notes)
+            return True
+        os.rename(f, f + ".replaced_" + datetime.datetime.now().strftime("%H%M%S"))
+
+
+def note_skipped(session, name, notes, notes_f):
+    """Operator skipped this pose: missing unless this session already holds one (then its entry is kept)."""
+    if not os.path.exists(os.path.join(session, f"{name}.yaml")):
+        record_tilt(notes, name, {"status": "missing", "reason": "skipped by the operator",
+                                  "at": datetime.datetime.now().isoformat(timespec="seconds")})
+        write_notes(notes_f, notes)
+
+
 def fit_and_check(session, thickness_m):
     cmd = [sys.executable, os.path.join(PKG, "scripts/scene/compute_scene_registration.py"), "--session", session,
            "--dry-run", "--fixture-thickness", str(thickness_m)]
@@ -85,6 +175,12 @@ def fit_and_check(session, thickness_m):
         print(f"  {key}: moved {d} mm (x, y) vs the current simulation ({old.get('layout')} layout); "
               f"yaw {cand[key]['yaw_deg']:.3f} deg; residuals {cand[key].get('fit_residual_mm')}")
     rep["all_within_limits"] = bool(ok_all)
+    rep.update(tilt_report(session))            # TOOL tilt: reported only, not a limit, not in all_within_limits
+    print(f"  TOOL tilt (gripper_tcp z vs base -z; NOT part tilt; warning > {tt.WARN_DEG} deg, not a limit):")
+    for k, v in rep["pickup_tool_tilt_deg"].items():
+        print(f"    {k}: {'MISSING' if v is None else f'{v:.2f} deg'}"
+              f"{'  (redo recommended)' if v is not None and v > tt.WARN_DEG else ''}")
+    print(f"    max pickup TOOL tilt: {rep['max_pickup_tool_tilt_deg']} deg")
     with open(os.path.join(session, "calibration_report.yaml"), "w") as f:
         yaml.safe_dump(rep, f, sort_keys=False)
     print(f"\n  {'ALL WITHIN LIMITS' if ok_all else 'SOME CHECKS OUTSIDE LIMITS - redo those poses (--resume) or inspect'}")
@@ -125,18 +221,22 @@ def main():
     if "fixture_thickness_mm" not in notes:
         notes["fixture_thickness_mm"] = float(input("  Aluminium fixture plate thickness at its edge [mm]: "))
     notes.setdefault("started", datetime.datetime.now().isoformat(timespec="seconds"))
-    yaml.safe_dump(notes, open(notes_f, "w"))
+    write_notes(notes_f, notes)
 
     for i in a.variants:
         print(f"\n---------------- V{i} ----------------")
         print(f"  1) RG2 open. Freedrive the gripper onto part V{i} in its pocket exactly as for pickup "
               "(fingers centred on the grip block, tool vertical). Close the RG2: bash scripts/lab/rg2.sh grip")
         if ask("     Ready to save the PICKUP pose? [Enter = save, s = skip] ", "s", "save") != "s":
-            save_checked(session, f"v1_pickup_V{i}_geometry")
+            save_with_tilt(session, f"v1_pickup_V{i}_geometry", notes, notes_f)
+        else:
+            note_skipped(session, f"v1_pickup_V{i}_geometry", notes, notes_f)
         print(f"  2) Lift V{i} out and freedrive it into fitting V{i}: tabs on the slots, entry depth only, "
               "NO twist. Lower only to the entry position; if it catches or needs pressure, STOP: never use the arm to push it in.")
         if ask("     Ready to save the PLACE pose? [Enter = save, s = skip] ", "s", "save") != "s":
-            save_checked(session, f"v1_place_V{i}_geometry")
+            save_with_tilt(session, f"v1_place_V{i}_geometry", notes, notes_f)
+        else:
+            note_skipped(session, f"v1_place_V{i}_geometry", notes, notes_f)
         print(f"  3) Lift V{i} back out, return it to its pocket, open the RG2.")
         ask(f"     Press Enter when V{i} is back in its pocket and the RG2 is open. ")
 
@@ -167,7 +267,21 @@ def self_test(session):
                "note": "SYNTHETIC (self-test): model fitting pose with the part's own grasp",
                "tcp": {"position_m": T_tcp[:3, 3].tolist(), "quaternion_xyzw": Rotation.from_matrix(T_tcp[:3, :3]).as_quat().tolist()}}
         yaml.safe_dump(doc, open(os.path.join(session, f"v1_place_V{i}_geometry.yaml"), "w"))
-    yaml.safe_dump({"fixture_thickness_mm": 12.5, "self_test": True}, open(os.path.join(session, "notes.yaml"), "w"))
+    notes = {"fixture_thickness_mm": 12.5, "self_test": True}
+    print("\nTOOL tilt of the session poses (from each session yaml; NOT part tilt; warning > 1.0 deg, not a limit):")
+    for i in range(1, 6):
+        for kind in ("pickup", "place"):
+            name = f"v1_{kind}_V{i}_geometry"
+            t = tt.tool_tilt_from_pose_yaml(os.path.join(session, f"{name}.yaml"))
+            warn = t["tool_tilt_deg"] > tt.WARN_DEG
+            status = "copied from config/saved_poses (self-test)" if kind == "pickup" else "synthetic (self-test)"
+            record_tilt(notes, name, {"status": status,
+                                      "tool_tilt_deg": round(t["tool_tilt_deg"], 3),
+                                      "lean_about_base_x_deg": round(t["lean_about_base_x_deg"], 3),
+                                      "lean_about_base_y_deg": round(t["lean_about_base_y_deg"], 3),
+                                      "over_warn_1deg": bool(warn)})
+            print(f"  {name}: {tt.fmt(t)}{'  -> redo recommended (reported only in the self-test)' if warn else ''}")
+    write_notes(os.path.join(session, "notes.yaml"), notes)
     rep = fit_and_check(session, 0.0125)
     print("\nSELF-TEST session:", session, "(delete it afterwards; never apply it)")
     return 0 if rep else 1

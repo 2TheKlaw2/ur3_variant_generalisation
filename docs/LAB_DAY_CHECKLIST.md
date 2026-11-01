@@ -35,6 +35,9 @@ page runs the robot without an explicit typed confirmation at every stage. Keep 
 ## 2b. Grip check with V1 (before calibrating)
 In freedrive: gripper vertical over V1, `rg2.sh grip`, lift ~30 mm by hand, look: **the plate must not lift and the part
 must hang straight.** Lower, `rg2.sh open`, repeat 3×. If it tilts or differs between repeats, fix the grip first.
+Optional, read-only: `python3 scripts/lab/pickup_consistency.py` records TCP, TOOL tilt and RG2 width at the closed
+checkpoint over 5 hand pickups (setup consistency only, not part slip). Keep `python3 scripts/lab/tilt_meter.py` open
+in a spare terminal while freedriving: it shows the TOOL tilt (not the part's) live. See docs/PRELAB_TOOLS.md.
 
 ## 3. Calibrate (read-only, ~20 min)
 Terminal C: `bash scripts/lab/freedrive.sh` (keep it running). Terminal D: `bash CALIBRATE_PLATES.sh` and follow the prompts;
@@ -44,6 +47,7 @@ pocket, close the RG2 with `rg2.sh grip`, save; lift it and guide it into **its 
 **lower only to the entry position; if it catches or needs pressure, stop** (never push with the arm), save; put it back, `rg2.sh open`.
 Limits it checks: pickup RMS ≤ 1.5 mm · placement RMS ≤ 0.5 mm · prong mismatch ≤ 1.5 mm · plate yaw diff ≤ 0.5°.
 Anything outside → redo that variant with `--resume <session> --variants <i>`. A failed save asks retry/skip/quit.
+After each save it prints the TOOL tilt of that pose; above 1.0° it recommends and offers a redo (a warning, not a limit).
 **PASS here = the poses fit the plate model; it does not prove insertion accuracy** (clearance 0.30–0.35 mm):
 the above-entry inspection in step 6 still decides.
 
@@ -67,7 +71,8 @@ Restart the fake robot + MoveIt so RViz loads the measured plates, then
    Type `RUN_<STAGE>` for each stage after checking the real robot. At ALIGN_INSERT **inspect the part above
    its fitting** (centred? upright? tabs on the slots?). Photograph it.
 4. If the alignment is good: `... --variant 1 --from INSERT --execute` (insert, rotate, release, retreat, home).
-5. Record: assembled and locked? (yes/no), seated? retries, protective stops, photos. The runner logs joints,
+5. Record one row per trial on the sheet in docs/PHYSICAL_TRIALS_SHEET.md (assembled and locked? seated? retries,
+   protective stops, max |F| / |T| from the run's wrench_summary.json, photos). The runner logs joints,
    gripper and stage results to `results/physical/full_cycle/V1_<time>/`.
 6. Then V2 and V3, then V4 and V5 (same two-step way).
 

@@ -17,6 +17,10 @@ Default is an OFFLINE PREFLIGHT: no ROS, no motion. With --execute (ROS_DOMAIN_I
   * Ctrl+C cancels the active controller goal and waits for the controller's acknowledgement
     (NOT an E-stop: keep the pendant stop in reach);
   * joint states, gripper width and stage results are logged to results/physical/full_cycle/<time>/.
+  * the UR wrench (--wrench-topic, default /force_torque_sensor_broadcaster/wrench) is RECORDED per stage
+    (wrench_log.csv, wrench_summary.json; max |F| and max |T| printed per stage). RECORDING ONLY: no contact
+    detection, no force-controlled insertion, no force-triggered stopping; nothing in the motion logic reads
+    it. Missing or stale data are recorded as unavailable, never as zero; without the topic the run continues.
 Plans: Stage 10 REACH/TRANSPORT + RELEASE/RETREAT/HOME from --plans (default stage10_current or the
 31 Oct reference) and Stage 9 INSERT/ROTATE (L2) from the same cache the fake-hardware runner uses.
 Run the same variant on fake hardware first (run_variant_insert_sim.py --full) after any calibration.
@@ -46,10 +50,57 @@ ORDER = ["HOME_START", "OPEN", "REACH", "ALIGN_GRIP", "GRIP", "LIFT", "TRANSPORT
          "INSERT", "ROTATE", "RELEASE", "RETREAT", "HOME"]
 HELD = {"LIFT", "TRANSPORT", "ALIGN_INSERT", "INSERT", "ROTATE"}
 HOME_Q = [-0.675926510488, -1.34777768076, -0.527696251869, -2.8273965321, 1.55948805809, -3.87329799334]
+# Wrench RECORDING ONLY (no contact detection, no force control, no force-triggered stop). Verified against the
+# UR driver (Humble): ros2_controllers ForceTorqueSensorBroadcaster publishes geometry_msgs/WrenchStamped on
+# "~/wrench" = /force_torque_sensor_broadcaster/wrench with rclcpp::SystemDefaultsQoS() (reliable, volatile);
+# the "topic_name: ft_data" key in ur_onrobot_controllers.yaml is not a parameter of that broadcaster.
+WRENCH_TOPIC = "/force_torque_sensor_broadcaster/wrench"
+WRENCH_STALE_S = 0.1            # a gap or header age above this flags the stage's wrench data as stale
+WRENCH_FIELDS = ["fx", "fy", "fz", "tx", "ty", "tz"]
 
 
 def err(a, b):
     return max(abs(x - y) for x, y in zip(a, b))
+
+
+def _finite(v):
+    return v is not None and isinstance(v, (int, float)) and math.isfinite(v)
+
+
+def wrench_stage_summary(rows, t_begin, t_end, stale_s=WRENCH_STALE_S):
+    """RECORDING ONLY. Summary of one stage's wrench samples (rows: dicts with recv_s, age_s, frame_id, fx..tz).
+
+    Unavailable data stay None (never 0). A sample with any non-finite component is excluded from the maxima."""
+    rows = [r for r in rows if t_begin <= r["recv_s"] <= t_end]
+    good = [r for r in rows if all(_finite(r[k]) for k in WRENCH_FIELDS)]
+    out = {"available": bool(good), "n_samples": len(rows), "n_nonfinite": len(rows) - len(good),
+           "stage_window_s": round(t_end - t_begin, 3),
+           "frame_ids": sorted({r["frame_id"] for r in rows}),
+           "max_abs_force_N": None, "max_abs_torque_Nm": None, "force_at_stage_start_N": None,
+           "max_abs_force_change_from_stage_start_N": None, "max_gap_s": None, "max_header_age_s": None,
+           "stale": None}
+    if not good:
+        return out
+    F = [math.sqrt(r["fx"] ** 2 + r["fy"] ** 2 + r["fz"] ** 2) for r in good]
+    T = [math.sqrt(r["tx"] ** 2 + r["ty"] ** 2 + r["tz"] ** 2) for r in good]
+    f0 = [good[0][k] for k in ("fx", "fy", "fz")]
+    dF = [math.sqrt(sum((r[k] - b) ** 2 for k, b in zip(("fx", "fy", "fz"), f0))) for r in good]
+    times = [t_begin] + [r["recv_s"] for r in good] + [t_end]
+    ages = [r["age_s"] for r in good if _finite(r.get("age_s"))]
+    gap = max(b - a for a, b in zip(times, times[1:]))
+    out.update(max_abs_force_N=round(max(F), 3), max_abs_torque_Nm=round(max(T), 4),
+               force_at_stage_start_N=[round(x, 3) for x in f0],
+               max_abs_force_change_from_stage_start_N=round(max(dF), 3), max_gap_s=round(gap, 4),
+               max_header_age_s=round(max(ages), 4) if ages else None,
+               stale=bool(gap > stale_s or (bool(ages) and max(ages) > stale_s)))
+    return out
+
+
+def wrench_line(name, s):
+    if not s["available"]:
+        return f"{name}: wrench UNAVAILABLE ({s['n_samples']} samples) - recorded as unavailable, not zero"
+    return (f"{name}: wrench (recording only) max |F| {s['max_abs_force_N']:.2f} N, max |T| {s['max_abs_torque_Nm']:.3f} Nm, "
+            f"{s['n_samples']} samples, max gap {s['max_gap_s']:.3f} s{'  STALE' if s['stale'] else ''}")
 
 
 # ------------------------------------------------------------------ plans (no ROS)
@@ -176,6 +227,7 @@ def execute(i, plans, G, objs, args):
     from action_msgs.msg import GoalStatus
     from control_msgs.action import FollowJointTrajectory
     from controller_manager_msgs.srv import ListControllers, ListHardwareComponents
+    from geometry_msgs.msg import WrenchStamped
     from moveit_msgs.msg import RobotState
     from moveit_msgs.srv import GetStateValidity
     from rclpy.action import ActionClient
@@ -195,6 +247,11 @@ def execute(i, plans, G, objs, args):
             self.monitor = False; self.records = []; self.stage = ""
             self.stop_requested = False; self.goal_inflight = False
             self.create_subscription(JointState, "/joint_states", self.on_js, qos_profile_sensor_data)
+            # wrench RECORDING ONLY: best-effort subscriber (compatible with the reliable publisher); no logic reads it
+            self.wrench_rows = []; self.wrench_stages = []; self.wrench_total = 0; self.wrench_errors = 0
+            self.stage_t0 = None
+            if args.wrench_topic:
+                self.create_subscription(WrenchStamped, args.wrench_topic, self.on_wrench, qos_profile_sensor_data)
             self.hw = self.create_client(ListHardwareComponents, "/controller_manager/list_hardware_components")
             self.ctrl = self.create_client(ListControllers, "/controller_manager/list_controllers")
             self.valid_srv = self.create_client(GetStateValidity, "/check_state_validity")
@@ -216,6 +273,64 @@ def execute(i, plans, G, objs, args):
                 self.q, self.last_at = q, now
                 if self.monitor:
                     self.records.append([datetime.now().isoformat(timespec="milliseconds"), self.stage] + q + [self.width])
+
+        def on_wrench(self, msg):
+            """RECORDING ONLY. Never raises (an exception here must not reach the motion loop)."""
+            try:
+                self.wrench_total += 1
+                if not self.monitor:
+                    return
+                now = time.monotonic()
+                st = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+                age = (self.get_clock().now().nanoseconds * 1e-9 - st) if st > 0 else None
+                f, t = msg.wrench.force, msg.wrench.torque
+                self.wrench_rows.append({"time": datetime.now().isoformat(timespec="milliseconds"), "recv_s": now,
+                                         "stage": self.stage, "stamp_s": st if st > 0 else None, "age_s": age,
+                                         "frame_id": msg.header.frame_id, "fx": float(f.x), "fy": float(f.y),
+                                         "fz": float(f.z), "tx": float(t.x), "ty": float(t.y), "tz": float(t.z)})
+            except Exception:  # noqa: BLE001
+                self.wrench_errors += 1
+
+        def wrench_close(self, label):
+            """RECORDING ONLY: summarise this stage's wrench window and print it. Never raises."""
+            try:
+                if self.stage_t0 is None:
+                    return
+                t0, t1 = self.stage_t0, time.monotonic(); self.stage_t0 = None
+                rows = [r for r in self.wrench_rows if r["stage"] == label]
+                s = wrench_stage_summary(rows, t0, t1) if args.wrench_topic else \
+                    {"available": False, "n_samples": 0, "disabled": True}
+                s["stage"] = label
+                self.wrench_stages.append(s)
+                print(wrench_line(label, s) if args.wrench_topic else f"{label}: wrench recording disabled", flush=True)
+            except Exception as e:  # noqa: BLE001
+                print(f"{label}: wrench summary failed ({e}); recording only, run unaffected", flush=True)
+
+        def wrench_preflight(self):
+            """RECORDING ONLY: report the wrench topic's publishers / type / QoS. Warns, never raises."""
+            info = {"topic": args.wrench_topic or None, "enabled": bool(args.wrench_topic),
+                    "note": "RECORDING ONLY: no contact detection, no force control, no force-triggered stopping",
+                    "subscriber_qos": "sensor_data (best effort, depth 5)",
+                    "value_frame_note": "UR driver: values are rotated into the pendant TCP frame (tool0_controller); "
+                                        "frame_id is the broadcaster's label (ur_onrobot: tool0). Raw readings, "
+                                        "not zeroed: max |F| includes the sensor bias and gripper/part weight."}
+            if not args.wrench_topic:
+                print("Wrench recording disabled (--no-wrench).", flush=True); return info
+            try:
+                pubs = self.get_publishers_info_by_topic(args.wrench_topic)
+                info["publishers_at_start"] = [{"node": f"{p.node_namespace.rstrip('/')}/{p.node_name}",
+                                                "type": p.topic_type, "reliability": str(p.qos_profile.reliability),
+                                                "durability": str(p.qos_profile.durability)} for p in pubs]
+                if not pubs:
+                    print(f"WARNING: no publisher on {args.wrench_topic}: wrench will be recorded as UNAVAILABLE; "
+                          "the run continues unchanged.", flush=True)
+                else:
+                    print(f"Wrench recording (only) from {args.wrench_topic}: {len(pubs)} publisher(s), "
+                          f"type {pubs[0].topic_type}", flush=True)
+            except Exception as e:  # noqa: BLE001
+                info["preflight_error"] = str(e)
+                print(f"WARNING: wrench topic check failed ({e}); recording continues if data arrive.", flush=True)
+            return info
 
         def fresh(self, sec=5):
             after = time.monotonic(); deadline = after + sec
@@ -289,7 +404,7 @@ def execute(i, plans, G, objs, args):
                 raise RuntimeError(f"{label}: stop requested; nothing sent")
             goal = FollowJointTrajectory.Goal(); goal.trajectory = traj
             goal.goal_time_tolerance = Duration(seconds=5).to_msg()
-            self.stage = label; self.monitor = True; self.goal_inflight = True
+            self.stage = label; self.monitor = True; self.goal_inflight = True; self.stage_t0 = time.monotonic()
             handle = done = None
             try:
                 fut = client.send_goal_async(goal); until = time.monotonic() + 8
@@ -316,6 +431,7 @@ def execute(i, plans, G, objs, args):
                 raise
             finally:
                 self.monitor = False; self.goal_inflight = False
+                self.wrench_close(label)           # recording only; never raises
 
         def arm_stage(self, name, p):
             live = self.fresh()
@@ -370,8 +486,10 @@ def execute(i, plans, G, objs, args):
     status = {"type": "PHYSICAL RUN (staged)", "variant": f"V{i}", "started": datetime.now().isoformat(),
               "max_joint_speed_rad_s": args.max_joint_speed, "plans": str(args.plans), "stages": []}
     part = f"pickup_V{i}"
+    wrench_info = {}
     try:
         node.hardware()
+        wrench_info = node.wrench_preflight()       # recording only; warns, never raises
         poses, _ = scene.world_poses()
         need = ["pickup_plate", "placement_plate", f"fitting_V{i}"]
         if any(k not in poses for k in need) and part not in scene.attached():
@@ -425,11 +543,35 @@ def execute(i, plans, G, objs, args):
         return 1
     finally:
         status["ended"] = datetime.now().isoformat()
+        try:
+            status["wrench_recording"] = {**wrench_info, "messages_received_total": node.wrench_total,
+                                          "callback_errors": node.wrench_errors, "stages": node.wrench_stages}
+        except Exception as e:  # noqa: BLE001
+            status["wrench_recording"] = {"error": str(e)}
         json.dump(status, open(logdir / "status.json", "w"), indent=1)
         with open(logdir / "joint_log.csv", "w", newline="") as f:
             w = csv.writer(f); w.writerow(["time", "stage"] + JOINTS + ["finger_width"]); w.writerows(node.records)
+        try:                                   # wrench: recording only, written after the existing logs
+            write_wrench_logs(logdir, status["wrench_recording"], node.wrench_rows)
+        except Exception as e:  # noqa: BLE001
+            print(f"WARNING: wrench log not written ({e})", file=sys.stderr)
         print(f"Log -> {logdir}")
         node.destroy_node(); rclpy.shutdown()
+
+
+def write_wrench_logs(logdir, info, rows):
+    """RECORDING ONLY. wrench_log.csv (every sample during a commanded stage) + wrench_summary.json (per stage).
+    Empty cells / null = unavailable; never zero-filled."""
+    cols = ["time", "recv_monotonic_s", "stage", "header_stamp_s", "header_age_s", "frame_id"] + WRENCH_FIELDS
+    with open(logdir / "wrench_log.csv", "w", newline="") as f:
+        w = csv.writer(f); w.writerow(cols)
+        for r in rows:
+            w.writerow([r["time"], f"{r['recv_s']:.6f}", r["stage"],
+                        "" if r["stamp_s"] is None else f"{r['stamp_s']:.6f}",
+                        "" if not _finite(r["age_s"]) else f"{r['age_s']:.4f}", r["frame_id"]]
+                       + ["" if not _finite(r[k]) else repr(r[k]) for k in WRENCH_FIELDS])
+    with open(logdir / "wrench_summary.json", "w") as f:
+        json.dump(info, f, indent=1)
 
 
 def main():
@@ -441,7 +583,12 @@ def main():
     ap.add_argument("--until", default="HOME", choices=ORDER,
                     help="stop after this stage (first runs: --until ALIGN_INSERT, then inspect the alignment)")
     ap.add_argument("--execute", action="store_true", help="REAL ROBOT: staged execution with operator approval")
+    ap.add_argument("--wrench-topic", default=WRENCH_TOPIC,
+                    help=f"WrenchStamped topic to RECORD (recording only, never used for control; default {WRENCH_TOPIC})")
+    ap.add_argument("--no-wrench", action="store_true", help="do not subscribe to the wrench topic at all")
     a = ap.parse_args()
+    if a.no_wrench:
+        a.wrench_topic = ""
     if not 0 < a.max_joint_speed <= HARD_MAX_SPEED:
         raise SystemExit(f"--max-joint-speed must be in (0, {HARD_MAX_SPEED}]")
     if ORDER.index(a.from_stage) > ORDER.index(a.until):
