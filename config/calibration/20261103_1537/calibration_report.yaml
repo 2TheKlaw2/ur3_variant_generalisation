@@ -1,0 +1,16 @@
+pickup_fit_rms_mm: 0.49
+placement_fit_rms_mm: 0.31
+prong_mismatch_mm: 0.59
+plate_yaw_diff_deg: 0.04099999999999682
+all_within_limits: true
+pickup_tool_tilt_deg:
+  V1: 0.829
+  V2: 0.736
+  V3: 0.349
+  V4: 0.383
+  V5: 1.368
+max_pickup_tool_tilt_deg: 1.368
+tool_tilt_warn_deg: 1.0
+tool_tilt_note: TOOL tilt (gripper_tcp z vs base -z) from the saved TCP orientation;
+  NOT measured part tilt; a warning only, not a LIMIT and not part of all_within_limits;
+  None = pose missing

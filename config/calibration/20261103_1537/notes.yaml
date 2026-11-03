@@ -1,0 +1,79 @@
+fixture_thickness_mm: 12.5
+started: '2026-11-03T15:40:34'
+tool_tilt:
+  v1_pickup_V1_geometry:
+    status: saved
+    tool_tilt_deg: 0.829
+    lean_about_base_x_deg: -0.821
+    lean_about_base_y_deg: 0.11
+    over_warn_1deg: false
+    at: '2026-11-03T15:42:16'
+  v1_place_V1_geometry:
+    status: saved
+    tool_tilt_deg: 1.189
+    lean_about_base_x_deg: -1.184
+    lean_about_base_y_deg: 0.107
+    over_warn_1deg: true
+    at: '2026-11-03T15:43:36'
+    operator_kept_despite_warning: true
+  v1_pickup_V2_geometry:
+    status: saved
+    tool_tilt_deg: 0.736
+    lean_about_base_x_deg: 0.056
+    lean_about_base_y_deg: 0.734
+    over_warn_1deg: false
+    at: '2026-11-03T15:46:25'
+  v1_place_V2_geometry:
+    status: saved
+    tool_tilt_deg: 1.38
+    lean_about_base_x_deg: 1.226
+    lean_about_base_y_deg: 0.632
+    over_warn_1deg: true
+    at: '2026-11-03T15:47:33'
+    operator_kept_despite_warning: true
+  v1_pickup_V3_geometry:
+    status: saved
+    tool_tilt_deg: 0.349
+    lean_about_base_x_deg: -0.006
+    lean_about_base_y_deg: -0.349
+    over_warn_1deg: false
+    at: '2026-11-03T15:50:41'
+  v1_place_V3_geometry:
+    status: saved
+    tool_tilt_deg: 2.941
+    lean_about_base_x_deg: 1.907
+    lean_about_base_y_deg: -2.241
+    over_warn_1deg: true
+    at: '2026-11-03T15:51:51'
+    operator_kept_despite_warning: true
+  v1_pickup_V4_geometry:
+    status: saved
+    tool_tilt_deg: 0.383
+    lean_about_base_x_deg: -0.361
+    lean_about_base_y_deg: -0.128
+    over_warn_1deg: false
+    at: '2026-11-03T15:54:40'
+  v1_place_V4_geometry:
+    status: saved
+    tool_tilt_deg: 1.6
+    lean_about_base_x_deg: 1.6
+    lean_about_base_y_deg: 0.027
+    over_warn_1deg: true
+    at: '2026-11-03T15:55:43'
+    operator_kept_despite_warning: true
+  v1_pickup_V5_geometry:
+    status: saved
+    tool_tilt_deg: 1.559
+    lean_about_base_x_deg: -1.471
+    lean_about_base_y_deg: 0.514
+    over_warn_1deg: true
+    at: '2026-11-03T16:11:42'
+    operator_kept_despite_warning: true
+  v1_place_V5_geometry:
+    status: saved
+    tool_tilt_deg: 2.149
+    lean_about_base_x_deg: -1.334
+    lean_about_base_y_deg: -1.685
+    over_warn_1deg: true
+    at: '2026-11-03T16:12:34'
+    operator_kept_despite_warning: true
