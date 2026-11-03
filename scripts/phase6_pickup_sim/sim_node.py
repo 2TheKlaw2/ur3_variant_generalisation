@@ -62,10 +62,16 @@ def densify_joint_path(q, calib, max_tcp_step_m=0.001):
 
 MAX_SPEED = 5.0
 DEFAULT_CAP_RAD_S = 0.65     # half of the ~1.3 rad/s peak seen at --speed 3 (user, 30 Oct 2026)
-# Stages near the parts (lift off the pocket, alignment, descent/insertion) play at HALF the --speed
-# speed-up (user, 3 Nov 2026: "way too fast" at --speed 3). CDMP REACH/TRANSPORT and HOME are unchanged.
-FINE_STAGES = ("ALIGN", "LIFT", "INSERT")
-DEFAULT_FINE_FACTOR = 0.5
+# Stages near the parts play at a fixed maximum rate (x real time) and joint cap, whatever --speed is
+# (user, 3 Nov 2026). First match wins (ALIGN_INSERT before INSERT). REACH/TRANSPORT/RETREAT/HOME use --speed.
+#   LIFT          x1     -> the planned 3.0 s
+#   ALIGN_GRIP    x1.5
+#   ALIGN_INSERT  x0.75  -> the hover-to-insert-start descent takes double what was seen at x1.5
+#   INSERT        x0.75, cap 0.325 rad/s  -> half the speed seen (V4 helix was cap-limited at 0.65)
+#   ROTATE        x1.5,  cap 0.325 rad/s  -> half the speed seen at x3
+FINE_STAGES = (("ALIGN_INSERT", 0.75, None), ("ALIGN_GRIP", 1.5, None), ("LIFT", 1.0, None),
+               ("INSERT", 0.75, 0.325), ("ROTATE", 1.5, 0.325))
+DEFAULT_FINE_FACTOR = 1.0
 
 
 def add_speed_arg(ap):
@@ -80,14 +86,14 @@ def add_speed_arg(ap):
                     help="playback cap [rad/s]: a stage is never played faster than this, whatever --speed is "
                          f"(default {DEFAULT_CAP_RAD_S}; 0 = no cap). Planned timing and all checks unchanged")
     ap.add_argument("--fine-factor", type=float, default=DEFAULT_FINE_FACTOR,
-                    help="fraction of --speed used for LIFT, ALIGN_GRIP, ALIGN_INSERT and INSERT (default "
-                         f"{DEFAULT_FINE_FACTOR}: half; never below real time). Planned timing and checks unchanged")
+                    help="multiplies the fixed playback rates of LIFT, ALIGN_GRIP, ALIGN_INSERT, INSERT and ROTATE "
+                         "(default 1; 0.5 = twice as slow). Planned timing and checks unchanged")
 
 
 def set_speed(node, speed, cap=DEFAULT_CAP_RAD_S, fine=DEFAULT_FINE_FACTOR):
     node.cap = float(cap or 0.0)
-    if not 0.0 < fine <= 1.0:
-        raise SystemExit("--fine-factor must be in (0, 1]")
+    if not 0.0 < fine <= 2.0:
+        raise SystemExit("--fine-factor must be in (0, 2]")
     node.fine = float(fine)
     if not 1.0 <= speed <= MAX_SPEED:
         raise SystemExit(f"--speed must be between 1 and {MAX_SPEED:g}")
@@ -96,8 +102,8 @@ def set_speed(node, speed, cap=DEFAULT_CAP_RAD_S, fine=DEFAULT_FINE_FACTOR):
         print(f"PLAYBACK x{speed:g} (fake hardware only; planned timing and all checks unchanged)", flush=True)
     if node.cap:
         print(f"PLAYBACK CAP {node.cap:g} rad/s per joint (each stage slowed to stay under it)", flush=True)
-    if speed != 1.0 and node.fine < 1.0:
-        print(f"LIFT / ALIGN / INSERT played at x{max(1.0, speed * node.fine):g}", flush=True)
+    print("near-part stages: " + ", ".join(f"{k} x{r * node.fine:g}" + (f" (cap {c:g} rad/s)" if c else "")
+                                            for k, r, c in FINE_STAGES), flush=True)
 
 
 def make_node(name="v1_sim_SIM_ONLY"):
@@ -205,10 +211,14 @@ def make_node(name="v1_sim_SIM_ONLY"):
             Q = np.asarray(q, float); dts = np.diff(np.asarray(t, float))
             peak = float((np.abs(np.diff(Q, axis=0)) / np.maximum(dts, 1e-9)[:, None]).max()) if len(Q) > 1 else 0.0
             sp = self.speed
-            if any(k in name for k in FINE_STAGES):            # near the parts: slower (never below real time)
-                sp = max(1.0, sp * getattr(self, "fine", DEFAULT_FINE_FACTOR))
-            if getattr(self, "cap", 0.0) and peak > 0:
-                sp = min(sp, self.cap / peak)
+            cap = getattr(self, "cap", 0.0)
+            for key, rate, scap in FINE_STAGES:                 # near the parts: fixed slower rate (see FINE_STAGES)
+                if key in name:
+                    sp = rate * getattr(self, "fine", DEFAULT_FINE_FACTOR)
+                    cap = min(cap, scap) if (cap and scap) else (scap or cap)
+                    break
+            if cap and peak > 0:
+                sp = min(sp, cap / peak)
             jt = JointTrajectory(); jt.joint_names = list(JOINTS)
             for ti, qi in zip(t, q):
                 p = JointTrajectoryPoint(); p.positions = [float(v) for v in qi]

@@ -49,6 +49,10 @@ MAX_POINT_STEP = 0.09            # rad between consecutive points (as Phase 5)
 ORDER = ["HOME_START", "OPEN", "REACH", "ALIGN_GRIP", "GRIP", "LIFT", "TRANSPORT", "ALIGN_INSERT",
          "INSERT", "ROTATE", "RELEASE", "RETREAT", "HOME"]
 HELD = {"LIFT", "TRANSPORT", "ALIGN_INSERT", "INSERT", "ROTATE"}
+# Minimum uniform slowdown per stage on top of the 0.14 rad/s guard (whichever is slower wins), so the real
+# robot is never faster than the fake-hardware playback the operator approved on 3 Nov 2026:
+# ALIGN_INSERT 3.0 s planned -> 4.5 s (descent 3 s); INSERT x1.5 (V1-V3 13 s -> 19.5 s; V4/V5 already slower).
+MIN_SLOWDOWN = {"ALIGN_INSERT": 1.5, "INSERT": 1.5}
 HOME_Q = [-0.675926510488, -1.34777768076, -0.527696251869, -2.8273965321, 1.55948805809, -3.87329799334]
 # Wrench RECORDING ONLY (no contact detection, no force control, no force-triggered stop). Verified against the
 # UR driver (Humble): ros2_controllers ForceTorqueSensorBroadcaster publishes geometry_msgs/WrenchStamped on
@@ -180,6 +184,9 @@ def build(i, plans_dir, vmax):
         if any(abs(v) > 2 * math.pi + 1e-3 for row in q for v in row[:5]) or any(abs(row[2]) > math.radians(160) for row in q):
             raise RuntimeError(f"V{i} {name}: joint outside the software limits (+-2pi; elbow +-160 deg)")
         t2, f, peak = retime(t, q, vmax)
+        extra = MIN_SLOWDOWN.get(name, 1.0)
+        if extra > f:                                   # never faster than the approved fake-hardware playback
+            t2 = [x * extra / f for x in t2]; f = extra
         out[name] = {"t": t2, "q": q, "slowdown": f, "plan_peak_rad_s": peak, "duration_s": t2[-1]}
         prev = (name, q[-1])
     return out, G, objs, s10
