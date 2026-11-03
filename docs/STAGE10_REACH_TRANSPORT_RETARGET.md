@@ -12,10 +12,21 @@ for TRANSPORT, the start) changes:
 | REACH (CDMP) | demo start (HOME) | grip TCP of V<i> = T(pickup_V<i>) · inv(grasp_i) | gripper open 40 mm |
 | ALIGN_GRIP | CDMP end | exact grip TCP | 1.0 s straight min-jerk (CDMP residual 0.2–0.8 mm) |
 | LIFT | grip | +30 mm | Stage 6, 3.0 s min-jerk |
-| TRANSPORT (CDMP) | lift end | Stage 9 start of V<i> (part upright, 0.70 mm above the fitting top; where the V1 demo ends) | |
-| ALIGN_INSERT | CDMP end | exact Stage 9 start | 1.0 s straight min-jerk (≈0.3 mm) |
+| TRANSPORT (CDMP) | lift end | hover pose 10 mm above the Stage 9 start (since 3 Nov) | |
+| ALIGN_INSERT | CDMP end | hover pose, then straight down 10 mm to the exact Stage 9 start (part upright, 0.70 mm above the fitting top) | 1.0 s min-jerk correction in free air + 2.0 s descent |
 
-Goal settling: Phase 2 bounds (2 mm / 0.5°). Every 20 ms sample is solved with the calibrated-UR3e IK seeded from
+Goal settling: position only, while the CDMP end is > 2 mm from the goal (Phase 2 bound). The remaining
+orientation error is corrected by ALIGN.
+
+**3 Nov 2026 change (lab registration).** With the measured plates (session 20261103_1537) the CDMP ended 0.2 mm
+but 1.5° from its goal in every variant (the 31 Oct predicted layout: 0.1°). The old rule also settled on
+orientation (> 0.5°); during that settling the position drifted out to the 2 mm bound, and the remaining 2 mm
+correction ran at rim height: the part touched the fitting in all five variants (TRANSPORT/ALIGN_INSERT, 0.0 mm).
+Fix: settle on position only, and end TRANSPORT 10 mm above the Stage 9 start so ALIGN's correction runs in free
+air before a straight descent. Result on the lab session: V1–V5 PASS, ALIGN 0.14–1.47 mm / 1.34–1.48°, ALIGN_INSERT
+min clearance 0.3–0.4 mm, TRANSPORT ≥ 8.1 mm, z-scale 1.0/1.0/0.9/0.9/0.5, σ_min ≥ 0.040. Note for the report: the
+CDMP's goal change does not carry the ~1.5° orientation change by the end of the phase; ALIGN does.
+Kinematic simulation only. Every 20 ms sample is solved with the calibrated-UR3e IK seeded from
 the previous one; RG2 links (and the held part) are FCL-checked against every scene object (every 5th sample of the
 CDMP stages, every sample of the short stages). Arm links above the RG2 are not checked offline (MoveIt does that on
 fake hardware). The DMP path shape does not depend on tau; joint speeds scale with 1/tau.

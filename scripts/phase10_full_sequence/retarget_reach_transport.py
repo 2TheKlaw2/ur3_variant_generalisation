@@ -9,8 +9,11 @@ Per variant i (one CDMP trained per skill, on the V1 demo only; weights reused f
              = T(pickup_V<i>) . inv(grasp_i)                              gripper open 40 mm
   GRIP       close to 8.2 mm, attach V<i> at its grasp transform
   LIFT       30 mm straight up, 3.0 s min-jerk (Stage 6, unchanged)
-  TRANSPORT  CDMP(v1_transport_001_motion) from the lift end to the Stage 9 start of V<i>
-             (part centred/upright, 0.70 mm above the fitting top - where the V1 demo ends)
+  TRANSPORT  CDMP(v1_transport_001_motion) from the lift end to a hover pose HOVER_M above the Stage 9 start
+  ALIGN_INSERT  min-jerk correction to the hover pose (the CDMP settles to within 2 mm, mostly sideways),
+             then a straight DESCEND_S descent onto the Stage 9 start of V<i> (part centred/upright,
+             0.70 mm above the fitting top - where the V1 demo ends). Before 3 Nov the correction ran at
+             rim height, which touched the fitting once the measured plates moved the goals by ~8 mm.
   -> hands over to Stage 9 INSERT/ROTATE (run_variants_offline / run_variant_insert_sim).
 Goals use the CDMP goal-change (spatial scaling) property; timing = demo timing x tau.
 Every sample: calibrated-UR3e IK seeded from the previous sample (branch-jump check), joint
@@ -46,6 +49,8 @@ TRANSPORT_CSV = "demonstrations/processed/v1_transport_001_motion.csv"
 CDMP_PARAMS = {"alpha_s": 7.0, "k_gain": 100.0, "rbfs_pSec": 4.0}       # as Phase 2/3
 LIFT_M, LIFT_S = 0.030, 3.0
 ALIGN_S = 1.0                # final straight min-jerk correction from the CDMP end to the exact pose (as V1 ALIGN)
+HOVER_M = 0.010              # TRANSPORT now ends this far ABOVE the Stage 9 start; ALIGN_INSERT corrects the CDMP's
+DESCEND_S = 2.0              #   residual (up to 2 mm, mostly sideways) in free air, then descends straight down onto it
 MAX_STEP_RAD = 0.02          # IK branch-jump guard per 20 ms sample
 PHYS_GUARD_RAD_S = 0.14
 SIGMA_MIN_RULE = 0.04        # z-scale rule: smallest Jacobian singular value along TRANSPORT must stay >= this      # physical pilot joint-speed guard (reported, Stage 6/7)
@@ -96,7 +101,11 @@ def rollout(c, demo_p, demo_q, start_T, goal_T, tau):
     nominal = err()
     phase, decay = float(c.rep_cs.s_track[-1]), math.exp(-c.alpha_s * c.dt / c.rep_tau)
     n = 0
-    while n < int(math.ceil(1.5 * c.rep_tau / c.dt)) and (err()[0] > 2.0 or err()[1] > 0.5):   # Phase 2 bounds
+    # Settle only on POSITION (> 2 mm, Phase 2 bound). Settling on orientation alone (the old "or > 0.5 deg")
+    # let the position drift out to the 2 mm bound while the angle converged: on the 3 Nov lab registration the
+    # nominal end was 0.2 mm / 1.5 deg and settling ended 2.0 mm / 0.4 deg, touching the fitting. The remaining
+    # orientation error is corrected by ALIGN (min-jerk pose interpolation), which now runs in free air.
+    while n < int(math.ceil(1.5 * c.rep_tau / c.dt)) and err()[0] > 2.0:
         phase *= decay; c.rollout_step(curr_s_step=phase); n += 1
     t = np.asarray(c.rep_time, float).reshape(-1)
     P = np.asarray(c.rep_pos, float); Q = np.asarray(c.rep_quat, float)
@@ -287,6 +296,7 @@ def main():
         geom = vc.VariantGeometry(i, objs, T_fit)
         z_start = geom.top_mm + (z1 - 7.0)
         T_start_i = vc.part_pose(T_fit, z_start, yaw0) @ np.linalg.inv(G[i])      # Stage 9 start
+        T_hover_i = T_start_i.copy(); T_hover_i[2, 3] += HOVER_M                     # TRANSPORT goal (free air)
         q_start_i = q1 if i == 1 else vc.ik_continuation(q1, T_tcp1, T_start_i, calib, steps=200)
         T_grip_i = objs[f"pickup_V{i}"]["T"] @ np.linalg.inv(G[i])
         T_home = uk.tcp(q_home, calib)
@@ -305,7 +315,7 @@ def main():
             for s_ in frac:
                 T = T_grip_i.copy(); T[2, 3] += LIFT_M * s_; Ts_l.append(T)
             Q_l = ik_path(Q_ag[-1], Ts_l, calib, "LIFT")
-            t_t, Ts_t, info_t = rollout(trans, pt, qt, Ts_l[-1], T_start_i, tau_t)
+            t_t, Ts_t, info_t = rollout(trans, pt, qt, Ts_l[-1], T_hover_i, tau_t)
             t_t, Ts_t = resample(t_t, Ts_t)
             try:
                 Q_t = ik_path(Q_l[-1], Ts_t, calib, "TRANSPORT")
@@ -318,7 +328,14 @@ def main():
                          "elbow_rad": round(float(q_last[2]), 3), "reason": str(e)}
             st = [("REACH", t_r, Q_r), ("ALIGN_GRIP", t_ag, Q_ag), ("LIFT", t_l, Q_l), ("TRANSPORT", t_t, Q_t)]
             if fail_ is None:
-                t_ai, Q_ai = align(Q_t[-1], T_start_i, calib, "ALIGN_INSERT")
+                t_a, Q_a = align(Q_t[-1], T_hover_i, calib, "ALIGN_INSERT")
+                t_d, frac_d = lp.min_jerk_grid(DESCEND_S, lp.SAMPLE_DT_S)
+                Ts_d = []
+                for s_ in frac_d:
+                    T = T_hover_i.copy(); T[2, 3] -= HOVER_M * s_; Ts_d.append(T)
+                Q_d = ik_path(Q_a[-1], Ts_d, calib, "ALIGN_INSERT descent")
+                t_ai = np.r_[np.asarray(t_a), t_a[-1] + np.asarray(t_d[1:])]
+                Q_ai = list(Q_a) + list(Q_d[1:])
                 st.append(("ALIGN_INSERT", t_ai, Q_ai))
             st_fail[0] = fail_
             trans.wp[2, :] = w_z0
@@ -353,7 +370,12 @@ def main():
                "max_joint_step_rad": {k: round(x[1], 5) for k, x in v.items()},
                "within_physical_speed_guard": bool(peak <= PHYS_GUARD_RAD_S),
                "align_grip_correction_mm": float(np.linalg.norm(Ts_r[-1][:3, 3] - T_grip_i[:3, 3]) * 1000),
-               "align_insert_correction_mm": float(np.linalg.norm(Ts_t[-1][:3, 3] - T_start_i[:3, 3]) * 1000),  # CDMP end vs goal
+               "align_insert_correction_mm": float(np.linalg.norm(Ts_t[-1][:3, 3] - T_hover_i[:3, 3]) * 1000),  # CDMP end vs hover goal
+               "hover_above_start_mm": HOVER_M * 1000,
+               "align_grip_correction_deg": quat_angle_deg(Rotation.from_matrix(Ts_r[-1][:3, :3]).as_quat(),
+                                                           Rotation.from_matrix(T_grip_i[:3, :3]).as_quat()),
+               "align_insert_correction_deg": quat_angle_deg(Rotation.from_matrix(Ts_t[-1][:3, :3]).as_quat(),
+                                                             Rotation.from_matrix(T_hover_i[:3, :3]).as_quat()),
                "handover_to_stage9_joint_gap_rad": (float(lp.maxdiff(S["ALIGN_INSERT"][1][-1], q_start_i))
                                                     if "ALIGN_INSERT" in S else None),
                "failure": st_fail[0],
@@ -378,7 +400,8 @@ def main():
         c = res["collision"]
         D = res["durations_s"]
         print(f"V{i}: {'PASS' if res['PASS'] else 'FAIL'}  tau R/T {tau_r}/{tau_t}  z-scale {kz} (sigma_min {res['transport_sigma_min']})  REACH {D['REACH']:.1f}s  TRANSPORT {D['TRANSPORT']:.1f}s  "
-              f"peak {peak:.3f} rad/s  ALIGN {res['align_grip_correction_mm']:.2f}/{res['align_insert_correction_mm']:.2f} mm  "
+              f"peak {peak:.3f} rad/s  ALIGN {res['align_grip_correction_mm']:.2f}/{res['align_insert_correction_mm']:.2f} mm "
+              f"{res['align_grip_correction_deg']:.2f}/{res['align_insert_correction_deg']:.2f} deg  "
               + (f"hand-over gap {res['handover_to_stage9_joint_gap_rad']:.1e} rad  " if st_fail[0] is None
                  else f"STOPPED: {st_fail[0]['reason']} at t={st_fail[0]['t_s']:.1f}s, elbow {st_fail[0]['elbow_rad']} rad  ")
               + f"min clearance "
