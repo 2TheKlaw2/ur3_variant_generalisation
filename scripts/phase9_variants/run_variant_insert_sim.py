@@ -414,7 +414,7 @@ def main():
         return 0
     pst.require_sim_domain()
     rclpy, node = sim_node.make_node("variant_insert_SIM_ONLY")
-    sim_node.set_speed(node, args.speed, args.max_joint_speed)
+    sim_node.set_speed(node, args.speed, args.max_joint_speed, args.fine_factor)
     try:
         preflight(node, f"STAGE 9 V{'/V'.join(map(str, variants))} {args.level} INSERT/ROTATE — FAKE HARDWARE ONLY "
                   "(ROS_DOMAIN_ID=73)",
