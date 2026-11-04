@@ -102,6 +102,13 @@ Restart the fake robot + MoveIt so RViz loads the measured plates, then
    gripper and stage results to `results/physical/full_cycle/V1_<time>/`.
 6. Then V2 and V3, then V4 and V5 (same way).
 7. Plan: **pilot** = one successful run per variant (~1 h); then, if time allows, **5 runs per variant** (~3 h).
+8. **Comparison conditions** (after the L2 pilot works), same command plus `--level`:
+   - `--level CAD` on V1–V5: CAD-only baseline (same CAD path, generic timing, no demo) vs L2 (SQ3).
+   - `--level L1` on V1–V3: CDMP goal scaled to CAD; V4/V5 are refused (they collide in simulation).
+   - `--level L0` on V1 only: demo replay reference; V2–V5 are refused.
+   The runner refuses any variant+level that does not assemble and seat in simulation. Watch each new level once on
+   fake hardware first (`run_variant_insert_sim.py --variant all --level CAD --full --run --speed 3`).
+   Logs: `results/physical/full_cycle/V<i>_<level>_<time>/`; note the level on the trials sheet.
    Between runs: robot at HOME, take the part out of the fitting by hand and put it back in its pocket.
 
 Speeds: every stage is slowed uniformly to ≤ 0.14 rad/s per joint (the pilot guard); the path is unchanged.

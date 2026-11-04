@@ -22,7 +22,7 @@ Default is an OFFLINE PREFLIGHT: no ROS, no motion. With --execute (ROS_DOMAIN_I
     detection, no force-controlled insertion, no force-triggered stopping; nothing in the motion logic reads
     it. Missing or stale data are recorded as unavailable, never as zero; without the topic the run continues.
 Plans: Stage 10 REACH/TRANSPORT + RELEASE/RETREAT/HOME from --plans (default stage10_current or the
-31 Oct reference) and Stage 9 INSERT/ROTATE (L2) from the same cache the fake-hardware runner uses.
+31 Oct reference) and Stage 9 INSERT/ROTATE (--level, default L2; refused unless it assembles and seats in simulation) from the same cache the fake-hardware runner uses.
 Run the same variant on fake hardware first (run_variant_insert_sim.py --full) after any calibration.
 The ROS/controller handling is adapted from scripts/phase5_integration/run_v1_physical_sequence.py.
 """
@@ -142,8 +142,13 @@ def read_stages(path, extra_cols=0):
     return out
 
 
-def load_insert_rotate(i, temporal="fixed"):
-    """Stage 9 L2 INSERT/ROTATE for variant i, from the fake-hardware runner's plan cache (identical plan)."""
+LEVELS = ("L0", "L1", "L2", "CAD")    # L0 demo replay, L1 CDMP goal scaled to CAD, L2 CAD corridor (method), CAD-only baseline
+
+
+def load_insert_rotate(i, temporal="fixed", level="L2"):
+    """Stage 9 INSERT/ROTATE (level) for variant i, from the fake-hardware runner's plan cache (identical plan).
+    Refused unless that plan assembles AND seats in simulation (functional and strict PASS): a level that
+    collides in the CAD check (e.g. L0 on V2-V5, L1 on V4-V5) is never sent to the robot."""
     sys.path[:0] = [str(ROOT / "scripts" / d) for d in ("phase9_variants", "phase8_insert_sim", "phase7_transport_sim",
                                                         "phase6_pickup_sim", "scene")]
     import run_variant_insert_sim as rvi
@@ -154,15 +159,18 @@ def load_insert_rotate(i, temporal="fixed"):
     calib = yaml.safe_load(open(ROOT / "config/ur3e_lab_calibration.yaml"))
     objs = sm.scene_objects(); G, _ = rvo.grasps(objs, calib)
     prof = vc.demo_profiles(str(ROOT)); q1, T1, z1, yaw0 = rvo.v1_start(objs, calib, G[1])
-    p = rvi.plan_cached(i, "L2", calib, objs, G, prof, q1, T1, z1, yaw0, str(ROOT / "results/cad_features"))
+    p = rvi.plan_cached(i, level, calib, objs, G, prof, q1, T1, z1, yaw0, str(ROOT / "results/cad_features"))
     res = p["res"]
     tau = {"INSERT": 1.0, "ROTATE": 1.0}
     if temporal == "cad":     # CAD-derived time scaling (the path is unchanged; see temporal_scaling.py)
         import temporal_scaling as tsc
-        p1 = p if i == 1 else rvi.plan_cached(1, "L2", calib, objs, G, prof, q1, T1, z1, yaw0, str(ROOT / "results/cad_features"))
+        p1 = p if i == 1 else rvi.plan_cached(1, level, calib, objs, G, prof, q1, T1, z1, yaw0, str(ROOT / "results/cad_features"))
         tau = tsc.taus_from_rows(res["rows"], p1["res"]["rows"])
-    if res["functional_outcome"] != "PASS":
-        raise RuntimeError(f"V{i} L2 plan does not assemble in simulation ({res['functional_outcome']}); not executable")
+    if res["functional_outcome"] != "PASS" or res["strict_outcome"] != "PASS":
+        fu = res.get("first_unacceptable") or {}
+        raise RuntimeError(f"V{i} {level}: the plan does not assemble and seat in simulation (functional "
+                           f"{res['functional_outcome']}, strict {res['strict_outcome']}"
+                           + (f"; first bad: {fu.get('stage')} {fu.get('status')}" if fu else "") + "); NOT EXECUTABLE")
     feas = [r for r in res["rows"] if r["feasible"]]
     st = {}
     for name in ("INSERT", "ROTATE"):
@@ -179,7 +187,7 @@ def retime(t, q, vmax):
     return [x * f for x in t], f, peak
 
 
-def build(i, plans_dir, vmax, temporal="fixed"):
+def build(i, plans_dir, vmax, temporal="fixed", level="L2"):
     full = read_stages(plans_dir / f"V{i}" / "joint_trajectory.csv")
     rel = read_stages(plans_dir / f"V{i}" / "release_retreat.csv")
     s10 = json.load(open(plans_dir / "stage10_summary.json"))["variants"].get(f"V{i}", {})
@@ -187,7 +195,7 @@ def build(i, plans_dir, vmax, temporal="fixed"):
         raise RuntimeError(f"V{i}: Stage 10 plan in {plans_dir} did not pass; not executable")
     if "ALIGN_INSERT" not in full:
         raise RuntimeError(f"V{i}: Stage 10 plan stops early; not executable")
-    ir, G, objs = load_insert_rotate(i, temporal)
+    ir, G, objs = load_insert_rotate(i, temporal, level)
     seq = {}
     for name in ("REACH", "ALIGN_GRIP", "LIFT", "TRANSPORT", "ALIGN_INSERT"):
         seq[name] = full[name]
@@ -219,11 +227,13 @@ def build(i, plans_dir, vmax, temporal="fixed"):
     return out, G, objs, s10
 
 
-def preflight(i, plans_dir, vmax, temporal="fixed"):
-    plans, G, objs, s10 = build(i, plans_dir, vmax, temporal)
+def preflight(i, plans_dir, vmax, temporal="fixed", level="L2"):
+    plans, G, objs, s10 = build(i, plans_dir, vmax, temporal, level)
+    print(f"\nINSERT/ROTATE level: {level}" + {"L0": " (demo replay)", "L1": " (CDMP goal scaled to CAD)",
+                                                  "L2": " (CAD corridor: the method)", "CAD": " (CAD-only baseline, no demo)"}[level])
     print(f"\nINSERT/ROTATE timing: {temporal}" + (" (CAD-scaled: tab path vs V1, temporal_scaling.py)" if temporal == "cad" else
                                                   " (demonstrated durations)"))
-    print(f"\n=========== V{i} FULL-CYCLE PHYSICAL PREFLIGHT (no ROS, no motion) ===========")
+    print(f"\n=========== V{i} {level} FULL-CYCLE PHYSICAL PREFLIGHT (no ROS, no motion) ===========")
     print(f"plans: {plans_dir}  (Stage 10 z-scale {s10.get('transport_z_scale')}, sigma_min {s10.get('transport_sigma_min')})")
     print(f"speed guard: every stage retimed to <= {vmax} rad/s per joint (path unchanged)\n")
     print(f"{'stage':13s} {'points':>6s} {'planned peak':>12s} {'slowdown':>8s} {'duration':>9s}")
@@ -547,7 +557,7 @@ def execute(i, plans, G, objs, args):
         if node.stop_requested or input(f"Type RUN_{label} to continue (anything else stops): ").strip() != f"RUN_{label}":
             raise RuntimeError(f"{label}: operator stopped; no further stages sent")
 
-    logdir = ROOT / "results/physical/full_cycle" / f"V{i}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    logdir = ROOT / "results/physical/full_cycle" / f"V{i}_{getattr(args, 'level', 'L2')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     logdir.mkdir(parents=True, exist_ok=False)
     rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
     node = Robot(); scene = pst.SceneClient(node)
@@ -559,7 +569,8 @@ def execute(i, plans, G, objs, args):
         else:
             raise KeyboardInterrupt()
     signal.signal(signal.SIGINT, on_sigint)
-    status = {"type": "PHYSICAL RUN (staged)", "variant": f"V{i}", "started": datetime.now().isoformat(),
+    status = {"type": "PHYSICAL RUN (staged)", "variant": f"V{i}", "level": getattr(args, "level", "L2"),
+              "started": datetime.now().isoformat(),
               "max_joint_speed_rad_s": args.max_joint_speed, "plans": str(args.plans), "stages": [],
               "temporal": getattr(args, "temporal", "fixed")}
     part = f"pickup_V{i}"
@@ -601,7 +612,7 @@ def execute(i, plans, G, objs, args):
                 if name == "INSERT":
                     scene.set_allowed(part, f"fitting_V{i}", True)       # judged by the CAD classifier offline
                 node.check_states(name, p["q"])
-                approve(name, f"{name}: {len(p['q'])} points, {p['duration_s']:.1f} s "
+                approve(name, f"{name}{' [' + getattr(args, 'level', 'L2') + ']' if name in ('INSERT', 'ROTATE') else ''}: {len(p['q'])} points, {p['duration_s']:.1f} s "
                               f"(slowed {p['slowdown']:.2f}x to <= {args.max_joint_speed} rad/s).")
                 node.arm_stage(name, p)
                 if name == "LIFT":
@@ -657,6 +668,9 @@ def main():
     ap.add_argument("--until", default="HOME", choices=ORDER,
                     help="stop after this stage (first runs: --until ALIGN_INSERT, then inspect the alignment)")
     ap.add_argument("--execute", action="store_true", help="REAL ROBOT: staged execution with operator approval")
+    ap.add_argument("--level", choices=LEVELS, default="L2",
+                    help="INSERT/ROTATE condition: L2 (default, the method), CAD (CAD-only baseline), L1, L0. "
+                         "Refused unless that variant+level assembles and seats in simulation")
     ap.add_argument("--temporal", choices=("fixed", "cad"), default="fixed",
                     help="INSERT/ROTATE timing: fixed (default, demonstrated durations) or cad (stretched by the CAD "
                          "tab-path ratio to V1; path unchanged). Recorded in status.json")
@@ -673,7 +687,10 @@ def main():
         raise SystemExit(f"--max-joint-speed must be in (0, {HARD_MAX_SPEED}]")
     if ORDER.index(a.from_stage) > ORDER.index(a.until):
         raise SystemExit("--from is after --until")
-    plans, G, objs = preflight(a.variant, a.plans, a.max_joint_speed, a.temporal)
+    try:
+        plans, G, objs = preflight(a.variant, a.plans, a.max_joint_speed, a.temporal, a.level)
+    except RuntimeError as e:
+        raise SystemExit(f"REFUSED (no motion): {e}")
     if not a.execute:
         print("\nNo robot motion. Add --execute on the lab laptop (ROS_DOMAIN_ID=0) to run it staged.")
         return 0
