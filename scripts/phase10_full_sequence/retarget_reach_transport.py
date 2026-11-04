@@ -88,6 +88,8 @@ def rollout(c, demo_p, demo_q, start_T, goal_T, tau):
     src = Rotation.from_quat(wxyz_to_xyzw(demo_q[-1]))
     # library: rep goal = demo goal + rel position, rel quaternion * demo goal quaternion
     q_rel = (gq * src.inv()).as_quat()
+    if q_rel[3] < 0:        # q and -q are the same rotation; the CDMP needs the SHORT one (w >= 0). Older SciPy (laptop,
+        q_rel = -q_rel      # 4 Nov) returned w = -1 for "no rotation": the CDMP then turned 360 deg and REACH IK hit 180 deg.
     with quiet():
         c.init_reproduction(tau_scaler=tau, rep_abspose_start=np.r_[start_p, start_q],
                             rep_relpose_goal=np.r_[gp - demo_p[-1], xyzw_to_wxyz(q_rel)])
