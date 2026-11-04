@@ -12,6 +12,7 @@
 #   6. results/simulation/stage10_current -> stage10_<session>   (the RViz runner's --full uses it); pre-plans V1-V5 L2
 # Kinematic simulation only. Old poses, demos and reference results are never overwritten.
 set -Eeo pipefail
+export PYTHONUNBUFFERED=1      # stream each step's lines as they are printed
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$HERE"
 SESSION="${1:?usage: bash UPDATE_SIM.sh config/calibration/<session> [--library DIR]}"; shift || true
@@ -36,8 +37,8 @@ step() { echo; echo "==== $1"; }
 run() {
   local filt="$1" soft="$2"; shift 2
   local tmp; tmp="$(mktemp)"
-  set +e; "$@" > "$tmp" 2>&1; local rc=$?; set -e
-  cat "$tmp" >> "$LOG"; grep -E "$filt" "$tmp" || true
+  set +e; "$@" 2>&1 | tee "$tmp" | grep --line-buffered -E "$filt"; local rc=${PIPESTATUS[0]}; set -e   # lines as they come
+  cat "$tmp" >> "$LOG"
   if grep -q "^Traceback" "$tmp" || { [[ $rc -ne 0 ]] && [[ "$soft" != "soft" ]]; }; then
     echo "STOPPED: this step failed (exit $rc). Last lines:" >&2; tail -15 "$tmp" >&2; rm -f "$tmp"; exit 3
   fi
