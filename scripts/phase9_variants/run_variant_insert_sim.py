@@ -49,6 +49,7 @@ import run_variants_offline as rvo  # noqa: E402
 import scene_model as sm  # noqa: E402
 import sim_node  # noqa: E402
 import stage8_core as s8  # noqa: E402
+import temporal_scaling as tsc  # noqa: E402
 import ur_kinematics as uk  # noqa: E402
 import variant_core as vc  # noqa: E402
 import yaml  # noqa: E402
@@ -362,9 +363,10 @@ def finish_insert(node, i, level, p, calib, objs, folder, res, geom, G, feas, su
         seg = [r for r in feas if r["stage"] == stage]
         if len(seg) < 2:
             continue
-        t = [r["t_s"] - seg[0]["t_s"] for r in seg]
+        tau = p.get("tau", {}).get(stage, 1.0)           # --temporal cad: CAD-derived time scaling (path unchanged)
+        t = [(r["t_s"] - seg[0]["t_s"]) * tau for r in seg]
         _, err = node.run_arm(f"V{i} {level} {stage}", t, [r["q"] for r in seg])
-        executed[stage] = {"samples": len(seg), "duration_s": t[-1], "endpoint_err_rad": err}
+        executed[stage] = {"samples": len(seg), "duration_s": t[-1], "endpoint_err_rad": err, "tau": tau}
     node.scene.set_allowed(obj_id, f"fitting_V{i}", False)
     # independent end-state check (TF + attached-object pose)
     T_tcp = pst.lookup(node, "base", "gripper_tcp")
@@ -402,6 +404,9 @@ def main():
                     else str(ROOT / "results/sim_reference/stage10_retarget_20261031_zscale"),
                     help="Stage 10 plans (default: results/simulation/stage10_current from UPDATE_SIM.sh, "
                          "else the 31 Oct V1-V5 reference)")
+    ap.add_argument("--temporal", choices=("fixed", "cad"), default="fixed",
+                    help="INSERT/ROTATE timing: fixed = the demonstrated durations (default); cad = stretched by "
+                         "tau = max(1, tab path / V1 tab path) so the tab moves through every fitting at the demo's speed")
     sim_node.add_speed_arg(ap)
     args = ap.parse_args()
     variants = [1, 2, 3, 4, 5] if args.variant == "all" else [int(args.variant)]
@@ -416,6 +421,12 @@ def main():
     plans = {i: plan_cached(i, args.level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, args.features) for i in variants}
     for i in variants:
         print_plan(i, args.level, plans[i])
+    if args.temporal == "cad":
+        p1 = plans.get(1) or plan_cached(1, args.level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, args.features)
+        for i in variants:
+            plans[i]["tau"] = tsc.taus_from_rows(plans[i]["res"]["rows"], p1["res"]["rows"])
+            print(f"  V{i} temporal scaling (CAD tab path vs V1): INSERT x{plans[i]['tau']['INSERT']:.2f}, "
+                  f"ROTATE x{plans[i]['tau']['ROTATE']:.2f}", flush=True)
     if args.plan_only:
         return 0
     pst.require_sim_domain()
@@ -432,7 +443,8 @@ def main():
                    ["APPROACH      HOME -> 40 mm above the start (joint min-jerk)",
                     "ATTACH        part attached in the gripper (pickup/transport NOT simulated)",
                     f"DESCEND       40 mm straight down, {DESCEND_S:.1f} s min-jerk"])
-                  + [f"INSERT/ROTATE {args.level} plan, original CDMP timestamps"]
+                  + [f"INSERT/ROTATE {args.level} plan, " + ("CAD-scaled timing (--temporal cad)" if args.temporal == "cad"
+                                                              else "original CDMP timestamps")]
                   + (["RELEASE       RG2 to 40 mm, part left seated", "RETREAT       +30 mm straight up",
                       "HOME          joint min-jerk"] if args.full else []))
         if not (args.run or args.auto):

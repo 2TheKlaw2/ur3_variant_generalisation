@@ -142,7 +142,7 @@ def read_stages(path, extra_cols=0):
     return out
 
 
-def load_insert_rotate(i):
+def load_insert_rotate(i, temporal="fixed"):
     """Stage 9 L2 INSERT/ROTATE for variant i, from the fake-hardware runner's plan cache (identical plan)."""
     sys.path[:0] = [str(ROOT / "scripts" / d) for d in ("phase9_variants", "phase8_insert_sim", "phase7_transport_sim",
                                                         "phase6_pickup_sim", "scene")]
@@ -156,13 +156,18 @@ def load_insert_rotate(i):
     prof = vc.demo_profiles(str(ROOT)); q1, T1, z1, yaw0 = rvo.v1_start(objs, calib, G[1])
     p = rvi.plan_cached(i, "L2", calib, objs, G, prof, q1, T1, z1, yaw0, str(ROOT / "results/cad_features"))
     res = p["res"]
+    tau = {"INSERT": 1.0, "ROTATE": 1.0}
+    if temporal == "cad":     # CAD-derived time scaling (the path is unchanged; see temporal_scaling.py)
+        import temporal_scaling as tsc
+        p1 = p if i == 1 else rvi.plan_cached(1, "L2", calib, objs, G, prof, q1, T1, z1, yaw0, str(ROOT / "results/cad_features"))
+        tau = tsc.taus_from_rows(res["rows"], p1["res"]["rows"])
     if res["functional_outcome"] != "PASS":
         raise RuntimeError(f"V{i} L2 plan does not assemble in simulation ({res['functional_outcome']}); not executable")
     feas = [r for r in res["rows"] if r["feasible"]]
     st = {}
     for name in ("INSERT", "ROTATE"):
         seg = [r for r in feas if r["stage"] == name]
-        st[name] = ([r["t_s"] - seg[0]["t_s"] for r in seg], [list(r["q"]) for r in seg])
+        st[name] = ([(r["t_s"] - seg[0]["t_s"]) * tau[name] for r in seg], [list(r["q"]) for r in seg])
     return st, G[i], objs
 
 
@@ -174,7 +179,7 @@ def retime(t, q, vmax):
     return [x * f for x in t], f, peak
 
 
-def build(i, plans_dir, vmax):
+def build(i, plans_dir, vmax, temporal="fixed"):
     full = read_stages(plans_dir / f"V{i}" / "joint_trajectory.csv")
     rel = read_stages(plans_dir / f"V{i}" / "release_retreat.csv")
     s10 = json.load(open(plans_dir / "stage10_summary.json"))["variants"].get(f"V{i}", {})
@@ -182,7 +187,7 @@ def build(i, plans_dir, vmax):
         raise RuntimeError(f"V{i}: Stage 10 plan in {plans_dir} did not pass; not executable")
     if "ALIGN_INSERT" not in full:
         raise RuntimeError(f"V{i}: Stage 10 plan stops early; not executable")
-    ir, G, objs = load_insert_rotate(i)
+    ir, G, objs = load_insert_rotate(i, temporal)
     seq = {}
     for name in ("REACH", "ALIGN_GRIP", "LIFT", "TRANSPORT", "ALIGN_INSERT"):
         seq[name] = full[name]
@@ -214,8 +219,10 @@ def build(i, plans_dir, vmax):
     return out, G, objs, s10
 
 
-def preflight(i, plans_dir, vmax):
-    plans, G, objs, s10 = build(i, plans_dir, vmax)
+def preflight(i, plans_dir, vmax, temporal="fixed"):
+    plans, G, objs, s10 = build(i, plans_dir, vmax, temporal)
+    print(f"\nINSERT/ROTATE timing: {temporal}" + (" (CAD-scaled: tab path vs V1, temporal_scaling.py)" if temporal == "cad" else
+                                                  " (demonstrated durations)"))
     print(f"\n=========== V{i} FULL-CYCLE PHYSICAL PREFLIGHT (no ROS, no motion) ===========")
     print(f"plans: {plans_dir}  (Stage 10 z-scale {s10.get('transport_z_scale')}, sigma_min {s10.get('transport_sigma_min')})")
     print(f"speed guard: every stage retimed to <= {vmax} rad/s per joint (path unchanged)\n")
@@ -553,7 +560,8 @@ def execute(i, plans, G, objs, args):
             raise KeyboardInterrupt()
     signal.signal(signal.SIGINT, on_sigint)
     status = {"type": "PHYSICAL RUN (staged)", "variant": f"V{i}", "started": datetime.now().isoformat(),
-              "max_joint_speed_rad_s": args.max_joint_speed, "plans": str(args.plans), "stages": []}
+              "max_joint_speed_rad_s": args.max_joint_speed, "plans": str(args.plans), "stages": [],
+              "temporal": getattr(args, "temporal", "fixed")}
     part = f"pickup_V{i}"
     wrench_info = {}
     try:
@@ -649,6 +657,9 @@ def main():
     ap.add_argument("--until", default="HOME", choices=ORDER,
                     help="stop after this stage (first runs: --until ALIGN_INSERT, then inspect the alignment)")
     ap.add_argument("--execute", action="store_true", help="REAL ROBOT: staged execution with operator approval")
+    ap.add_argument("--temporal", choices=("fixed", "cad"), default="fixed",
+                    help="INSERT/ROTATE timing: fixed (default, demonstrated durations) or cad (stretched by the CAD "
+                         "tab-path ratio to V1; path unchanged). Recorded in status.json")
     ap.add_argument("--grip-band", type=float, nargs=2, default=GRIP_BAND_MM, metavar=("MIN_MM", "MAX_MM"),
                     help=f"GRIP passes only if the measured width is in this band (default {GRIP_BAND_MM[0]} "
                          f"{GRIP_BAND_MM[1]} mm: fingers stopped on the part; an empty gripper reads ~8.2)")
@@ -662,7 +673,7 @@ def main():
         raise SystemExit(f"--max-joint-speed must be in (0, {HARD_MAX_SPEED}]")
     if ORDER.index(a.from_stage) > ORDER.index(a.until):
         raise SystemExit("--from is after --until")
-    plans, G, objs = preflight(a.variant, a.plans, a.max_joint_speed)
+    plans, G, objs = preflight(a.variant, a.plans, a.max_joint_speed, a.temporal)
     if not a.execute:
         print("\nNo robot motion. Add --execute on the lab laptop (ROS_DOMAIN_ID=0) to run it staged.")
         return 0
