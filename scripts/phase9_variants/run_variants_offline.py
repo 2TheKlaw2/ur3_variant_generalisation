@@ -41,11 +41,20 @@ def grasps(objs, calib):
     sess = reg.get("poses_dir")
     G, src = {}, {}
     if sess:
+        # The RG2 and every part are 2-fold symmetric about the tool axis, so a grip taken with the wrist turned
+        # 180 deg is the same physical grasp. Use whichever of the two is closer to the demonstrated grasp, so
+        # the robot does not spin its wrist 180 deg in REACH and back in TRANSPORT (3 Nov calibration: +178 deg).
+        rows = list(csv.DictReader(open(os.path.join(sm.PKG, "config/trajectories/v1/v1_align_to_grip_joint_plan_001.csv"))))
+        x_demo = uk.tcp([float(rows[-1][j]) for j in lp.JOINTS], calib)[:3, 0]
+        Rz = np.diag([-1.0, -1.0, 1.0, 1.0])                     # 180 deg about the tool z axis
         for i in range(1, 6):
             p = os.path.join(sess, f"v1_pickup_V{i}_geometry.yaml")
             q = yaml.safe_load(open(os.path.join(sm.PKG, p)))["arm"]["positions_rad"]
-            G[i] = np.linalg.inv(uk.tcp(q, calib)) @ objs[f"pickup_V{i}"]["T"]
-            src[i] = p
+            T_tcp = uk.tcp(q, calib)
+            g = np.linalg.inv(T_tcp) @ objs[f"pickup_V{i}"]["T"]
+            flip = float(T_tcp[:3, 0] @ x_demo) < 0.0                # measured tool x points away from the demo's
+            G[i] = Rz @ g if flip else g                            # Rz^-1 = Rz; part pose T_tcp.g is unchanged
+            src[i] = p + (" (grasp turned 180 deg about the tool axis to match the demonstration)" if flip else "")
         return G, src
     rows = list(csv.DictReader(open(os.path.join(sm.PKG, "config/trajectories/v1/v1_align_to_grip_joint_plan_001.csv"))))
     q_grip = [float(rows[-1][j]) for j in lp.JOINTS]

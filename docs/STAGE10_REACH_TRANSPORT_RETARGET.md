@@ -24,9 +24,17 @@ orientation (> 0.5°); during that settling the position drifted out to the 2 mm
 correction ran at rim height: the part touched the fitting in all five variants (TRANSPORT/ALIGN_INSERT, 0.0 mm).
 Fix: settle on position only, and end TRANSPORT 10 mm above the Stage 9 start so ALIGN's correction runs in free
 air before a straight descent. Result on the lab session: V1–V5 PASS, ALIGN 0.14–1.47 mm / 1.34–1.48°, ALIGN_INSERT
-min clearance 0.3–0.4 mm, TRANSPORT ≥ 8.1 mm, z-scale 1.0/1.0/0.9/0.9/0.5, σ_min ≥ 0.040. Note for the report: the
-CDMP's goal change does not carry the ~1.5° orientation change by the end of the phase; ALIGN does.
-Kinematic simulation only. Every 20 ms sample is solved with the calibrated-UR3e IK seeded from
+min clearance 0.3–0.4 mm, TRANSPORT ≥ 8.1 mm, z-scale 1.0/1.0/0.9/0.9/0.5, σ_min ≥ 0.040. Kinematic simulation only.
+
+**4 Nov correction: the 1.5° came from a 180° grasp mismatch, not from the CDMP.** In the 3 Nov calibration
+every pickup pose was taken with the wrist turned ~178–179° from the 27 Oct demonstration (wrist_3 −0.69 vs −3.80
+rad for V1). The RG2 and the parts are 2-fold symmetric about the tool axis, so that is the same physical grasp,
+but the plans copied it: the robot spun its wrist 180° in REACH and back in TRANSPORT (peak 0.77–0.84 rad/s,
+~2.5× the 31 Oct plans), and the goal-change orientation was off by ~1.5°. `run_variants_offline.grasps()` now
+uses whichever of the two equivalent grasps is closer to the demonstrated one (same TCP position and axis; part
+pose unchanged). Result on the same session: V1–V5 PASS, ALIGN 0.14–1.47 mm / **0.04–0.11°**, peak joint speed
+0.35–0.48 rad/s, z-scale 1.0/1.0/0.9/0.9/0.6, σ_min ≥ 0.042, ALIGN_INSERT clearance 0.3–0.4 mm. The position-only
+settling and the 10 mm hover are kept (they are still the safer approach). Every 20 ms sample is solved with the calibrated-UR3e IK seeded from
 the previous one; RG2 links (and the held part) are FCL-checked against every scene object (every 5th sample of the
 CDMP stages, every sample of the short stages). Arm links above the RG2 are not checked offline (MoveIt does that on
 fake hardware). The DMP path shape does not depend on tau; joint speeds scale with 1/tau.
