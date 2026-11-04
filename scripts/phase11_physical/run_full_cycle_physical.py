@@ -43,6 +43,10 @@ ARM_ACTION = "/scaled_joint_trajectory_controller/follow_joint_trajectory"
 GRIPPER_ACTION = "/finger_width_trajectory_controller/follow_joint_trajectory"
 RG2_OPEN_M, RG2_GRIP_M = 0.040, 0.0082
 RG2_OPEN_S, RG2_GRIP_S = 3.0, 2.0
+# GRIP passes only if the fingers STOPPED ON THE PART: 27 Oct an 8.5 mm command read ~10.1 mm on the part, while an
+# empty gripper closes to the commanded 8.2 mm. Override with --grip-band after the lab grip test if needed.
+GRIP_BAND_MM = (9.0, 11.5)
+OPEN_MIN_MM = 30.0               # "gripper open" precondition for RETREAT/HOME starts
 START_TOL, END_TOL = 0.006, 0.012
 HARD_MAX_SPEED = 0.35            # rad/s, never exceeded whatever --max-joint-speed says
 MAX_POINT_STEP = 0.09            # rad between consecutive points (as Phase 5)
@@ -61,6 +65,23 @@ HOME_Q = [-0.675926510488, -1.34777768076, -0.527696251869, -2.8273965321, 1.559
 WRENCH_TOPIC = "/force_torque_sensor_broadcaster/wrench"
 WRENCH_STALE_S = 0.1            # a gap or header age above this flags the stage's wrench data as stale
 WRENCH_FIELDS = ["fx", "fy", "fz", "tx", "ty", "tz"]
+
+
+def registration_sha256(path=None):
+    import hashlib
+    return hashlib.sha256(open(path or ROOT / "config/scene/scene_registration.yaml", "rb").read()).hexdigest()
+
+
+def plans_match_registration(s10, reg):
+    """'' if the Stage 10 plans were made from the current scene_registration.yaml, else the reason.
+    Plans from 4 Nov on record the registration's sha256; older ones are checked by their grasp sources."""
+    if s10.get("registration_sha256"):
+        return "" if s10["registration_sha256"] == registration_sha256() else "registration file changed since planning"
+    sess = reg.get("poses_dir")
+    dirs = {os.path.dirname(v) for v in (s10.get("grasp_sources") or {}).values()}
+    if not sess or dirs != {sess}:
+        return f"grasp poses from {sorted(dirs)} but registration session {sess}"
+    return ""
 
 
 def err(a, b):
@@ -181,6 +202,7 @@ def build(i, plans_dir, vmax):
         step = max(err(a, b) for a, b in zip(q, q[1:]))
         if step > MAX_POINT_STEP:
             raise RuntimeError(f"V{i} {name}: point step {step:.4f} rad > {MAX_POINT_STEP}")
+        # wrist_3 is left out of the +-2pi check on purpose: the UR3e wrist 3 has unlimited rotation
         if any(abs(v) > 2 * math.pi + 1e-3 for row in q for v in row[:5]) or any(abs(row[2]) > math.radians(160) for row in q):
             raise RuntimeError(f"V{i} {name}: joint outside the software limits (+-2pi; elbow +-160 deg)")
         t2, f, peak = retime(t, q, vmax)
@@ -227,6 +249,10 @@ def execute(i, plans, G, objs, args):
         raise SystemExit("BLOCKED: the plate registration / plans are not from a lab calibration session "
                          f"(registration layout '{reg.get('layout')}', plans layout '{s10.get('layout')}'). "
                          "Run CALIBRATE_PLATES.sh and UPDATE_SIM.sh first.")
+    why = plans_match_registration(s10, reg)
+    if why:
+        raise SystemExit(f"BLOCKED: the plans in {args.plans} were not made from the current registration ({why}). "
+                         "Run UPDATE_SIM.sh for the current session.")
     if os.environ.get("ROS_DOMAIN_ID", "0") != "0":
         raise SystemExit("BLOCKED: physical execution requires ROS_DOMAIN_ID=0 (the real robot), "
                          f"not {os.environ.get('ROS_DOMAIN_ID')}")
@@ -376,7 +402,7 @@ def execute(i, plans, G, objs, args):
             if not self.arm.wait_for_server(timeout_sec=5) or not self.grip.wait_for_server(timeout_sec=5):
                 raise RuntimeError("Arm or gripper action unavailable")
 
-        def check_states(self, name, q_list, every=10):
+        def check_states(self, name, q_list, every=1):
             if not self.valid_srv.wait_for_service(timeout_sec=3):
                 raise RuntimeError("MoveIt /check_state_validity unavailable: start MoveIt for the real robot")
             idx = sorted(set(list(range(0, len(q_list), every)) + [len(q_list) - 1]))
@@ -417,7 +443,15 @@ def execute(i, plans, G, objs, args):
                 fut = client.send_goal_async(goal); until = time.monotonic() + 8
                 while not fut.done() and time.monotonic() < until:
                     rclpy.spin_once(self, timeout_sec=0.1)
-                if not fut.done() or fut.result() is None or not fut.result().accepted:
+                if not fut.done():
+                    # a goal accepted late would run unwatched: keep spinning briefly and cancel it if it was accepted
+                    until = time.monotonic() + 5
+                    while not fut.done() and time.monotonic() < until:
+                        rclpy.spin_once(self, timeout_sec=0.1)
+                    if fut.done() and fut.result() is not None and fut.result().accepted:
+                        h = fut.result(); self.cancel(h, label, h.get_result_async())
+                    raise RuntimeError(f"{label}: no goal response within 8 s ({'cancelled after a late accept' if fut.done() else 'still unknown: use the pendant stop if the robot moves'})")
+                if fut.result() is None or not fut.result().accepted:
                     raise RuntimeError(f"{label}: goal not accepted")
                 handle = fut.result(); done = handle.get_result_async(); until = time.monotonic() + timeout
                 while not done.done() and time.monotonic() < until:
@@ -467,10 +501,38 @@ def execute(i, plans, G, objs, args):
             after = time.monotonic()
             while time.monotonic() < after + 3 and self.width_at < after:
                 rclpy.spin_once(self, timeout_sec=0.1)
-            tol = 0.005 if name == "GRIP" else 0.003
-            if self.width is None or abs(self.width - width_m) > tol:
+            if name == "GRIP":
+                lo, hi = args.grip_band
+                if self.width is None or not lo <= self.width * 1000 <= hi:
+                    raise RuntimeError(f"GRIP: RG2 width {None if self.width is None else round(self.width * 1000, 2)} mm "
+                                       f"outside {lo}-{hi} mm: {'EMPTY gripper or part missed' if self.width is not None and self.width * 1000 < lo else 'part not gripped as calibrated'}; inspect")
+            elif self.width is None or abs(self.width - width_m) > 0.003:
                 raise RuntimeError(f"{name}: RG2 width {self.width} m vs {width_m} m; inspect the gripper")
             print(f"{name}: PASS (measured {self.width * 1000:.2f} mm; grasp security NOT proven by width)", flush=True)
+
+    def check_start_state(first, i, poses, attached, node):
+        """Scene and robot preconditions for the first stage (also for --from)."""
+        part = f"pickup_V{i}"
+        missing = [k for k in ("pickup_plate", "placement_plate", f"fitting_V{i}") if k not in poses]
+        if missing:
+            raise RuntimeError(f"MoveIt scene is missing {missing}: run planning_scene_tools.py --load --physical")
+        k = ORDER.index(first)
+        node.fresh(); w = None if node.width is None else node.width * 1000
+        if k <= ORDER.index("GRIP"):                   # part still in its pocket, not held
+            if part in attached or part not in poses:
+                raise RuntimeError(f"{first}: {part} must be in its pocket (not attached) before GRIP; reload the scene")
+        elif k <= ORDER.index("RELEASE"):              # LIFT .. RELEASE: the part must be held
+            lo, hi = args.grip_band
+            if part not in attached:
+                raise RuntimeError(f"--from {first}: {part} is not attached in MoveIt (MoveIt restarted?). "
+                                   "Start from HOME_START instead")
+            if w is None or not lo <= w <= hi:
+                raise RuntimeError(f"--from {first}: RG2 reads {w} mm, not {lo}-{hi} mm: the part is not held as gripped")
+        else:                                          # RETREAT, HOME: released
+            if part in attached:
+                raise RuntimeError(f"--from {first}: {part} is still attached: run RELEASE first")
+            if w is None or w < OPEN_MIN_MM:
+                raise RuntimeError(f"--from {first}: RG2 reads {w} mm: open the gripper (RELEASE) first")
 
     def approve(label, detail):
         print(f"\n--- PHYSICAL STAGE REVIEW: {label} ---\n{detail}")
@@ -498,11 +560,8 @@ def execute(i, plans, G, objs, args):
         node.hardware()
         wrench_info = node.wrench_preflight()       # recording only; warns, never raises
         poses, _ = scene.world_poses()
-        need = ["pickup_plate", "placement_plate", f"fitting_V{i}"]
-        if any(k not in poses for k in need) and part not in scene.attached():
-            raise RuntimeError("Variant scene not loaded in MoveIt: run "
-                               "planning_scene_tools.py --load --physical first")
         stages = ORDER[ORDER.index(args.from_stage): ORDER.index(args.until) + 1]
+        check_start_state(stages[0], i, poses, scene.attached(), node)
         print(f"\nV{i}: stages {stages[0]} .. {stages[-1]}")
         approve("V%d_START" % i, f"Start the staged V{i} cycle ({stages[0]} .. {stages[-1]}).")
         for name in stages:
@@ -512,7 +571,7 @@ def execute(i, plans, G, objs, args):
                 if err(live, HOME_Q) <= START_TOL:
                     print("HOME_START: already at HOME", flush=True); continue
                 p = home_move(live, args.max_joint_speed)
-                node.check_states(name, p["q"], every=5)
+                node.check_states(name, p["q"])
                 approve(name, f"Joint-space move from the current pose to HOME ({err(live, HOME_Q):.3f} rad max joint "
                               f"change, {p['duration_s']:.1f} s). The whole route must be clear.")
                 node.arm_stage(name, p)
@@ -590,6 +649,9 @@ def main():
     ap.add_argument("--until", default="HOME", choices=ORDER,
                     help="stop after this stage (first runs: --until ALIGN_INSERT, then inspect the alignment)")
     ap.add_argument("--execute", action="store_true", help="REAL ROBOT: staged execution with operator approval")
+    ap.add_argument("--grip-band", type=float, nargs=2, default=GRIP_BAND_MM, metavar=("MIN_MM", "MAX_MM"),
+                    help=f"GRIP passes only if the measured width is in this band (default {GRIP_BAND_MM[0]} "
+                         f"{GRIP_BAND_MM[1]} mm: fingers stopped on the part; an empty gripper reads ~8.2)")
     ap.add_argument("--wrench-topic", default=WRENCH_TOPIC,
                     help=f"WrenchStamped topic to RECORD (recording only, never used for control; default {WRENCH_TOPIC})")
     ap.add_argument("--no-wrench", action="store_true", help="do not subscribe to the wrench topic at all")

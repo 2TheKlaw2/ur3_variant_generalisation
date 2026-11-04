@@ -86,10 +86,13 @@ Restart the fake robot + MoveIt so RViz loads the measured plates, then
 1. Load the scene into the real robot's MoveIt (collision objects only, no motion):
    `python3 scripts/phase6_pickup_sim/planning_scene_tools.py --load --physical`
 2. Preflight (no motion): `python3 scripts/phase11_physical/run_full_cycle_physical.py --variant 1`
-3. **One run per trial (do NOT split it with --until/--from: `--from INSERT` does not check the part is held):**
+3. **One run per trial** (`--from` now refuses to start unless the part is attached in MoveIt and held, but one
+   continuous run is still simpler):
    `python3 scripts/phase11_physical/run_full_cycle_physical.py --variant 1 --execute`
    Type `RUN_<STAGE>` for each stage after checking the real robot.
-   - After GRIP: **look that the part is in the jaws** before `RUN_LIFT` (the width check accepts an empty gripper).
+   - After GRIP: **look that the part is in the jaws** before `RUN_LIFT`. GRIP now also stops the run unless the RG2
+     reads 9.0–11.5 mm (fingers stopped on the part; empty ≈ 8.2 mm). If your grip test reads outside that band on
+     the part, pass `--grip-band <min> <max>` (mm).
    - At ALIGN_INSERT: **inspect the part above its fitting** (centred? upright? tabs on the slots?). Photograph it.
      Type `RUN_INSERT` only if it is good; otherwise Ctrl+C (the arm stays above the fitting).
 4. Before the first run, check the wrench topic once (missing = logged as unavailable, run unaffected):

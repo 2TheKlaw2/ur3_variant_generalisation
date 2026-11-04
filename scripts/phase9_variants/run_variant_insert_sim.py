@@ -104,6 +104,9 @@ def plan_cached(i, level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, features_d
     files = PLAN_FILES + [objs[f"pickup_V{i}"]["mesh"], objs[f"fitting_V{i}"]["mesh"],
                           os.path.join(features_dir, f"V{i}_corridor.csv"), os.path.join(features_dir, "V1_corridor.csv")]
     files += [f"config/saved_poses/v1_pickup_V{k}_geometry.yaml" for k in range(2, 6)]
+    sess = yaml.safe_load(open(sm.registration_path())).get("poses_dir")     # grasps come from the session poses
+    if sess:
+        files += [os.path.join(sess, f"v1_pickup_V{k}_geometry.yaml") for k in range(1, 6)]
     # key on the planning code itself (not the whole runner), so UI/playback edits keep the cache
     import inspect
     k = plan_cache.key(f"stage9_V{i}_{level}", {"plan_src": inspect.getsource(plan), "ver": 2}, files)
@@ -131,6 +134,9 @@ def prewarm(variants, level, calib, objs, G, prof, q1, T_tcp1, z1, yaw0, feature
         files = PLAN_FILES + [objs[f"pickup_V{i}"]["mesh"], objs[f"fitting_V{i}"]["mesh"],
                               os.path.join(features_dir, f"V{i}_corridor.csv"), os.path.join(features_dir, "V1_corridor.csv")]
         files += [f"config/saved_poses/v1_pickup_V{k}_geometry.yaml" for k in range(2, 6)]
+    sess = yaml.safe_load(open(sm.registration_path())).get("poses_dir")     # grasps come from the session poses
+    if sess:
+        files += [os.path.join(sess, f"v1_pickup_V{k}_geometry.yaml") for k in range(1, 6)]
         import inspect
         k = plan_cache.key(f"stage9_V{i}_{level}", {"plan_src": inspect.getsource(plan), "ver": 2}, files)
         if plan_cache.get(k) is None:

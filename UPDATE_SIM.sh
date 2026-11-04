@@ -31,6 +31,18 @@ LOG="results/simulation/update_${NAME}.log"; mkdir -p results/simulation
 echo "UPDATE_SIM: session $NAME, fixture ${THICK_MM} mm, log $LOG"
 
 step() { echo; echo "==== $1"; }
+# run STEP_FILTER cmd...: show the filtered lines; STOP if the program crashed or exited non-zero.
+# validate_scene.py exits 1 when a check FAILs (expected, reported); only a traceback stops it.
+run() {
+  local filt="$1" soft="$2"; shift 2
+  local tmp; tmp="$(mktemp)"
+  set +e; "$@" > "$tmp" 2>&1; local rc=$?; set -e
+  cat "$tmp" >> "$LOG"; grep -E "$filt" "$tmp" || true
+  if grep -q "^Traceback" "$tmp" || { [[ $rc -ne 0 ]] && [[ "$soft" != "soft" ]]; }; then
+    echo "STOPPED: this step failed (exit $rc). Last lines:" >&2; tail -15 "$tmp" >&2; rm -f "$tmp"; exit 3
+  fi
+  rm -f "$tmp"
+}
 step "1/6 registration"
 cp config/scene/scene_registration.yaml "config/scene/scene_registration.before_${NAME}.yaml"
 python3 scripts/scene/compute_scene_registration.py --session "$SESSION" \
@@ -42,19 +54,31 @@ for k in ("pickup_plate", "placement_plate"):
 print("  prong check:", r.get("prong_check"))
 EOF
 step "2/6 scene validation"
-python3 scripts/scene/validate_scene.py --rg2-mesh-dir "$RG2" --out "results/simulation/scene_check_${NAME}" 2>&1 \
-  | tee -a "$LOG" | grep -E "FAIL|checks" || true
+run "FAIL|checks" soft python3 scripts/scene/validate_scene.py --rg2-mesh-dir "$RG2" --out "results/simulation/scene_check_${NAME}"
 step "3/6 Stage 9 INSERT/ROTATE (all levels)"
-python3 scripts/phase9_variants/run_variants_offline.py --out "results/simulation/stage9_${NAME}" 2>&1 \
-  | tee -a "$LOG" | grep -E "^V[1-5] " || true
+run "^V[1-5] " hard python3 scripts/phase9_variants/run_variants_offline.py --out "results/simulation/stage9_${NAME}"
 step "4/6 Stage 10 REACH/TRANSPORT retargeting"
-python3 scripts/phase10_full_sequence/retarget_reach_transport.py --library "$LIB" --rg2-mesh-dir "$RG2" --tau 2 \
-  --out "results/simulation/stage10_${NAME}" 2>&1 | tee -a "$LOG" | grep -E "^V[1-5]" || true
+run "^V[1-5]" hard python3 scripts/phase10_full_sequence/retarget_reach_transport.py --library "$LIB" --rg2-mesh-dir "$RG2" \
+  --tau 2 --out "results/simulation/stage10_${NAME}"
 step "5/6 RELEASE / RETREAT / HOME"
-python3 scripts/phase10_full_sequence/plan_release_retreat.py --rg2-mesh-dir "$RG2" \
-  --stage9 "results/simulation/stage9_${NAME}" --out "results/simulation/stage10_${NAME}" 2>&1 \
-  | tee -a "$LOG" | grep -E "^V[1-5]" || true
+run "^V[1-5]" hard python3 scripts/phase10_full_sequence/plan_release_retreat.py --rg2-mesh-dir "$RG2" \
+  --stage9 "results/simulation/stage9_${NAME}" --out "results/simulation/stage10_${NAME}"
 step "6/6 point the RViz runner at the new plans and pre-plan its INSERT/ROTATE (so RViz runs start at once)"
+python3 - "$NAME" <<'PYEOF'
+import json, sys
+d = f"results/simulation/stage10_{sys.argv[1]}"
+s10 = json.load(open(f"{d}/stage10_summary.json"))["variants"]
+try:
+    rel = json.load(open(f"{d}/release_retreat_summary.json")).get("variants", {})
+except FileNotFoundError:
+    rel = {}
+ok10 = [k for k, v in sorted(s10.items()) if v.get("PASS")]
+okrel = [k for k, v in sorted(rel.items()) if v.get("PASS")]
+print(f"  Stage 10 PASS: {ok10}   release/retreat PASS: {okrel}")
+bad = sorted(set(s10) - set(ok10)) + sorted(set(rel) - set(okrel))
+if bad:
+    print(f"  WARNING: not executable on the robot: {sorted(set(bad))} (the runners refuse failed plans)")
+PYEOF
 ln -sfn "stage10_${NAME}" results/simulation/stage10_current
 echo "  results/simulation/stage10_current -> stage10_${NAME}"
 python3 scripts/phase9_variants/run_variant_insert_sim.py --variant all --level L2 --plan-only 2>&1 \

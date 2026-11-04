@@ -52,6 +52,8 @@ class World:
     def __init__(self, q0, width=0.040):
         self.q, self.width, self.t_ns = list(q0), width, 1_000_000_000_000
         self.sent, self.pending, self.wrench_mode, self.nodes = [], [], "ok", []
+        self.part_mm = 10.1          # fingers stop on the part here (27 Oct); None = empty gripper
+        self.missing = set()         # scene objects to leave out of the fake MoveIt world
 
 
 WORLD = None
@@ -122,7 +124,8 @@ def make_fake_ros():
                 WORLD.pending.remove(f)
                 pts = f.traj.points
                 if f.traj.joint_names == ["finger_width"]:
-                    WORLD.width = pts[-1].positions[0]
+                    cmd = pts[-1].positions[0]
+                    WORLD.width = max(cmd, WORLD.part_mm / 1000) if (WORLD.part_mm and cmd < 0.02) else cmd
                 else:
                     WORLD.q = list(pts[-1].positions)
         js = W(name=list(JOINTS) + ["finger_width"], position=list(WORLD.q) + [WORLD.width])
@@ -196,7 +199,9 @@ def make_fake_ros():
             self._att = {}
 
         def world_poses(self):
-            return {"pickup_plate": 1, "placement_plate": 1, **{f"fitting_V{i}": 1 for i in range(1, 6)}}, None
+            w = {"pickup_plate": 1, "placement_plate": 1, **{f"fitting_V{i}": 1 for i in range(1, 6)},
+                 **{f"pickup_V{i}": 1 for i in range(1, 6) if f"pickup_V{i}" not in self._att}}
+            return {k: v for k, v in w.items() if k not in WORLD.missing}, None
 
         def attached(self):
             return self._att
@@ -216,17 +221,19 @@ def make_fake_ros():
 JOINTS = None
 
 
-def run_case(r, plans, G, objs, variant, plans_dir, tmp, mode, answer_ok=True):
+def run_case(r, plans, G, objs, variant, plans_dir, tmp, mode, answer_ok=True, part_mm=10.1, missing=(),
+             from_stage="HOME_START", width0=0.040):
     global WORLD
-    WORLD = World(r.HOME_Q); WORLD.wrench_mode = mode
+    WORLD = World(r.HOME_Q, width0); WORLD.wrench_mode = mode; WORLD.part_mm = part_mm; WORLD.missing = set(missing)
     fake = make_fake_ros()
     saved = {k: sys.modules.get(k) for k in fake}
     sys.modules.update(fake)
     orig_input, orig_root = builtins.input, r.ROOT
     builtins.input = (lambda p="": p.split("Type ", 1)[1].split(" ", 1)[0]) if answer_ok else (lambda p="": "no")
     r.ROOT = tmp
-    args = argparse.Namespace(plans=plans_dir, max_joint_speed=0.14, from_stage="HOME_START", until="HOME",
-                              execute=True, wrench_topic="" if mode == "disabled" else r.WRENCH_TOPIC)
+    args = argparse.Namespace(plans=plans_dir, max_joint_speed=0.14, from_stage=from_stage, until="HOME",
+                              execute=True, wrench_topic="" if mode == "disabled" else r.WRENCH_TOPIC,
+                              grip_band=r.GRIP_BAND_MM)
     try:
         rc = r.execute(variant, plans, G, objs, args)
     finally:
@@ -264,12 +271,26 @@ def main():
         (tmp / "config/scene/scene_registration.yaml").write_text("layout: session\n")
         pdir = tmp / "plans"; pdir.mkdir()
         s10 = json.load(open(plans_src / "stage10_summary.json")); s10["layout"] = "session"
+        r.ROOT, root0 = tmp, r.ROOT
+        s10["registration_sha256"] = r.registration_sha256(); r.ROOT = root0
         json.dump(s10, open(pdir / "stage10_summary.json", "w"))
         res = {}
         for mode in ("ok", "absent", "disabled", "bad"):
             print(f"\n================ case {mode} ================")
             res[mode] = run_case(r, plans, G, objs, a.variant, pdir, tmp, mode)
             time.sleep(1.1)                                    # distinct log folder names (1 s resolution)
+        print("\n================ safety cases (new 4 Nov) ================")
+        rc_e, log_e, sent_e = run_case(r, plans, G, objs, a.variant, pdir, tmp, "ok", part_mm=None); time.sleep(1.1)
+        rc_m, log_m, sent_m = run_case(r, plans, G, objs, a.variant, pdir, tmp, "ok", missing={f"fitting_V{a.variant}"}); time.sleep(1.1)
+        rc_f, log_f, sent_f = run_case(r, plans, G, objs, a.variant, pdir, tmp, "ok", from_stage="INSERT"); time.sleep(1.1)
+        rc_r, log_r, sent_r = run_case(r, plans, G, objs, a.variant, pdir, tmp, "ok", from_stage="RETREAT", width0=0.0101); time.sleep(1.1)
+        s10_bad = dict(s10); s10_bad["registration_sha256"] = "0" * 64
+        pbad = tmp / "plans_bad"; pbad.mkdir(); json.dump(s10_bad, open(pbad / "stage10_summary.json", "w"))
+        try:
+            run_case(r, plans, G, objs, a.variant, pbad, tmp, "ok"); mism = None
+        except SystemExit as e:
+            mism = str(e)
+        time.sleep(1.1)
         print("\n================ case operator-stop ================")
         rc_stop, log_stop, sent_stop = run_case(r, plans, G, objs, a.variant, pdir, tmp, "ok", answer_ok=False)
 
@@ -301,6 +322,21 @@ def main():
         ref = res["disabled"][2]
         for mode in ("ok", "absent", "bad"):
             check(res[mode][2] == ref, f"[{mode}] commanded goals identical to --no-wrench ({len(ref)} goals)")
+        def stopped(log, sent_, text):
+            st_ = json.load(open(log / "status.json"))
+            return st_["status"] == "STOPPED" and text in st_.get("reason", ""), st_
+        ok_, st_ = stopped(log_e, sent_e, "EMPTY gripper")
+        arm_after_grip = [x for x in sent_e if "finger" not in x[0]][3:]   # HOME_START/REACH/ALIGN_GRIP only
+        check(rc_e == 1 and ok_ and not arm_after_grip, f"[empty gripper] GRIP stops the run, no LIFT sent ({st_.get('reason','')[:70]})")
+        ok_, st_ = stopped(log_m, sent_m, "missing")
+        check(rc_m == 1 and ok_ and not sent_m, f"[fitting missing in MoveIt] stopped before any motion")
+        ok_, st_ = stopped(log_f, sent_f, "not attached")
+        check(rc_f == 1 and ok_ and not sent_f, "[--from INSERT, part not attached] stopped before any motion")
+        ok_, st_ = stopped(log_r, sent_r, "")
+        check(rc_r == 1 and not sent_r and "attached" not in st_.get("reason", "") and "RG2 reads" in st_.get("reason", ""),
+              "[--from RETREAT with the gripper closed] stopped before any motion")
+        check(mism is not None and "not made from the current registration" in mism,
+              "[plans from another registration] BLOCKED before ROS")
         st = json.load(open(log_stop / "status.json"))
         check(rc_stop == 1 and st["status"] == "STOPPED" and not sent_stop, "[operator-stop] nothing sent, STOPPED, logs written")
         shutil.rmtree(tmp / "results", ignore_errors=True)

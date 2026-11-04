@@ -286,6 +286,8 @@ def main():
                "cdmp_params": CDMP_PARAMS, "reach_demo": REACH_CSV, "transport_demo": TRANSPORT_CSV,
                "demo_durations_s": {"reach": float(tr[-1]), "transport": float(tt[-1])},
                "grasp_sources": gsrc, "layout": yaml.safe_load(open(sm.registration_path())).get("layout"),
+               # the physical runner refuses plans whose registration differs from the current one
+               "registration_sha256": __import__("hashlib").sha256(open(sm.registration_path(), "rb").read()).hexdigest(),
                "collision_scope": "RG2 links (+ attached part) vs every scene object; arm links not checked offline",
                "variants": {}}
     spath = os.path.join(a.out, "stage10_summary.json")
