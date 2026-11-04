@@ -20,6 +20,7 @@ LIB="${HOME}/ros2_ws/src/rs2_dmp_demo"
 if [[ "${1:-}" == "--library" ]]; then LIB="$2"; fi
 [[ -d "$SESSION" ]] || { echo "No session folder: $SESSION" >&2; exit 2; }
 [[ -f "$LIB/cdmp/src/cdmps.py" ]] || { echo "CDMP library not found at $LIB (pass --library)" >&2; exit 2; }
+export CDMP_LIBRARY="$LIB"      # Stage 9 L1D (direct CDMP goal adaptation) also uses the library
 NAME="$(basename "$SESSION")"
 if [[ -f /opt/ros/humble/setup.bash ]]; then source /opt/ros/humble/setup.bash; source "${HOME}/ros2_ws/install/setup.bash" || true; fi
 RG2="${RG2_MESH_DIR:-$(ros2 pkg prefix onrobot_description 2>/dev/null)/share/onrobot_description/meshes/rg2/collision}"

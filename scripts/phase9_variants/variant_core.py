@@ -36,7 +36,9 @@ import ur_kinematics as uk  # noqa: E402
 
 np = sm.np
 FLOOR_MM = 2.0
-LEVELS = ("L0", "L1", "L2", "CAD")   # CAD = CAD-only baseline: L2 path, min-jerk timing, no demonstration data
+LEVELS = ("L0", "L1", "L2", "CAD", "L1D")   # CAD = CAD-only baseline: L2 path, min-jerk timing, no demonstration data
+# L1D = direct CDMP goal adaptation of the V1 INSERT/ROTATE skills with Victor's library (l1d_cdmp.py); L1 = the
+# classic-DMP equivalent (output scaled by the goal ratio). Neither uses the CAD corridor.
 CORRIDOR_MARGIN_DEG = 1.0        # L2 keeps at least this far from a corridor wall (or the centre if narrower)
 YAW_TARGET_TOL_DEG = 1.5         # final yaw accepted within this of the CAD seat yaw (V1 Stage 8: 23.5-26.5)
 RETAIN_LIFT_MM = None            # "retained": a straight pull-out along the fitting axis collides (see VariantGeometry.retained)
@@ -180,7 +182,7 @@ def demo_profiles(root):
         return dz, yaw
     dz_i, y_i = prof(T_i); dz_r, y_r = prof(T_r)
     return {"t_ins": t_i, "dz_ins": dz_i, "yaw_ins": y_i, "t_rot": t_r, "dz_rot": dz_r, "yaw_rot": y_r,
-            "D_demo": -dz_i[-1], "Y_demo": y_r[-1]}
+            "D_demo": -dz_i[-1], "Y_demo": y_r[-1], "root": root}
 
 
 def part_pose(T_fit, z_mm, yaw_deg):
@@ -207,6 +209,14 @@ def condition_targets(level, prof, z_start, feat, rows):
         y_goal = feat["target_deg"]; y0 = yaw_ins[-1]
         yaw_rot = y0 + (y_goal - y0) * min_jerk(prof["t_rot"])
         return z_ins, yaw_ins, np.zeros_like(prof["t_rot"]), yaw_rot, y_goal, D_cad, 1.0
+    if level == "L1D":
+        # direct CDMP rollouts with the CAD goal (depth along the fitting axis, seat yaw); no corridor
+        import l1d_cdmp
+        y_goal = feat["target_deg"]
+        d = l1d_cdmp.l1d_profiles(prof["root"], prof, D_cad, y_goal)
+        z_ins = z_start + d["dz_ins"]; yaw_ins = d["yaw_ins"]
+        yaw_rot = yaw_ins[-1] + d["yaw_rot"]
+        return z_ins, yaw_ins, d["dz_rot"], yaw_rot, y_goal, D_cad, D_cad / prof["D_demo"]
     sc = 1.0 if level == "L0" else D_cad / prof["D_demo"]
     z_ins = z_start + prof["dz_ins"] * sc
     if level == "L2":

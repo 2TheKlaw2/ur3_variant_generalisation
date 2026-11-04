@@ -142,7 +142,8 @@ def read_stages(path, extra_cols=0):
     return out
 
 
-LEVELS = ("L0", "L1", "L2", "CAD")    # L0 demo replay, L1 CDMP goal scaled to CAD, L2 CAD corridor (method), CAD-only baseline
+LEVELS = ("L0", "L1", "L2", "CAD", "L1D")   # L0 demo replay, L1 classic-DMP goal scaling, L2 CAD corridor (method),
+                                            # CAD-only baseline, L1D direct CDMP goal adaptation (Victor's library)
 
 
 def load_insert_rotate(i, temporal="fixed", level="L2"):
@@ -230,7 +231,8 @@ def build(i, plans_dir, vmax, temporal="fixed", level="L2"):
 def preflight(i, plans_dir, vmax, temporal="fixed", level="L2"):
     plans, G, objs, s10 = build(i, plans_dir, vmax, temporal, level)
     print(f"\nINSERT/ROTATE level: {level}" + {"L0": " (demo replay)", "L1": " (CDMP goal scaled to CAD)",
-                                                  "L2": " (CAD corridor: the method)", "CAD": " (CAD-only baseline, no demo)"}[level])
+                                                  "L2": " (CAD corridor: the method)", "CAD": " (CAD-only baseline, no demo)",
+                                                  "L1D": " (direct CDMP goal adaptation, Victor's library)"}[level])
     print(f"\nINSERT/ROTATE timing: {temporal}" + (" (CAD-scaled: tab path vs V1, temporal_scaling.py)" if temporal == "cad" else
                                                   " (demonstrated durations)"))
     print(f"\n=========== V{i} {level} FULL-CYCLE PHYSICAL PREFLIGHT (no ROS, no motion) ===========")
@@ -669,7 +671,7 @@ def main():
                     help="stop after this stage (first runs: --until ALIGN_INSERT, then inspect the alignment)")
     ap.add_argument("--execute", action="store_true", help="REAL ROBOT: staged execution with operator approval")
     ap.add_argument("--level", choices=LEVELS, default="L2",
-                    help="INSERT/ROTATE condition: L2 (default, the method), CAD (CAD-only baseline), L1, L0. "
+                    help="INSERT/ROTATE condition: L2 (default, the method), CAD (CAD-only baseline), L1, L1D, L0. "
                          "Refused unless that variant+level assembles and seats in simulation")
     ap.add_argument("--temporal", choices=("fixed", "cad"), default="fixed",
                     help="INSERT/ROTATE timing: fixed (default, demonstrated durations) or cad (stretched by the CAD "

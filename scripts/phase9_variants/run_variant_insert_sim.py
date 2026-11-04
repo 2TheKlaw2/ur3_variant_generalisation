@@ -111,6 +111,9 @@ def cache_key(i, level, objs, G, features_dir):
     sess = yaml.safe_load(open(sm.registration_path())).get("poses_dir")     # grasps come from the session poses
     if sess:
         files += [os.path.join(sess, f"v1_pickup_V{k}_geometry.yaml") for k in range(1, 6)]
+    if level == "L1D":                       # direct CDMP rollouts: the planner code and Victor's library count
+        import l1d_cdmp
+        files += ["scripts/phase9_variants/l1d_cdmp.py", str(l1d_cdmp.library_file())]
     inputs = {"plan_src": inspect.getsource(plan), "ver": 3,
               "grasp": np.round(G[i], 9).tolist(), "grasp_v1": np.round(G[1], 9).tolist()}
     return plan_cache.key(f"stage9_V{i}_{level}", inputs, files)
