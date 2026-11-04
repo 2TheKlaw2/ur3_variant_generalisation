@@ -205,6 +205,11 @@ def main():
             "fit_rms_mm": round(float(np.sqrt((place_fit["resid"] ** 2).sum(1).mean())) * 1000, 2),
             "grasp_compensated_variants": place_fit["grasp_compensated"],
             "fit_rms_without_grasp_compensation_mm": round(place_fit["rms_uncompensated_mm"], 2),
+            # Each fitting's OWN measured centre (base-frame xy offset from the rigid-plate fit). The printed fittings
+            # sit up to ~0.45 mm from the rigid fit (5 Nov: V1 L0 landed on the rim, 43 N), more than the 0.30-0.35 mm
+            # radial clearance, so scene_model places every fitting at its measured centre.
+            "fitting_offsets_mm": {f"V{v}": [round(float(a) * 1000, 3), round(float(b) * 1000, 3)]
+                                   for v, (a, b) in zip(place, place_fit["resid"])},       # same order as the fit
         }),
     }
     # ---- environment boxes (in the plates' yaw frame)

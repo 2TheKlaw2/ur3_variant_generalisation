@@ -93,6 +93,7 @@ def scene_objects(measured=False):
     """
     man = _load("cad/manifest.yaml")["meshes"]
     frames = plate_frames(measured)
+    reg_place_offsets = _load("config/scene/scene_registration.yaml").get("placement_plate", {}).get("fitting_offsets_mm")
     objs = {}
     for key in ("pickup_plate", "placement_plate"):
         objs[key] = {"T": frames[key], "mesh": os.path.join(PKG, "cad", man[key]["file"]), "plate": key}
@@ -104,6 +105,10 @@ def scene_objects(measured=False):
             local[:3, :3] = rpy_matrix(*[math.radians(a) for a in p["rpy_deg"]])
             objs[f"{kind}_V{v}"] = {"T": frames[plate] @ local,
                                     "mesh": os.path.join(PKG, "cad", man[mkey]["file"]), "plate": plate}
+            if kind == "fitting" and not measured and not os.environ.get("SCENE_RIGID_FITTINGS"):
+                off = (reg_place_offsets or {}).get(f"V{v}")              # each fitting at its measured centre
+                if off:
+                    objs[f"fitting_V{v}"]["T"][:2, 3] += np.array(off, float) / 1000.0
     for key, e in _load("config/scene/scene_registration.yaml").get("environment", {}).items():
         objs[key] = {"T": translate(e["xyz_m"]) @ rot_z(e["yaw_rad"]),
                      "mesh": os.path.join(PKG, "cad", "environment", f"{key}.stl"), "plate": "environment"}
