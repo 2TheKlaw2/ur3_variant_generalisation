@@ -41,7 +41,7 @@ ROOT = Path(__file__).resolve().parents[2]
 JOINTS = [f"{x}_joint" for x in ("shoulder_pan", "shoulder_lift", "elbow", "wrist_1", "wrist_2", "wrist_3")]
 ARM_ACTION = "/scaled_joint_trajectory_controller/follow_joint_trajectory"
 GRIPPER_ACTION = "/finger_width_trajectory_controller/follow_joint_trajectory"
-RG2_OPEN_M, RG2_GRIP_M = 0.040, 0.0082
+RG2_OPEN_M, RG2_GRIP_M = 0.040, 0.0083   # 8.3 mm: the command Enrique found reliable for every part (lab, 3 Nov)
 RG2_OPEN_S, RG2_GRIP_S = 3.0, 2.0
 # GRIP passes only if the fingers STOPPED ON THE PART: 27 Oct an 8.5 mm command read ~10.1 mm on the part, while an
 # empty gripper closes to the commanded 8.2 mm. Override with --grip-band after the lab grip test if needed.
