@@ -172,6 +172,8 @@ def main():
         rr = mp_raw - (lp_ @ Rr.T + (mcr - Rr @ lcr))
         place_fit = {"origin": o2, "yaw": math.atan2(R2[1, 0], R2[0, 0]), "resid": r2, "used": list(place.values()),
                      "grasp_compensated": comp, "rms_uncompensated_mm": float(np.sqrt((rr ** 2).sum(1).mean()) * 1000)}
+    tf_ = os.path.join(POSES_DIR, "touchup_offsets_mm.yaml") if args.session else None
+    touch = (yaml.safe_load(open(tf_)) or {}) if tf_ and os.path.exists(tf_) else {}
     t = args.trolley_surface_z
     s = t + args.fixture_thickness            # blue plate undersides
 
@@ -208,8 +210,11 @@ def main():
             # Each fitting's OWN measured centre (base-frame xy offset from the rigid-plate fit). The printed fittings
             # sit up to ~0.45 mm from the rigid fit (5 Nov: V1 L0 landed on the rim, 43 N), more than the 0.30-0.35 mm
             # radial clearance, so scene_model places every fitting at its measured centre.
-            "fitting_offsets_mm": {f"V{v}": [round(float(a) * 1000, 3), round(float(b) * 1000, 3)]
+            "fitting_offsets_mm": {f"V{v}": [round(float(a) * 1000 + touch.get(f"V{v}", [0, 0])[0], 3),
+                                             round(float(b) * 1000 + touch.get(f"V{v}", [0, 0])[1], 3)]
                                    for v, (a, b) in zip(place, place_fit["resid"])},       # same order as the fit
+            # robot-grasp touch-ups (scripts/lab/insert_touchup.py), already included above
+            "touchup_offsets_mm": touch,
         }),
     }
     # ---- environment boxes (in the plates' yaw frame)
