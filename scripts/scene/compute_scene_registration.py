@@ -69,6 +69,8 @@ def fitting_dz_mm(m):
     """Seat height correction from caliper heights {pocket, seated} (part top above the plate top, mm).
     The robot grips at the measured pickup TCP, so a part sitting high in its pocket by e arrives e high;
     a seat lower than CAD by e needs e more depth. Part-height print errors cancel."""
+    if "robot_dz" in m:        # measured with the robot's grasp (insert_touchup at INSERT end, then settled onto the floor)
+        return round(float(m["robot_dz"]), 3)
     pocket_cad, seated_cad = CAD_HEIGHTS_MM[m["variant"]]
     return round((float(m["seated"]) - seated_cad) - (float(m["pocket"]) - pocket_cad), 3)
 
