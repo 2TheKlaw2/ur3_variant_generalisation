@@ -559,7 +559,13 @@ def execute(i, plans, G, objs, args):
     def approve(label, detail):
         print(f"\n--- PHYSICAL STAGE REVIEW: {label} ---\n{detail}")
         print("Check: fixture and part as planned, path clear, nobody in the workspace, pendant stop in reach.")
-        if node.stop_requested or input(f"Type RUN_{label} to continue (anything else stops): ").strip() != f"RUN_{label}":
+        if node.stop_requested:
+            raise RuntimeError(f"{label}: operator stopped; no further stages sent")
+        if getattr(args, "auto", False) and label not in (f"V{i}_START", "INSERT", "HOME_START"):
+            print(f"--auto: RUN_{label} (Ctrl+C cancels the active stage; pendant stop in reach)", flush=True)
+            status.setdefault("auto_confirmed", []).append(label)
+            return
+        if input(f"Type RUN_{label} to continue (anything else stops): ").strip() != f"RUN_{label}":
             raise RuntimeError(f"{label}: operator stopped; no further stages sent")
 
     logdir = ROOT / "results/physical/full_cycle" / f"V{i}_{getattr(args, 'level', 'L2')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -676,6 +682,9 @@ def main():
     ap.add_argument("--level", choices=LEVELS, default="L2",
                     help="INSERT/ROTATE condition: L2 (default, the method), CAD (CAD-only baseline), L1, L1D, L0. "
                          "Refused unless that variant+level assembles and seats in simulation")
+    ap.add_argument("--auto", action="store_true",
+                    help="confirm only the cycle start and INSERT (inspect the alignment there); every other stage runs "
+                         "without typing. Recorded in status.json. Ctrl+C still cancels the active stage")
     ap.add_argument("--transit-speed", type=float, default=None,
                     help=f"peak joint speed for REACH and TRANSPORT only (free air), e.g. 0.28 = 2x the 0.14 guard; "
                          f"max {HARD_MAX_SPEED}. Every other stage keeps --max-joint-speed")
