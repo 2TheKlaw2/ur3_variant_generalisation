@@ -1,9 +1,10 @@
 # Robot-grasp seat height correction, 5 Nov 2026 (lab). With the L2 plans every part stopped about 1.5 mm above the
 # fitting floor while still gripped and dropped about 1.5 mm onto the floor at RELEASE (V1-V5 all 20.0 mm seated
 # afterwards; calipered pocket/seated heights match CAD exactly). The part therefore sits about 1.5 mm higher in the
-# RG2 jaws than the calibration grasp assumes. robot_dz = -1.5: insert that much deeper (ALIGN_INSERT unchanged).
-V1: {robot_dz: -1.5}
-V2: {robot_dz: -1.5}
-V3: {robot_dz: -1.5}
-V4: {robot_dz: -1.5}
-V5: {robot_dz: -1.5}
+# RG2 jaws than the calibration grasp assumes. Operator caliper check on V1 (part top above fitting top, gripped after
+# INSERT vs after RELEASE): about 1.0 mm. robot_dz = -1.0: insert that much deeper (ALIGN_INSERT unchanged).
+V1: {robot_dz: -1.0}
+V2: {robot_dz: -1.0}
+V3: {robot_dz: -1.0}
+V4: {robot_dz: -1.0}
+V5: {robot_dz: -1.0}
