@@ -100,7 +100,7 @@ class SceneClient:
     def _call(self, cli, req, label, timeout=30.0):
         import rclpy
         if not cli.wait_for_service(timeout_sec=10.0):
-            raise RuntimeError(f"{label}: service unavailable (is move_group running in domain 73?)")
+            raise RuntimeError(f"{label}: service unavailable (is move_group running in ROS_DOMAIN_ID={os.environ.get('ROS_DOMAIN_ID', '0')}?)")
         fut = cli.call_async(req)
         end = time.monotonic() + timeout
         while not fut.done() and time.monotonic() < end:

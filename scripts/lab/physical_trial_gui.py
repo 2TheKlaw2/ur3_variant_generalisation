@@ -374,7 +374,7 @@ class TrialGUI(tk.Tk):
         if self.reset_scene.get():
             steps.append("python3 " + SCENE + " --reset --physical")
         script = (" && ".join(steps) + " && " + shlex.join(a + ["--execute"]) +
-                  '; echo; echo "runner exit code: $?"; read -r -p "Enter closes this terminal "')
+                  '; rc=$?; echo; if [ $rc -eq 0 ]; then echo "finished (exit 0)"; else echo "STOPPED or FAILED (exit $rc): read the lines above"; fi; read -r -p "Enter closes this terminal "')
         title = f"V{n} {self.level.get()} physical"
         cmd = ([term, "--title", title, "--", "bash", "-c", script] if Path(term).name == "gnome-terminal"
                else [term, "-T", title, "-e", "bash", "-c", script])
