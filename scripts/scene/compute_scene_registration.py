@@ -59,6 +59,20 @@ def rot_of(name):
         return Rotation.from_quat(yaml.safe_load(f)["tcp"]["quaternion_xyzw"]).as_matrix()
 
 
+# CAD heights of the part top above the blue plate top [mm] (cad/manifest.yaml poses + STL heights +
+# results/cad_features floor; pickup/placement plates 3 mm): pocket = part in its pickup pocket,
+# seated = part on the fitting floor (inserted and locked).
+CAD_HEIGHTS_MM = {"V1": (23.0, 27.0), "V2": (23.0, 27.0), "V3": (28.0, 32.0), "V4": (28.0, 32.0), "V5": (38.0, 42.0)}
+
+
+def fitting_dz_mm(m):
+    """Seat height correction from caliper heights {pocket, seated} (part top above the plate top, mm).
+    The robot grips at the measured pickup TCP, so a part sitting high in its pocket by e arrives e high;
+    a seat lower than CAD by e needs e more depth. Part-height print errors cancel."""
+    pocket_cad, seated_cad = CAD_HEIGHTS_MM[m["variant"]]
+    return round((float(m["seated"]) - seated_cad) - (float(m["pocket"]) - pocket_cad), 3)
+
+
 def tcp_xyz(name):
     with open(pose_file(name)) as f:
         return np.array(yaml.safe_load(f)["tcp"]["position_m"], float)
@@ -174,6 +188,9 @@ def main():
                      "grasp_compensated": comp, "rms_uncompensated_mm": float(np.sqrt((rr ** 2).sum(1).mean()) * 1000)}
     tf_ = os.path.join(POSES_DIR, "touchup_offsets_mm.yaml") if args.session else None
     touch = (yaml.safe_load(open(tf_)) or {}) if tf_ and os.path.exists(tf_) else {}
+    hf_ = os.path.join(POSES_DIR, "height_measurements_mm.yaml") if args.session else None
+    heights = (yaml.safe_load(open(hf_)) or {}) if hf_ and os.path.exists(hf_) else {}
+    fit_dz = {v: fitting_dz_mm({**m, "variant": v}) for v, m in heights.items()}
     t = args.trolley_surface_z
     s = t + args.fixture_thickness            # blue plate undersides
 
@@ -217,6 +234,11 @@ def main():
             "touchup_offsets_mm": touch,
         }),
     }
+    if fit_dz:
+        # Measured heights (caliper, CAD_HEIGHTS_MM). Without them every height comes from CAD; 5 Nov V1 stopped
+        # ~1.5 mm short of the floor. dz < 0: the part must go that much deeper than CAD (scene_model applies it).
+        out["seat_height_corrections_mm"] = fit_dz
+        out["height_measurements_mm"] = heights
     # ---- environment boxes (in the plates' yaw frame)
     c, sn = math.cos(yaw), math.sin(yaw)
     Rm = np.array([[c, -sn], [sn, c]])

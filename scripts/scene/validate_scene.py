@@ -181,10 +181,15 @@ def main():
                                f"(expected {e_exp[0]*1000:.2f} x {e_exp[1]*1000:.2f} x {e_exp[2]*1000:.2f})")
 
     # ---- B. heights in base frame
+    seat_dz = reg.get("seat_height_corrections_mm") or {}     # measured heights: part raised (dz<0) or fitting (dz>0)
     for i in range(1, 6):
         zb = meshes[f"pickup_V{i}"].bounds[0][2]; zf = meshes[f"fitting_V{i}"].bounds[0][2]
-        check(f"seat pickup_V{i}", abs(zb - (s + 0.001)) < 1e-5, f"part bottom z = {zb*1000:.2f} mm (pocket floor = surface + 1.00)")
-        check(f"seat fitting_V{i}", abs(zf - (s + 0.003)) < 1e-5, f"fitting base z = {zf*1000:.2f} mm (plate top = surface + 3.00)")
+        dz = float(seat_dz.get(f"V{i}", 0.0)) / 1000.0
+        rb, rf = max(0.0, -dz), max(0.0, dz)
+        check(f"seat pickup_V{i}", abs(zb - (s + 0.001 + rb)) < 1e-5,
+              f"part bottom z = {zb*1000:.2f} mm (pocket floor = surface + 1.00{f' + measured {rb*1000:.2f}' if rb else ''})")
+        check(f"seat fitting_V{i}", abs(zf - (s + 0.003 + rf)) < 1e-5,
+              f"fitting base z = {zf*1000:.2f} mm (plate top = surface + 3.00{f' + measured {rf*1000:.2f}' if rf else ''})")
 
     # ---- C. static collisions (lift 0.02 mm to ignore exact resting contacts)
     names = list(meshes)

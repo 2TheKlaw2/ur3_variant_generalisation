@@ -93,7 +93,13 @@ def scene_objects(measured=False):
     """
     man = _load("cad/manifest.yaml")["meshes"]
     frames = plate_frames(measured)
-    reg_place_offsets = _load("config/scene/scene_registration.yaml").get("placement_plate", {}).get("fitting_offsets_mm")
+    reg_place = _load("config/scene/scene_registration.yaml").get("placement_plate", {})
+    reg_place_offsets = reg_place.get("fitting_offsets_mm")
+    # Measured seat height corrections (caliper, compute_scene_registration.CAD_HEIGHTS_MM): only the difference
+    # between the part's height in the hand and the seat matters, so apply it where it penetrates nothing:
+    # dz < 0 (seat effectively lower) -> the part sits that much higher in its pocket (and so in the grasp);
+    # dz > 0 -> the fitting sits that much higher. Applied in both layouts: the grasp comes from measured=True.
+    seat_dz = _load("config/scene/scene_registration.yaml").get("seat_height_corrections_mm") or {}
     objs = {}
     for key in ("pickup_plate", "placement_plate"):
         objs[key] = {"T": frames[key], "mesh": os.path.join(PKG, "cad", man[key]["file"]), "plate": key}
@@ -105,6 +111,9 @@ def scene_objects(measured=False):
             local[:3, :3] = rpy_matrix(*[math.radians(a) for a in p["rpy_deg"]])
             objs[f"{kind}_V{v}"] = {"T": frames[plate] @ local,
                                     "mesh": os.path.join(PKG, "cad", man[mkey]["file"]), "plate": plate}
+            dz = float(seat_dz.get(f"V{v}", 0.0)) / 1000.0
+            if (kind == "pickup" and dz < 0) or (kind == "fitting" and dz > 0):
+                objs[f"{kind}_V{v}"]["T"][2, 3] += abs(dz)
             if kind == "fitting" and not measured and not os.environ.get("SCENE_RIGID_FITTINGS"):
                 off = (reg_place_offsets or {}).get(f"V{v}")              # each fitting at its measured centre
                 if off:
