@@ -1,0 +1,271 @@
+{
+ "topic": "/force_torque_sensor_broadcaster/wrench",
+ "enabled": true,
+ "note": "RECORDING ONLY: no contact detection, no force control, no force-triggered stopping",
+ "subscriber_qos": "sensor_data (best effort, depth 5)",
+ "value_frame_note": "UR driver: values are rotated into the pendant TCP frame (tool0_controller); frame_id is the broadcaster's label (ur_onrobot: tool0). Raw readings, not zeroed: max |F| includes the sensor bias and gripper/part weight.",
+ "publishers_at_start": [
+  {
+   "node": "/force_torque_sensor_broadcaster",
+   "type": "geometry_msgs/msg/WrenchStamped",
+   "reliability": "ReliabilityPolicy.RELIABLE",
+   "durability": "DurabilityPolicy.TRANSIENT_LOCAL"
+  }
+ ],
+ "messages_received_total": 18808,
+ "callback_errors": 0,
+ "stages": [
+  {
+   "available": true,
+   "n_samples": 381,
+   "n_nonfinite": 0,
+   "stage_window_s": 3.052,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 31.91,
+   "max_abs_torque_Nm": 0.9399,
+   "force_at_stage_start_N": [
+    -7.589,
+    9.412,
+    -29.234
+   ],
+   "max_abs_force_change_from_stage_start_N": 0.309,
+   "max_gap_s": 0.0133,
+   "max_header_age_s": 0.007,
+   "stale": false,
+   "stage": "OPEN"
+  },
+  {
+   "available": true,
+   "n_samples": 4527,
+   "n_nonfinite": 0,
+   "stage_window_s": 36.256,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 32.342,
+   "max_abs_torque_Nm": 1.0324,
+   "force_at_stage_start_N": [
+    -7.635,
+    9.426,
+    -29.155
+   ],
+   "max_abs_force_change_from_stage_start_N": 1.145,
+   "max_gap_s": 0.0153,
+   "max_header_age_s": 0.0124,
+   "stale": false,
+   "stage": "REACH"
+  },
+  {
+   "available": true,
+   "n_samples": 132,
+   "n_nonfinite": 0,
+   "stage_window_s": 1.054,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 32.005,
+   "max_abs_torque_Nm": 0.9463,
+   "force_at_stage_start_N": [
+    -7.55,
+    9.585,
+    -29.166
+   ],
+   "max_abs_force_change_from_stage_start_N": 0.425,
+   "max_gap_s": 0.0143,
+   "max_header_age_s": 0.0197,
+   "stale": false,
+   "stage": "ALIGN_GRIP"
+  },
+  {
+   "available": true,
+   "n_samples": 257,
+   "n_nonfinite": 0,
+   "stage_window_s": 2.055,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 33.299,
+   "max_abs_torque_Nm": 0.9486,
+   "force_at_stage_start_N": [
+    -7.608,
+    9.613,
+    -29.384
+   ],
+   "max_abs_force_change_from_stage_start_N": 3.237,
+   "max_gap_s": 0.0126,
+   "max_header_age_s": 0.0061,
+   "stale": false,
+   "stage": "GRIP"
+  },
+  {
+   "available": true,
+   "n_samples": 379,
+   "n_nonfinite": 0,
+   "stage_window_s": 3.053,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 34.183,
+   "max_abs_torque_Nm": 1.0605,
+   "force_at_stage_start_N": [
+    -11.331,
+    10.54,
+    -30.312
+   ],
+   "max_abs_force_change_from_stage_start_N": 5.095,
+   "max_gap_s": 0.013,
+   "max_header_age_s": 0.0089,
+   "stale": false,
+   "stage": "LIFT"
+  },
+  {
+   "available": true,
+   "n_samples": 4152,
+   "n_nonfinite": 0,
+   "stage_window_s": 33.205,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 32.304,
+   "max_abs_torque_Nm": 1.0031,
+   "force_at_stage_start_N": [
+    -7.499,
+    9.636,
+    -29.121
+   ],
+   "max_abs_force_change_from_stage_start_N": 1.45,
+   "max_gap_s": 0.0148,
+   "max_header_age_s": 0.0115,
+   "stale": false,
+   "stage": "TRANSPORT"
+  },
+  {
+   "available": true,
+   "n_samples": 562,
+   "n_nonfinite": 0,
+   "stage_window_s": 4.552,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 32.163,
+   "max_abs_torque_Nm": 0.9882,
+   "force_at_stage_start_N": [
+    -7.614,
+    9.551,
+    -28.934
+   ],
+   "max_abs_force_change_from_stage_start_N": 1.17,
+   "max_gap_s": 0.0134,
+   "max_header_age_s": 0.0113,
+   "stale": false,
+   "stage": "ALIGN_INSERT"
+  },
+  {
+   "available": true,
+   "n_samples": 2408,
+   "n_nonfinite": 0,
+   "stage_window_s": 19.553,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 33.901,
+   "max_abs_torque_Nm": 1.1183,
+   "force_at_stage_start_N": [
+    -7.828,
+    9.592,
+    -29.181
+   ],
+   "max_abs_force_change_from_stage_start_N": 4.417,
+   "max_gap_s": 0.0152,
+   "max_header_age_s": 0.0133,
+   "stale": false,
+   "stage": "INSERT"
+  },
+  {
+   "available": true,
+   "n_samples": 2463,
+   "n_nonfinite": 0,
+   "stage_window_s": 19.854,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 32.049,
+   "max_abs_torque_Nm": 1.0655,
+   "force_at_stage_start_N": [
+    -9.909,
+    9.174,
+    -28.741
+   ],
+   "max_abs_force_change_from_stage_start_N": 4.57,
+   "max_gap_s": 0.013,
+   "max_header_age_s": 0.0123,
+   "stale": false,
+   "stage": "ROTATE"
+  },
+  {
+   "available": true,
+   "n_samples": 375,
+   "n_nonfinite": 0,
+   "stage_window_s": 3.052,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 32.263,
+   "max_abs_torque_Nm": 0.9583,
+   "force_at_stage_start_N": [
+    -8.188,
+    9.495,
+    -25.808
+   ],
+   "max_abs_force_change_from_stage_start_N": 4.003,
+   "max_gap_s": 0.0137,
+   "max_header_age_s": 0.0061,
+   "stale": false,
+   "stage": "RELEASE"
+  },
+  {
+   "available": true,
+   "n_samples": 384,
+   "n_nonfinite": 0,
+   "stage_window_s": 3.053,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 31.993,
+   "max_abs_torque_Nm": 0.9452,
+   "force_at_stage_start_N": [
+    -7.592,
+    9.607,
+    -29.042
+   ],
+   "max_abs_force_change_from_stage_start_N": 0.595,
+   "max_gap_s": 0.0109,
+   "max_header_age_s": 0.0157,
+   "stale": false,
+   "stage": "RETREAT"
+  },
+  {
+   "available": true,
+   "n_samples": 2145,
+   "n_nonfinite": 0,
+   "stage_window_s": 17.303,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 32.349,
+   "max_abs_torque_Nm": 0.9864,
+   "force_at_stage_start_N": [
+    -7.45,
+    9.629,
+    -29.006
+   ],
+   "max_abs_force_change_from_stage_start_N": 1.405,
+   "max_gap_s": 0.013,
+   "max_header_age_s": 0.0123,
+   "stale": false,
+   "stage": "HOME"
+  }
+ ]
+}

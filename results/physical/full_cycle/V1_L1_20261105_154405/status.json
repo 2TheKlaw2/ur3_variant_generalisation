@@ -1,0 +1,81 @@
+{
+ "type": "PHYSICAL RUN (staged)",
+ "variant": "V1",
+ "level": "L1",
+ "started": "2026-11-05T15:44:06.116512",
+ "max_joint_speed_rad_s": 0.14,
+ "transit_speed_rad_s": 0.3,
+ "plans": "results/simulation/stage10_depthfix",
+ "stages": [
+  {
+   "name": "OPEN",
+   "status": "PASS",
+   "wall_s": 5.82
+  }
+ ],
+ "temporal": "fixed",
+ "status": "STOPPED",
+ "reason": "REACH: Ctrl+C",
+ "ended": "2026-11-05T15:45:21.093106",
+ "wrench_recording": {
+  "topic": "/force_torque_sensor_broadcaster/wrench",
+  "enabled": true,
+  "note": "RECORDING ONLY: no contact detection, no force control, no force-triggered stopping",
+  "subscriber_qos": "sensor_data (best effort, depth 5)",
+  "value_frame_note": "UR driver: values are rotated into the pendant TCP frame (tool0_controller); frame_id is the broadcaster's label (ur_onrobot: tool0). Raw readings, not zeroed: max |F| includes the sensor bias and gripper/part weight.",
+  "publishers_at_start": [
+   {
+    "node": "/force_torque_sensor_broadcaster",
+    "type": "geometry_msgs/msg/WrenchStamped",
+    "reliability": "ReliabilityPolicy.RELIABLE",
+    "durability": "DurabilityPolicy.TRANSIENT_LOCAL"
+   }
+  ],
+  "messages_received_total": 4562,
+  "callback_errors": 0,
+  "stages": [
+   {
+    "available": true,
+    "n_samples": 379,
+    "n_nonfinite": 0,
+    "stage_window_s": 3.052,
+    "frame_ids": [
+     "tool0"
+    ],
+    "max_abs_force_N": 30.198,
+    "max_abs_torque_Nm": 0.9545,
+    "force_at_stage_start_N": [
+     -7.98,
+     9.523,
+     -27.359
+    ],
+    "max_abs_force_change_from_stage_start_N": 0.393,
+    "max_gap_s": 0.0146,
+    "max_header_age_s": 0.0116,
+    "stale": false,
+    "stage": "OPEN"
+   },
+   {
+    "available": true,
+    "n_samples": 4007,
+    "n_nonfinite": 0,
+    "stage_window_s": 32.159,
+    "frame_ids": [
+     "tool0"
+    ],
+    "max_abs_force_N": 30.618,
+    "max_abs_torque_Nm": 1.0435,
+    "force_at_stage_start_N": [
+     -7.971,
+     9.556,
+     -27.201
+    ],
+    "max_abs_force_change_from_stage_start_N": 1.315,
+    "max_gap_s": 0.0168,
+    "max_header_age_s": 0.0173,
+    "stale": false,
+    "stage": "REACH"
+   }
+  ]
+ }
+}

@@ -1,0 +1,40 @@
+{
+ "topic": "/force_torque_sensor_broadcaster/wrench",
+ "enabled": true,
+ "note": "RECORDING ONLY: no contact detection, no force control, no force-triggered stopping",
+ "subscriber_qos": "sensor_data (best effort, depth 5)",
+ "value_frame_note": "UR driver: values are rotated into the pendant TCP frame (tool0_controller); frame_id is the broadcaster's label (ur_onrobot: tool0). Raw readings, not zeroed: max |F| includes the sensor bias and gripper/part weight.",
+ "publishers_at_start": [
+  {
+   "node": "_NODE_NAMESPACE_UNKNOWN_/_NODE_NAME_UNKNOWN_",
+   "type": "geometry_msgs/msg/WrenchStamped",
+   "reliability": "ReliabilityPolicy.RELIABLE",
+   "durability": "DurabilityPolicy.TRANSIENT_LOCAL"
+  }
+ ],
+ "messages_received_total": 2493,
+ "callback_errors": 0,
+ "stages": [
+  {
+   "available": true,
+   "n_samples": 2400,
+   "n_nonfinite": 0,
+   "stage_window_s": 19.406,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 38.482,
+   "max_abs_torque_Nm": 1.2649,
+   "force_at_stage_start_N": [
+    -11.089,
+    8.283,
+    -35.855
+   ],
+   "max_abs_force_change_from_stage_start_N": 6.92,
+   "max_gap_s": 0.013,
+   "max_header_age_s": 0.0129,
+   "stale": false,
+   "stage": "HOME_START"
+  }
+ ]
+}

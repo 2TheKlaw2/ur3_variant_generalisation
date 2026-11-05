@@ -1,0 +1,32 @@
+{
+ "type": "PHYSICAL RUN (staged)",
+ "variant": "V1",
+ "level": "CAD",
+ "started": "2026-11-05T15:21:50.445614",
+ "max_joint_speed_rad_s": 0.14,
+ "transit_speed_rad_s": 0.28,
+ "plans": "results/simulation/stage10_depthfix",
+ "stages": [],
+ "temporal": "fixed",
+ "status": "STOPPED",
+ "reason": "",
+ "ended": "2026-11-05T15:22:15.774334",
+ "wrench_recording": {
+  "topic": "/force_torque_sensor_broadcaster/wrench",
+  "enabled": true,
+  "note": "RECORDING ONLY: no contact detection, no force control, no force-triggered stopping",
+  "subscriber_qos": "sensor_data (best effort, depth 5)",
+  "value_frame_note": "UR driver: values are rotated into the pendant TCP frame (tool0_controller); frame_id is the broadcaster's label (ur_onrobot: tool0). Raw readings, not zeroed: max |F| includes the sensor bias and gripper/part weight.",
+  "publishers_at_start": [
+   {
+    "node": "/force_torque_sensor_broadcaster",
+    "type": "geometry_msgs/msg/WrenchStamped",
+    "reliability": "ReliabilityPolicy.RELIABLE",
+    "durability": "DurabilityPolicy.TRANSIENT_LOCAL"
+   }
+  ],
+  "messages_received_total": 22,
+  "callback_errors": 0,
+  "stages": []
+ }
+}

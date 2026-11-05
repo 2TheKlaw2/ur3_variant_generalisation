@@ -1,0 +1,31 @@
+{
+ "type": "PHYSICAL RUN (staged)",
+ "variant": "V1",
+ "level": "L0",
+ "started": "2026-11-05T10:29:12.579038",
+ "max_joint_speed_rad_s": 0.14,
+ "plans": "/home/enriques/ros2_ws/src/ur3_variant_generalisation/results/simulation/stage10_current",
+ "stages": [],
+ "temporal": "fixed",
+ "status": "STOPPED",
+ "reason": "HOME_START: pickup_V1 must be in its pocket (not attached) before GRIP; reload the scene",
+ "ended": "2026-11-05T10:29:18.301304",
+ "wrench_recording": {
+  "topic": "/force_torque_sensor_broadcaster/wrench",
+  "enabled": true,
+  "note": "RECORDING ONLY: no contact detection, no force control, no force-triggered stopping",
+  "subscriber_qos": "sensor_data (best effort, depth 5)",
+  "value_frame_note": "UR driver: values are rotated into the pendant TCP frame (tool0_controller); frame_id is the broadcaster's label (ur_onrobot: tool0). Raw readings, not zeroed: max |F| includes the sensor bias and gripper/part weight.",
+  "publishers_at_start": [
+   {
+    "node": "/force_torque_sensor_broadcaster",
+    "type": "geometry_msgs/msg/WrenchStamped",
+    "reliability": "ReliabilityPolicy.RELIABLE",
+    "durability": "DurabilityPolicy.TRANSIENT_LOCAL"
+   }
+  ],
+  "messages_received_total": 21,
+  "callback_errors": 0,
+  "stages": []
+ }
+}

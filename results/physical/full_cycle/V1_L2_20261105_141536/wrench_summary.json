@@ -1,0 +1,82 @@
+{
+ "topic": "/force_torque_sensor_broadcaster/wrench",
+ "enabled": true,
+ "note": "RECORDING ONLY: no contact detection, no force control, no force-triggered stopping",
+ "subscriber_qos": "sensor_data (best effort, depth 5)",
+ "value_frame_note": "UR driver: values are rotated into the pendant TCP frame (tool0_controller); frame_id is the broadcaster's label (ur_onrobot: tool0). Raw readings, not zeroed: max |F| includes the sensor bias and gripper/part weight.",
+ "publishers_at_start": [
+  {
+   "node": "/force_torque_sensor_broadcaster",
+   "type": "geometry_msgs/msg/WrenchStamped",
+   "reliability": "ReliabilityPolicy.RELIABLE",
+   "durability": "DurabilityPolicy.TRANSIENT_LOCAL"
+  }
+ ],
+ "messages_received_total": 3091,
+ "callback_errors": 0,
+ "stages": [
+  {
+   "available": true,
+   "n_samples": 376,
+   "n_nonfinite": 0,
+   "stage_window_s": 3.052,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 32.211,
+   "max_abs_torque_Nm": 0.9386,
+   "force_at_stage_start_N": [
+    -7.899,
+    9.879,
+    -29.127
+   ],
+   "max_abs_force_change_from_stage_start_N": 0.894,
+   "max_gap_s": 0.0133,
+   "max_header_age_s": 0.006,
+   "stale": false,
+   "stage": "RELEASE"
+  },
+  {
+   "available": true,
+   "n_samples": 385,
+   "n_nonfinite": 0,
+   "stage_window_s": 3.052,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 32.278,
+   "max_abs_torque_Nm": 0.9476,
+   "force_at_stage_start_N": [
+    -7.635,
+    9.636,
+    -29.427
+   ],
+   "max_abs_force_change_from_stage_start_N": 0.514,
+   "max_gap_s": 0.0112,
+   "max_header_age_s": 0.009,
+   "stale": false,
+   "stage": "RETREAT"
+  },
+  {
+   "available": true,
+   "n_samples": 2230,
+   "n_nonfinite": 0,
+   "stage_window_s": 17.904,
+   "frame_ids": [
+    "tool0"
+   ],
+   "max_abs_force_N": 32.569,
+   "max_abs_torque_Nm": 0.9759,
+   "force_at_stage_start_N": [
+    -7.567,
+    9.548,
+    -29.454
+   ],
+   "max_abs_force_change_from_stage_start_N": 0.956,
+   "max_gap_s": 0.0137,
+   "max_header_age_s": 0.0147,
+   "stale": false,
+   "stage": "HOME"
+  }
+ ]
+}
