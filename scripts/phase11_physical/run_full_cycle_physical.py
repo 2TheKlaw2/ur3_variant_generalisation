@@ -37,6 +37,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
+
 ROOT = Path(__file__).resolve().parents[2]
 JOINTS = [f"{x}_joint" for x in ("shoulder_pan", "shoulder_lift", "elbow", "wrist_1", "wrist_2", "wrist_3")]
 ARM_ACTION = "/scaled_joint_trajectory_controller/follow_joint_trajectory"
@@ -63,7 +65,8 @@ MIN_SLOWDOWN = {"ALIGN_INSERT": 1.5, "INSERT": 1.5}
 # FASTER than planned if the plan is slower (at most TRANSIT_MAX_SPEEDUP x), never above TRANSIT_HARD_MAX.
 TRANSIT = {"REACH", "TRANSPORT", "HOME"}
 TRANSIT_HARD_MAX = 0.80          # rad/s (UR3e joint limits are 3.14 rad/s base/shoulder/elbow, 6.28 wrists)
-TRANSIT_MAX_SPEEDUP = 2.0        # never more than 2x faster than the planned (demonstration-derived) timing
+TRANSIT_MAX_SPEEDUP = 2.0
+LOCAL_GUARD_STAGES = {"INSERT", "ROTATE"}   # --guard local applies here only (in contact with the fitting)        # never more than 2x faster than the planned (demonstration-derived) timing
 HOME_Q = [-0.675926510488, -1.34777768076, -0.527696251869, -2.8273965321, 1.55948805809, -3.87329799334]
 # Wrench RECORDING ONLY (no contact detection, no force control, no force-triggered stop). Verified against the
 # UR driver (Humble): ros2_controllers ForceTorqueSensorBroadcaster publishes geometry_msgs/WrenchStamped on
@@ -197,7 +200,29 @@ def retime(t, q, vmax, allow_speedup=False):
     return [x * f for x in t], f, peak
 
 
-def build(i, plans_dir, vmax, temporal="fixed", level="L2", vtransit=None):
+def retime_local(t, q, vmax, min_factor=1.0, window_s=0.5):
+    """Per-segment time scaling ('local' guard): a segment is slowed only as much as it needs for every joint to stay
+    <= vmax (and at least min_factor). The required factor is spread with a running max (2w) then averaged (w), so
+    it never drops below what a segment needs and the speed ramps over ~window_s instead of jumping. Path unchanged.
+    Returns new time stamps, the overall stretch (new duration / planned), and the planned peak joint speed."""
+    t = np.asarray(t, float); q = np.asarray(q, float)
+    if len(t) < 3:
+        return list(t), 1.0, 0.0
+    dt = np.diff(t); dq = np.abs(np.diff(q, axis=0)).max(axis=1)
+    ok = dt > 0
+    v = np.where(ok, dq / np.where(ok, dt, 1), 0.0)
+    need = np.maximum(min_factor, v / vmax)
+    w = max(1, int(round(window_s / max(np.median(dt[ok]), 1e-3))))
+    pad = np.pad(need, (w, w), mode="edge")
+    runmax = np.array([pad[k:k + 2 * w + 1].max() for k in range(len(need))])
+    pad2 = np.pad(runmax, (w // 2, w // 2), mode="edge")
+    smooth = np.convolve(pad2, np.ones(w // 2 * 2 + 1) / (w // 2 * 2 + 1), mode="valid")[:len(need)]
+    f = np.maximum(smooth, need)
+    t2 = np.concatenate([[t[0]], t[0] + np.cumsum(dt * f)])
+    return list(t2), float((t2[-1] - t2[0]) / (t[-1] - t[0])), float(v.max())
+
+
+def build(i, plans_dir, vmax, temporal="fixed", level="L2", vtransit=None, guard="uniform"):
     full = read_stages(plans_dir / f"V{i}" / "joint_trajectory.csv")
     rel = read_stages(plans_dir / f"V{i}" / "release_retreat.csv")
     s10 = json.load(open(plans_dir / "stage10_summary.json"))["variants"].get(f"V{i}", {})
@@ -229,17 +254,24 @@ def build(i, plans_dir, vmax, temporal="fixed", level="L2", vtransit=None):
         if any(abs(v) > 2 * math.pi + 1e-3 for row in q for v in row[:5]) or any(abs(row[2]) > math.radians(160) for row in q):
             raise RuntimeError(f"V{i} {name}: joint outside the software limits (+-2pi; elbow +-160 deg)")
         fast = bool(vtransit) and name in TRANSIT
-        t2, f, peak = retime(t, q, vtransit if fast else vmax, allow_speedup=fast)
-        extra = MIN_SLOWDOWN.get(name, 0.0)
-        if extra > f:                                   # never faster than the approved fake-hardware playback
-            t2 = [x * extra / f for x in t2]; f = extra
+        if guard == "local" and not fast and name in LOCAL_GUARD_STAGES:
+            # per-segment guard (operator request 6 Nov, separate labelled condition): same joint-speed limit, but
+            # only the fast segments (V4/V5: a short wrist-3 burst in the helix) are slowed
+            t2, f, peak = retime_local(t, q, vmax, MIN_SLOWDOWN.get(name, 1.0))
+        else:
+            t2, f, peak = retime(t, q, vtransit if fast else vmax, allow_speedup=fast)
+            extra = MIN_SLOWDOWN.get(name, 0.0)
+            if extra > f:                               # never faster than the approved fake-hardware playback
+                t2 = [x * extra / f for x in t2]; f = extra
         out[name] = {"t": t2, "q": q, "slowdown": f, "plan_peak_rad_s": peak, "duration_s": t2[-1]}
         prev = (name, q[-1])
     return out, G, objs, s10
 
 
-def preflight(i, plans_dir, vmax, temporal="fixed", level="L2", vtransit=None):
-    plans, G, objs, s10 = build(i, plans_dir, vmax, temporal, level, vtransit)
+def preflight(i, plans_dir, vmax, temporal="fixed", level="L2", vtransit=None, guard="uniform"):
+    plans, G, objs, s10 = build(i, plans_dir, vmax, temporal, level, vtransit, guard)
+    if guard == "local":
+        print("speed guard mode: LOCAL for INSERT/ROTATE (only segments faster than the limit are slowed)")
     print(f"\nINSERT/ROTATE level: {level}" + {"L0": " (demo replay)", "L1": " (CDMP goal scaled to CAD)",
                                                   "L2": " (CAD corridor: the method)", "CAD": " (CAD-only baseline, no demo)",
                                                   "L1D": " (direct CDMP goal adaptation, Victor's library)"}[level])
@@ -592,7 +624,7 @@ def execute(i, plans, G, objs, args):
     status = {"type": "PHYSICAL RUN (staged)", "variant": f"V{i}", "level": getattr(args, "level", "L2"),
               "started": datetime.now().isoformat(),
               "max_joint_speed_rad_s": args.max_joint_speed, "transit_speed_rad_s": getattr(args, "transit_speed", None), "plans": str(args.plans), "stages": [],
-              "temporal": getattr(args, "temporal", "fixed")}
+              "temporal": getattr(args, "temporal", "fixed"), "guard": getattr(args, "guard", "uniform")}
     part = f"pickup_V{i}"
     wrench_info = {}
     try:
@@ -698,6 +730,10 @@ def main():
                     help=f"peak joint speed for the free-air transits {sorted(TRANSIT)} only, max {TRANSIT_HARD_MAX}; "
                          f"they may run up to {TRANSIT_MAX_SPEEDUP:g}x faster than planned. Every other stage keeps "
                          f"--max-joint-speed (0.14) and its minimum slowdowns")
+    ap.add_argument("--guard", choices=("uniform", "local"), default="uniform",
+                    help="how the 0.14 rad/s joint-speed guard is applied to INSERT/ROTATE: uniform (default; the whole "
+                         "stage is slowed by its fastest moment) or local (only the segments that exceed the limit are "
+                         "slowed, smoothly). Same limit either way. Recorded in status.json")
     ap.add_argument("--temporal", choices=("fixed", "cad"), default="fixed",
                     help="INSERT/ROTATE timing: fixed (default, demonstrated durations) or cad (stretched by the CAD "
                          "tab-path ratio to V1; path unchanged). Recorded in status.json")
@@ -717,7 +753,7 @@ def main():
     if ORDER.index(a.from_stage) > ORDER.index(a.until):
         raise SystemExit("--from is after --until")
     try:
-        plans, G, objs = preflight(a.variant, a.plans, a.max_joint_speed, a.temporal, a.level, a.transit_speed)
+        plans, G, objs = preflight(a.variant, a.plans, a.max_joint_speed, a.temporal, a.level, a.transit_speed, a.guard)
     except RuntimeError as e:
         raise SystemExit(f"REFUSED (no motion): {e}")
     if not a.execute:
