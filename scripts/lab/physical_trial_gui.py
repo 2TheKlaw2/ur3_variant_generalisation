@@ -136,11 +136,13 @@ class TrialGUI(tk.Tk):
         nb = ttk.Notebook(self)
         nb.pack(fill="both", expand=True, padx=20, pady=(14, 18))
         self.nb = nb
-        self.tab_run, self.tab_runs, self.tab_notes = (tk.Frame(nb, bg=BG) for _ in range(3))
+        self.tab_run, self.tab_batch, self.tab_runs, self.tab_notes = (tk.Frame(nb, bg=BG) for _ in range(4))
         nb.add(self.tab_run, text="  Run a trial  ")
+        nb.add(self.tab_batch, text="  Batch  ")
         nb.add(self.tab_runs, text="  Previous runs  ")
         nb.add(self.tab_notes, text="  Observations  ")
         self._run_tab()
+        self._batch_tab()
         self._runs_tab()
         self._notes_tab()
         for v in (self.variant, self.level, self.temporal, self.speed, self.from_stage, self.until, self.plans,
@@ -383,6 +385,185 @@ class TrialGUI(tk.Tk):
         self._set_pill("RUNNING IN TERMINAL", GO)
         self.state.configure(text="Runner opened in a terminal. Watch the robot; answer the prompts there. "
                                   "Afterwards record the outcome under Observations.", fg=GO_D)
+
+    # ---------- batch ----------
+    def _batch_tab(self):
+        f = self.tab_batch
+        f.columnconfigure(0, weight=0, minsize=470)
+        f.columnconfigure(1, weight=1)
+        f.rowconfigure(0, weight=1)
+        left = Card(f, "Batch of trials", "Runs one after another in one terminal; it pauses between trials so you "
+                                         "can measure, record and put the part back")
+        left.grid(row=0, column=0, sticky="nsew", padx=(0, 14), pady=(14, 0))
+        right = Card(f, "Batch preflight", "Every trial in the list is preflighted offline first")
+        right.grid(row=0, column=1, sticky="nsew", pady=(14, 0))
+        b = left.body
+        self.b_vars = {i: tk.BooleanVar(value=i in (2, 3)) for i in range(1, 6)}
+        self.b_lvls = {l: tk.BooleanVar(value=l in ("L2", "CAD")) for l in ("L2", "CAD", "L1", "L1D", "L0")}
+        self.b_rep, self.b_order = tk.StringVar(value="3"), tk.StringVar(value="alternate")
+        self.b_temporal = tk.StringVar(value="fixed")
+        for title, d, fmt in (("Variants", self.b_vars, lambda k: f"V{k}"), ("Methods", self.b_lvls, str)):
+            tk.Label(b, text=title.upper(), bg=CARD, fg=MUTED, font=(FONT, 8, "bold")).pack(anchor="w", pady=(0, 4))
+            row = tk.Frame(b, bg=CARD)
+            row.pack(anchor="w", pady=(0, 12))
+            for k, v in d.items():
+                ttk.Checkbutton(row, text=fmt(k), variable=v, command=self._batch_changed).pack(side="left", padx=(0, 12))
+        grid = tk.Frame(b, bg=CARD)
+        grid.pack(anchor="w", pady=(0, 12))
+        for col, (lab, var, vals, w) in enumerate((("Repeats", self.b_rep, ["1", "2", "3", "4", "5"], 5),
+                                                   ("Order", self.b_order, ["alternate", "grouped"], 11),
+                                                   ("Timing", self.b_temporal, ["fixed", "cad"], 7))):
+            cell = tk.Frame(grid, bg=CARD)
+            cell.grid(row=0, column=col, sticky="w", padx=(0, 14))
+            tk.Label(cell, text=lab.upper(), bg=CARD, fg=MUTED, font=(FONT, 8, "bold")).pack(anchor="w", pady=(0, 4))
+            cb = ttk.Combobox(cell, textvariable=var, values=vals, state="readonly", width=w, font=(FONT, 10))
+            cb.pack()
+            var.trace_add("write", self._batch_changed)
+        tk.Label(b, text="alternate = per round: V2 L2, V2 CAD, V3 L2, V3 CAD, … (drift hits every method equally)\n"
+                         "Uses the plans, transit speed and --auto setting from 'Run a trial'. Combinations the "
+                         "runner refuses are skipped.", bg=CARD, fg=MUTED, font=(FONT, 8), justify="left",
+                 wraplength=430).pack(anchor="w", pady=(0, 10))
+        self.b_list = tk.Text(b, height=9, font=(MONO, 9), bg="#f1f4f8", fg=INK2, relief="flat", padx=10, pady=8)
+        self.b_list.pack(fill="x", pady=(0, 12))
+        btns = tk.Frame(b, bg=CARD)
+        btns.pack(fill="x")
+        self.b_btn_pre = Btn(btns, "1   Preflight all", self.batch_preflight, ACCENT, ACCENT_D)
+        self.b_btn_pre.pack(side="left")
+        self.b_btn_go = Btn(btns, "2   Run batch on robot", self.batch_launch, GO, GO_D)
+        self.b_btn_go.pack(side="left", padx=(10, 0))
+        self.b_state = tk.Label(b, text="", bg=CARD, fg=INK2, font=(FONT, 9), wraplength=430, justify="left")
+        self.b_state.pack(anchor="w", pady=(10, 0))
+        self.b_out = tk.Text(right.body, wrap="word", bg=CONSOLE_BG, fg=CONSOLE_FG, font=(MONO, 9), relief="flat",
+                             padx=12, pady=10)
+        self.b_out.pack(fill="both", expand=True)
+        for tag, col in (("pass", "#68d391"), ("fail", "#fc8181"), ("dim", "#7b8da0"), ("head", "#90cdf4")):
+            self.b_out.tag_configure(tag, foreground=col)
+        self.b_passed = None
+        for v in (self.plans, self.speed, self.auto):
+            v.trace_add("write", self._batch_changed)
+        self._batch_changed()
+
+    def _batch_trials(self):
+        vs = [i for i, v in self.b_vars.items() if v.get()]
+        ls = [l for l, v in self.b_lvls.items() if v.get()]
+        combos = [(i, l) for i in vs for l in ls if l in ALLOWED[i]]
+        n = int(self.b_rep.get())
+        if self.b_order.get() == "alternate":
+            return [c for _ in range(n) for c in combos]
+        return [c for c in combos for _ in range(n)]
+
+    def _batch_args(self, i, l):
+        return ["python3", RUNNER, "--plans", self.plans.get().strip(), "--variant", str(i), "--level", l,
+                "--temporal", self.b_temporal.get(), "--transit-speed", f"{float(self.speed.get()):g}"] + \
+               (["--auto"] if self.auto.get() else [])
+
+    def _batch_changed(self, *_):
+        self.b_passed = None
+        if not hasattr(self, "b_btn_go"):
+            return
+        self.b_btn_go.enable(False)
+        t = self._batch_trials()
+        self.b_list.delete("1.0", "end")
+        self.b_list.insert("end", "\n".join(f"{k + 1:2d}. V{i} {l}" for k, (i, l) in enumerate(t)) or "(nothing selected)")
+        self.b_state.configure(text=f"{len(t)} trials. Preflight all to unlock the batch run.", fg=INK2)
+
+    def _bw(self, s, tag=None):
+        self.b_out.insert("end", s, tag)
+        self.b_out.see("end")
+
+    def batch_preflight(self):
+        if self.busy:
+            return
+        trials = self._batch_trials()
+        if not trials:
+            return
+        uniq = list(dict.fromkeys(trials))
+        self.busy = True
+        self.b_btn_pre.enable(False)
+        self.b_out.delete("1.0", "end")
+        self._bw(f"OFFLINE PREFLIGHT  ·  {len(uniq)} combinations, no motion\n\n", "head")
+        cfg = tuple(trials) + (self.plans.get(), self.speed.get(), self.auto.get(), self.b_temporal.get())
+
+        def work():
+            ok = True
+            for i, l in uniq:
+                a = self._batch_args(i, l)
+                try:
+                    r = subprocess.run(a, cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                       timeout=PREFLIGHT_TIMEOUT_S)
+                    good = r.returncode == 0 and "PREFLIGHT PASS" in r.stdout
+                    last = [x for x in r.stdout.splitlines() if "PREFLIGHT" in x or "REFUSED" in x or "Error" in x]
+                except Exception as e:          # noqa: BLE001
+                    good, last = False, [f"{type(e).__name__}: {e}"]
+                ok &= good
+                self.q.put(("line", f"V{i} {l:4s} {'PASS' if good else 'FAIL'}   " + (last[-1][:90] if last else "") + "\n",
+                            "pass" if good else "fail"))
+            self.q.put(("done", ok, cfg))
+        threading.Thread(target=work, daemon=True).start()
+        self.after(150, self._bpoll)
+
+    def _bpoll(self):
+        try:
+            while True:
+                m = self.q.get_nowait()
+                if m[0] == "line":
+                    self._bw(m[1], m[2])
+                else:
+                    self.busy = False
+                    self.b_btn_pre.enable(True)
+                    now = tuple(self._batch_trials()) + (self.plans.get(), self.speed.get(), self.auto.get(),
+                                                        self.b_temporal.get())
+                    if m[1] and m[2] == now:
+                        self.b_passed = now
+                        self.b_btn_go.enable(True)
+                        self.b_state.configure(text="All preflights passed. 'Run batch on robot' opens one terminal "
+                                                    "that runs them in order.", fg=OK)
+                        self._set_pill("BATCH PREFLIGHT PASS", OK)
+                    else:
+                        self.b_state.configure(text="Not every trial passed (or settings changed): fix before running.",
+                                               fg=BAD)
+                        self._set_pill("BATCH PREFLIGHT FAILED", BAD)
+                    return
+        except queue.Empty:
+            pass
+        self.after(150, self._bpoll)
+
+    def batch_launch(self):
+        trials = self._batch_trials()
+        now = tuple(trials) + (self.plans.get(), self.speed.get(), self.auto.get(), self.b_temporal.get())
+        if now != self.b_passed:
+            messagebox.showerror("Preflight needed", "Settings changed since the batch preflight. Run it again.")
+            return
+        if not messagebox.askyesno("Run the batch on the real robot",
+                                   f"{len(trials)} trials, one after another.\n\nBefore each trial the terminal pauses: "
+                                   "put that variant's part in its pocket (fitting empty) and press Enter.\n"
+                                   "Ctrl+C in the terminal stops the batch.\n\nNobody in the workspace, pendant "
+                                   "stop in reach?", icon="warning"):
+            return
+        term = shutil.which("gnome-terminal") or shutil.which("xterm")
+        if not term:
+            messagebox.showerror("No terminal", "Install gnome-terminal or xterm.")
+            return
+        lines = ["source /opt/ros/humble/setup.bash", 'source "$HOME/ros2_ws/install/setup.bash"',
+                 "export ROS_DOMAIN_ID=0", "cd " + shlex.quote(str(ROOT)), "n=0"]
+        for k, (i, l) in enumerate(trials):
+            lines += [f'echo; echo "=== trial {k + 1}/{len(trials)}: V{i} {l} ==="',
+                      f'read -r -p "Part V{i} in its pocket, fitting V{i} empty, robot at HOME? Enter to start "',
+                      "python3 " + SCENE + " --reset --physical || break",
+                      shlex.join(self._batch_args(i, l) + ["--execute"]) + " || { echo 'trial stopped: batch ends here'; break; }",
+                      "n=$((n+1))",
+                      f'echo "V{i} {l} finished. Measure and record it (GUI: Observations)."']
+        body = "\n".join(lines[:5]) + "\nfor _once in 1; do\n" + "\n".join(lines[5:]) + "\ndone\n" + \
+               f'echo; echo "batch: $n of {len(trials)} trials completed"; read -r -p "Enter closes this terminal "'
+        script = ROOT / "results/physical/.last_batch.sh"
+        script.parent.mkdir(parents=True, exist_ok=True)
+        script.write_text("#!/usr/bin/env bash\n" + body + "\n")
+        title = f"batch {len(trials)} trials"
+        cmd = ([term, "--title", title, "--", "bash", str(script)] if Path(term).name == "gnome-terminal"
+               else [term, "-T", title, "-e", "bash", str(script)])
+        subprocess.Popen(cmd, cwd=ROOT)
+        self._batch_changed()
+        self._set_pill("BATCH RUNNING IN TERMINAL", GO)
 
     # ---------- previous runs ----------
     def _runs_tab(self):
