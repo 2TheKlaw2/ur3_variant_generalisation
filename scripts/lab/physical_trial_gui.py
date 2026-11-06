@@ -5,17 +5,21 @@
 
 SAFETY: this window never sends ROS commands itself.
   1. "Preflight" runs run_full_cycle_physical.py WITHOUT --execute (offline, no ROS, no motion).
-  2. "Run on robot" is enabled only after that exact configuration passed preflight. It opens a terminal that
-     sources ROS, sets ROS_DOMAIN_ID=0, optionally resets the MoveIt scene (planning_scene_tools.py --reset
-     --physical) and starts the SAME runner with --execute. Every prompt (RUN_<STAGE>, or with --auto only the
-     cycle start and RUN_INSERT) is answered in that terminal, all runner checks apply, Ctrl+C there cancels
-     the active stage. The pendant stop is the emergency stop.
+  2. "Run on robot" is enabled only after that exact configuration passed preflight. It runs, inside this window,
+     the SAME runner with --execute (ROS sourced, ROS_DOMAIN_ID=0, MoveIt scene reset first if ticked).
+     Every runner prompt (RUN_<STAGE>, or with --auto only the cycle start and RUN_INSERT) appears as the green
+     CONTINUE button: clicking it answers the prompt exactly as typing the word would. "Decline" answers anything
+     else (the runner stops cleanly at that prompt). STOP (or Esc / Ctrl+C in this window) sends SIGINT to the
+     runner = Ctrl+C in its terminal: it cancels the active goal. All runner checks apply unchanged.
+     The pendant stop remains the emergency stop.
 """
 import csv
 import json
+import os
 import queue
+import re
+import signal
 import shlex
-import shutil
 import subprocess
 import threading
 import tkinter as tk
@@ -46,6 +50,9 @@ ORDER = ["HOME_START", "OPEN", "REACH", "ALIGN_GRIP", "GRIP", "LIFT", "TRANSPORT
          "ROTATE", "RELEASE", "RETREAT", "HOME"]
 NOTE_FIELDS = ["time", "run", "variant", "level", "seated", "locked", "contact", "plate_lift", "assistance",
                "part_top_mm", "notes"]
+ROS_ENV = ('source /opt/ros/humble/setup.bash && source "$HOME/ros2_ws/install/setup.bash" && export ROS_DOMAIN_ID=0 '
+           '&& export PYTHONUNBUFFERED=1 && cd ' + shlex.quote(str(ROOT)) + ' && ')
+PROMPT_RE = re.compile(r"Type (RUN_\w+) to continue")
 PREFLIGHT_TIMEOUT_S = 600          # a level's first preflight after a registration change recomputes its plan
 
 # palette
@@ -134,7 +141,8 @@ class TrialGUI(tk.Tk):
         self.passed_cfg, self.busy, self.q = None, False, queue.Queue()
         self._header()
         nb = ttk.Notebook(self)
-        nb.pack(fill="both", expand=True, padx=20, pady=(14, 18))
+        self._control_bar()
+        nb.pack(fill="both", expand=True, padx=20, pady=(14, 8))
         self.nb = nb
         self.tab_run, self.tab_batch, self.tab_runs, self.tab_notes = (tk.Frame(nb, bg=BG) for _ in range(4))
         nb.add(self.tab_run, text="  Run a trial  ")
@@ -151,6 +159,173 @@ class TrialGUI(tk.Tk):
         self.variant.trace_add("write", self._variant_changed)
         self._changed()
         self.refresh_runs()
+
+    # ---------- live run control (in-window runner) ----------
+    def _control_bar(self):
+        bar = tk.Frame(self, bg=NAVY)
+        bar.pack(side="bottom", fill="x")
+        inner = tk.Frame(bar, bg=NAVY)
+        inner.pack(fill="x", padx=20, pady=10)
+        self.live_msg = tk.Label(inner, text="Robot idle.", bg=NAVY, fg="#dbe6f2", font=(FONT, 11, "bold"),
+                                 anchor="w", justify="left", wraplength=560)
+        self.live_msg.pack(side="left", fill="x", expand=True)
+        self.btn_stop = Btn(inner, "STOP   (Esc / Ctrl+C)", self.stop_run, BAD, "#9b2c2c")
+        self.btn_stop.pack(side="right")
+        self.btn_decline = Btn(inner, "Decline", self.decline, "#5a6b7d", "#465566")
+        self.btn_decline.pack(side="right", padx=(0, 10))
+        self.btn_cont = Btn(inner, "CONTINUE", self.continue_run, OK, "#276749")
+        self.btn_cont.pack(side="right", padx=(0, 10))
+        for b in (self.btn_stop, self.btn_decline, self.btn_cont):
+            b.enable(False)
+        self.proc, self.steps, self.pending, self.gate, self.out_widget = None, [], None, None, None
+        self.lq, self.buf = queue.Queue(), ""
+        self.bind_all("<Escape>", lambda _e: self.stop_run())
+        self.bind_all("<Control-c>", lambda _e: self.stop_run())
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _live(self, text, color="#dbe6f2"):
+        self.live_msg.configure(text=text, fg=color)
+
+    def start_session(self, plan, out_widget, done_text):
+        """plan: list of ('gate', message) | ('cmd', argv, label). Runs in order; any failure ends the session."""
+        if self.proc or self.steps:
+            messagebox.showerror("Busy", "A robot session is already running.")
+            return
+        self.steps, self.out_widget, self.done_text = list(plan), out_widget, done_text
+        self.out_widget.delete("1.0", "end")
+        self.btn_stop.enable(True)
+        self._next_step()
+        self.after(60, self._pump)
+
+    def _next_step(self):
+        self.pending, self.gate = None, None
+        self.btn_cont.enable(False); self.btn_decline.enable(False)
+        if not self.steps:
+            self._end(self.done_text, OK)
+            return
+        step = self.steps.pop(0)
+        if step[0] == "gate":
+            self.gate = step[1]
+            self.btn_cont.configure(text="START  " + step[2])
+            self.btn_cont.enable(True); self.btn_decline.enable(True)
+            self._live(step[1], "#fbd38d")
+            self._ow("\n" + step[1] + "\n", "head")
+            return
+        _, argv, label = step
+        self._ow(f"\n>> {label}\n$ {shlex.join(argv)}\n", "head")
+        self._live(f"Running: {label}")
+        self.buf = ""
+        self.proc = subprocess.Popen(["bash", "-c", ROS_ENV + "exec " + shlex.join(argv)], stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
+        self.proc_label = label
+        threading.Thread(target=self._reader, args=(self.proc,), daemon=True).start()
+
+    def _reader(self, proc):
+        fd = proc.stdout.fileno()
+        while True:
+            try:
+                chunk = os.read(fd, 4096)
+            except OSError:
+                break
+            if not chunk:
+                break
+            self.lq.put(("out", chunk.decode("utf-8", "replace")))
+        self.lq.put(("exit", proc.wait()))
+
+    def _pump(self):
+        try:
+            while True:
+                kind, val = self.lq.get_nowait()
+                if kind == "out":
+                    clean = "".join(l + "\n" for l in val.split("\n")[:-1] if "UserWarning" not in l
+                                    and "warnings.warn" not in l) + val.split("\n")[-1]
+                    tag = "fail" if any(k in val for k in ("FAIL", "STOPPED", "REFUSED", "Traceback", "Error")) else (
+                        "pass" if "PASS" in val else None)
+                    self._ow(clean, tag)
+                    self.buf = (self.buf + val)[-4000:]
+                    m = None
+                    for m in PROMPT_RE.finditer(self.buf):
+                        pass
+                    if m and self.pending is None and self.buf.rstrip().endswith("):"):
+                        self.pending = m.group(1)
+                        self.btn_cont.configure(text="CONTINUE  " + self.pending)
+                        self.btn_cont.enable(True); self.btn_decline.enable(True)
+                        stage = self.pending[4:]
+                        hint = ("Check the part is centred over the fitting, tabs over the slots"
+                                if stage == "INSERT" else "Check the robot and workspace")
+                        self._live(f"Waiting for you: {self.pending}.  {hint}.", "#9ae6b4")
+                else:                                           # process ended
+                    code = val
+                    self.proc = None
+                    self.btn_cont.enable(False); self.btn_decline.enable(False)
+                    if code == 0:
+                        self._ow(f"OK  {self.proc_label}: done\n", "pass")
+                        self._next_step()
+                    else:
+                        self.steps = []
+                        self._end(f"{self.proc_label} stopped (exit {code}). Nothing further was started. "
+                                  "Inspect the robot and part.", BAD)
+        except queue.Empty:
+            pass
+        if self.proc or self.steps or self.gate:
+            self.after(60, self._pump)
+
+    def _ow(self, text, tag=None):
+        if self.out_widget is not None:
+            self.out_widget.insert("end", text, tag)
+            self.out_widget.see("end")
+
+    def continue_run(self):
+        if self.gate:
+            self._ow("-> started by operator\n", "dim")
+            self._next_step()
+        elif self.pending and self.proc:
+            self.proc.stdin.write((self.pending + "\n").encode()); self.proc.stdin.flush()
+            self._ow(f"  [clicked {self.pending}]\n", "dim")
+            self.pending = None
+            self.btn_cont.enable(False); self.btn_decline.enable(False)
+            self._live(f"Running: {self.proc_label}")
+
+    def decline(self):
+        if self.gate:
+            self.steps, self.gate = [], None
+            self._end("Session ended by operator before the next trial.", WARN)
+        elif self.pending and self.proc:
+            self.proc.stdin.write(b"no\n"); self.proc.stdin.flush()
+            self._ow("  [declined: the runner stops at this prompt]\n", "dim")
+            self.pending = None
+            self.btn_cont.enable(False); self.btn_decline.enable(False)
+
+    def stop_run(self):
+        if self.proc:
+            try:
+                os.killpg(self.proc.pid, signal.SIGINT)        # = Ctrl+C in the runner's terminal
+            except ProcessLookupError:
+                pass
+            self.steps = []
+            self._ow("\nSTOP: Ctrl+C sent to the runner (cancels the active goal). Pendant stop if motion "
+                     "continues.\n", "fail")
+            self._live("STOP sent. Watch the robot; use the pendant stop if it keeps moving.", "#feb2b2")
+        elif self.gate or self.steps:
+            self.steps, self.gate = [], None
+            self._end("Session cancelled.", WARN)
+
+    def _end(self, text, color):
+        self.gate, self.pending = None, None
+        for b in (self.btn_cont, self.btn_decline, self.btn_stop):
+            b.enable(False)
+        self.btn_cont.configure(text="CONTINUE")
+        self._live(text, {OK: "#9ae6b4", BAD: "#feb2b2"}.get(color, "#fbd38d"))
+        self._ow("\n" + text + "\n", "pass" if color == OK else "fail")
+        self._set_pill("IDLE", "#5a6b7d")
+        self.refresh_runs()
+
+    def _on_close(self):
+        if self.proc and not messagebox.askyesno("Robot session running",
+                                                 "A runner is active. Send STOP and close?", icon="warning"):
+            return
+        self.stop_run()
+        self.destroy()
 
     # ---------- look ----------
     def _style(self):
@@ -202,7 +377,7 @@ class TrialGUI(tk.Tk):
         f.rowconfigure(0, weight=1)
         left = Card(f, "Trial setup", "Only combinations that assemble in simulation can be picked")
         left.grid(row=0, column=0, sticky="nsew", padx=(0, 14), pady=(14, 0))
-        right = Card(f, "Output", "Preflight report (offline). The physical run opens in its own terminal.")
+        right = Card(f, "Output", "Preflight report, then the live robot run (prompts: green button below)")
         right.grid(row=0, column=1, sticky="nsew", pady=(14, 0))
         b = left.body
 
@@ -219,12 +394,12 @@ class TrialGUI(tk.Tk):
         for col, (lab, var, vals, w) in enumerate((("From", self.from_stage, ORDER, 14),
                                                    ("Until", self.until, ORDER, 14),
                                                    ("Transit rad/s", self.speed,
-                                                    ["0.14", "0.20", "0.28", "0.30", "0.35"], 7))):
+                                                    ["0.14", "0.28", "0.35", "0.45", "0.60", "0.80"], 7))):
             cell = tk.Frame(grid, bg=CARD)
             cell.grid(row=0, column=col, sticky="w", padx=(0, 14))
             tk.Label(cell, text=lab.upper(), bg=CARD, fg=MUTED, font=(FONT, 8, "bold")).pack(anchor="w", pady=(0, 4))
             ttk.Combobox(cell, textvariable=var, values=vals, state="readonly", width=w, font=(FONT, 10)).pack()
-        tk.Label(b, text="Transit speed applies to REACH/TRANSPORT only; every other stage stays at 0.14 rad/s.",
+        tk.Label(b, text="Transit speed: REACH, TRANSPORT, HOME only (free air; up to 2x faster than planned, max 0.8 rad/s). Every other stage stays at 0.14 rad/s.",
                  bg=CARD, fg=MUTED, font=(FONT, 8)).pack(anchor="w", pady=(2, 10))
 
         ttk.Checkbutton(b, text="--auto  (type only RUN_V<n>_START and RUN_INSERT)", variable=self.auto).pack(anchor="w")
@@ -342,7 +517,7 @@ class TrialGUI(tk.Tk):
             self.passed_cfg = cfg
             self.btn_go.enable(True)
             self._set_pill("PREFLIGHT PASS", OK)
-            self.state.configure(text="Preflight passed. 'Run on robot' opens the staged runner in a terminal.", fg=OK)
+            self.state.configure(text="Preflight passed. 'Run on robot' runs it here; answer prompts with the green button.", fg=OK)
         else:
             self._set_pill("PREFLIGHT FAILED", BAD)
             self.state.configure(text="Preflight did not pass: do not run this on the robot. Read the output.", fg=BAD)
@@ -365,26 +540,16 @@ class TrialGUI(tk.Tk):
                                    f"V{n}  ·  {self.level.get()}  ·  {self.temporal.get()} timing"
                                    f"{'  ·  --auto' if self.auto.get() else ''}\n\n{where}\n\n"
                                    "Nobody in the workspace, pendant stop in reach?\n\n"
-                                   "A terminal opens; answer the runner's prompts there.", icon="warning"):
+                                   "Prompts appear as the green CONTINUE button at the bottom.\n"
+                                   "STOP / Esc / Ctrl+C = Ctrl+C to the runner.", icon="warning"):
             return
-        term = shutil.which("gnome-terminal") or shutil.which("xterm")
-        if not term:
-            messagebox.showerror("No terminal", "Install gnome-terminal or xterm.")
-            return
-        steps = ["source /opt/ros/humble/setup.bash", 'source "$HOME/ros2_ws/install/setup.bash"',
-                 "export ROS_DOMAIN_ID=0", "cd " + shlex.quote(str(ROOT))]
+        plan = []
         if self.reset_scene.get():
-            steps.append("python3 " + SCENE + " --reset --physical")
-        script = (" && ".join(steps) + " && " + shlex.join(a + ["--execute"]) +
-                  '; rc=$?; echo; if [ $rc -eq 0 ]; then echo "finished (exit 0)"; else echo "STOPPED or FAILED (exit $rc): read the lines above"; fi; read -r -p "Enter closes this terminal "')
-        title = f"V{n} {self.level.get()} physical"
-        cmd = ([term, "--title", title, "--", "bash", "-c", script] if Path(term).name == "gnome-terminal"
-               else [term, "-T", title, "-e", "bash", "-c", script])
-        subprocess.Popen(cmd, cwd=ROOT)
+            plan.append(("cmd", ["python3", SCENE, "--reset", "--physical"], "reset MoveIt scene"))
+        plan.append(("cmd", a + ["--execute"], f"V{n} {self.level.get()} on the robot"))
         self._changed()
-        self._set_pill("RUNNING IN TERMINAL", GO)
-        self.state.configure(text="Runner opened in a terminal. Watch the robot; answer the prompts there. "
-                                  "Afterwards record the outcome under Observations.", fg=GO_D)
+        self._set_pill("ROBOT RUNNING", GO)
+        self.start_session(plan, self.out, f"V{n} {self.level.get()} finished. Record the outcome under Observations.")
 
     # ---------- batch ----------
     def _batch_tab(self):
@@ -392,7 +557,7 @@ class TrialGUI(tk.Tk):
         f.columnconfigure(0, weight=0, minsize=470)
         f.columnconfigure(1, weight=1)
         f.rowconfigure(0, weight=1)
-        left = Card(f, "Batch of trials", "Runs one after another in one terminal; it pauses between trials so you "
+        left = Card(f, "Batch of trials", "Runs one after another; before each trial it waits for your START click so you "
                                          "can measure, record and put the part back")
         left.grid(row=0, column=0, sticky="nsew", padx=(0, 14), pady=(14, 0))
         right = Card(f, "Batch preflight", "Every trial in the list is preflighted offline first")
@@ -516,8 +681,8 @@ class TrialGUI(tk.Tk):
                     if m[1] and m[2] == now:
                         self.b_passed = now
                         self.b_btn_go.enable(True)
-                        self.b_state.configure(text="All preflights passed. 'Run batch on robot' opens one terminal "
-                                                    "that runs them in order.", fg=OK)
+                        self.b_state.configure(text="All preflights passed. 'Run batch on robot' runs them here in "
+                                                    "order; the green button starts each trial.", fg=OK)
                         self._set_pill("BATCH PREFLIGHT PASS", OK)
                     else:
                         self.b_state.configure(text="Not every trial passed (or settings changed): fix before running.",
@@ -535,35 +700,20 @@ class TrialGUI(tk.Tk):
             messagebox.showerror("Preflight needed", "Settings changed since the batch preflight. Run it again.")
             return
         if not messagebox.askyesno("Run the batch on the real robot",
-                                   f"{len(trials)} trials, one after another.\n\nBefore each trial the terminal pauses: "
-                                   "put that variant's part in its pocket (fitting empty) and press Enter.\n"
-                                   "Ctrl+C in the terminal stops the batch.\n\nNobody in the workspace, pendant "
-                                   "stop in reach?", icon="warning"):
+                                   f"{len(trials)} trials, one after another.\n\nBefore each trial the green button "
+                                   "says START: put that variant's part in its pocket (fitting empty), then click it.\n"
+                                   "Any stop or failure ends the batch. STOP / Esc / Ctrl+C = Ctrl+C to the runner."
+                                   "\n\nNobody in the workspace, pendant stop in reach?", icon="warning"):
             return
-        term = shutil.which("gnome-terminal") or shutil.which("xterm")
-        if not term:
-            messagebox.showerror("No terminal", "Install gnome-terminal or xterm.")
-            return
-        lines = ["source /opt/ros/humble/setup.bash", 'source "$HOME/ros2_ws/install/setup.bash"',
-                 "export ROS_DOMAIN_ID=0", "cd " + shlex.quote(str(ROOT)), "n=0"]
+        plan = []
         for k, (i, l) in enumerate(trials):
-            lines += [f'echo; echo "=== trial {k + 1}/{len(trials)}: V{i} {l} ==="',
-                      f'read -r -p "Part V{i} in its pocket, fitting V{i} empty, robot at HOME? Enter to start "',
-                      "python3 " + SCENE + " --reset --physical || break",
-                      shlex.join(self._batch_args(i, l) + ["--execute"]) + " || { echo 'trial stopped: batch ends here'; break; }",
-                      "n=$((n+1))",
-                      f'echo "V{i} {l} finished. Measure and record it (GUI: Observations)."']
-        body = "\n".join(lines[:5]) + "\nfor _once in 1; do\n" + "\n".join(lines[5:]) + "\ndone\n" + \
-               f'echo; echo "batch: $n of {len(trials)} trials completed"; read -r -p "Enter closes this terminal "'
-        script = ROOT / "results/physical/.last_batch.sh"
-        script.parent.mkdir(parents=True, exist_ok=True)
-        script.write_text("#!/usr/bin/env bash\n" + body + "\n")
-        title = f"batch {len(trials)} trials"
-        cmd = ([term, "--title", title, "--", "bash", str(script)] if Path(term).name == "gnome-terminal"
-               else [term, "-T", title, "-e", "bash", str(script)])
-        subprocess.Popen(cmd, cwd=ROOT)
+            plan.append(("gate", f"Trial {k + 1}/{len(trials)}: V{i} {l}. Part V{i} in its pocket, fitting V{i} empty, "
+                                 f"robot at HOME?", f"trial {k + 1}/{len(trials)}  V{i} {l}"))
+            plan.append(("cmd", ["python3", SCENE, "--reset", "--physical"], f"reset MoveIt scene (trial {k + 1})"))
+            plan.append(("cmd", self._batch_args(i, l) + ["--execute"], f"trial {k + 1}/{len(trials)}: V{i} {l}"))
         self._batch_changed()
-        self._set_pill("BATCH RUNNING IN TERMINAL", GO)
+        self._set_pill("BATCH RUNNING", GO)
+        self.start_session(plan, self.b_out, f"Batch complete: {len(trials)} trials. Record any missing outcomes.")
 
     # ---------- previous runs ----------
     def _runs_tab(self):
