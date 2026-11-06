@@ -37,7 +37,7 @@ def main():
         done = [k for k in ("INSERT", "ROTATE") if k in st]
         g = lambda k, m: round(st[k][m], 2) if k in st else ""
         rows.append({"run": os.path.basename(d), "variant": s.get("variant"), "level": s.get("level", "L2"),
-                     "temporal": s.get("temporal", "fixed"), "plans": plans,
+                     "temporal": s.get("temporal", "fixed"), "guard": s.get("guard", "uniform"), "plans": plans,
                      "insert_and_rotate_executed": len(done) == 2,
                      "insert_dF_N": g("INSERT", "max_abs_force_change_from_stage_start_N"),
                      "insert_T_Nm": g("INSERT", "max_abs_torque_Nm"),

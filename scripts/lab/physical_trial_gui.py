@@ -137,6 +137,7 @@ class TrialGUI(tk.Tk):
         self.temporal, self.speed = tk.StringVar(value="fixed"), tk.StringVar(value="0.30")
         self.from_stage, self.until = tk.StringVar(value="HOME_START"), tk.StringVar(value="HOME")
         self.plans = tk.StringVar(value=PLANS_DEFAULT)
+        self.guard = tk.StringVar(value="uniform")
         self.auto, self.reset_scene = tk.BooleanVar(value=True), tk.BooleanVar(value=True)
         self.passed_cfg, self.busy, self.q = None, False, queue.Queue()
         self._header()
@@ -154,7 +155,7 @@ class TrialGUI(tk.Tk):
         self._runs_tab()
         self._notes_tab()
         for v in (self.variant, self.level, self.temporal, self.speed, self.from_stage, self.until, self.plans,
-                  self.auto, self.reset_scene):
+                  self.auto, self.reset_scene, self.guard):
             v.trace_add("write", self._changed)
         self.variant.trace_add("write", self._variant_changed)
         self._changed()
@@ -386,8 +387,14 @@ class TrialGUI(tk.Tk):
         self.seg_level = self._field(b, "Method", lambda p: Segmented(p, self.level, ["L2", "CAD", "L1", "L1D", "L0"]))
         self.level_info = tk.Label(b, text="", bg=CARD, fg=INK2, font=(FONT, 9, "italic"))
         self.level_info.pack(anchor="w", pady=(0, 12))
-        self._field(b, "Timing", lambda p: Segmented(p, self.temporal, ["fixed", "cad"],
-                                                     {"fixed": "fixed (demo)", "cad": "CAD-scaled"}))
+        trow = tk.Frame(b, bg=CARD)
+        trow.pack(fill="x")
+        for lab, var, opts, names in (("Timing", self.temporal, ["fixed", "cad"], {"fixed": "fixed (demo)", "cad": "CAD-scaled"}),
+                                      ("Speed guard (INSERT/ROTATE)", self.guard, ["uniform", "local"], None)):
+            cell = tk.Frame(trow, bg=CARD)
+            cell.pack(side="left", padx=(0, 22), pady=(0, 12), anchor="n")
+            tk.Label(cell, text=lab.upper(), bg=CARD, fg=MUTED, font=(FONT, 8, "bold")).pack(anchor="w", pady=(0, 4))
+            Segmented(cell, var, opts, names).pack(anchor="w")
 
         grid = tk.Frame(b, bg=CARD)
         grid.pack(fill="x", pady=(0, 6))
@@ -400,7 +407,7 @@ class TrialGUI(tk.Tk):
             tk.Label(cell, text=lab.upper(), bg=CARD, fg=MUTED, font=(FONT, 8, "bold")).pack(anchor="w", pady=(0, 4))
             ttk.Combobox(cell, textvariable=var, values=vals, state="readonly", width=w, font=(FONT, 10)).pack()
         tk.Label(b, text="Transit speed: REACH, TRANSPORT, HOME only (free air; up to 2x faster than planned, max 0.8 rad/s). Every other stage stays at 0.14 rad/s.",
-                 bg=CARD, fg=MUTED, font=(FONT, 8)).pack(anchor="w", pady=(2, 10))
+                 bg=CARD, fg=MUTED, font=(FONT, 8), wraplength=430, justify="left").pack(anchor="w", pady=(2, 10))
 
         ttk.Checkbutton(b, text="--auto  (type only RUN_V<n>_START and RUN_INSERT)", variable=self.auto).pack(anchor="w")
         ttk.Checkbutton(b, text="Reset MoveIt scene before the run (needed from HOME_START)",
@@ -445,6 +452,8 @@ class TrialGUI(tk.Tk):
             raise ValueError("'From' must not come after 'Until'.")
         a = ["python3", RUNNER, "--plans", self.plans.get().strip(), "--variant", str(n), "--level", self.level.get(),
              "--temporal", self.temporal.get(), "--transit-speed", f"{speed:g}"]
+        if self.guard.get() != "uniform":
+            a += ["--guard", self.guard.get()]
         if self.from_stage.get() != "HOME_START":
             a += ["--from", self.from_stage.get()]
         if self.until.get() != "HOME":
@@ -585,7 +594,7 @@ class TrialGUI(tk.Tk):
             cb.pack()
             var.trace_add("write", self._batch_changed)
         tk.Label(b, text="alternate = per round: V2 L2, V2 CAD, V3 L2, V3 CAD, … (drift hits every method equally)\n"
-                         "Uses the plans, transit speed and --auto setting from 'Run a trial'. Combinations the "
+                         "Uses the plans, transit speed, speed guard and --auto from 'Run a trial'. Combinations the "
                          "runner refuses are skipped.", bg=CARD, fg=MUTED, font=(FONT, 8), justify="left",
                  wraplength=430).pack(anchor="w", pady=(0, 10))
         self.b_list = tk.Text(b, height=9, font=(MONO, 9), bg="#f1f4f8", fg=INK2, relief="flat", padx=10, pady=8)
@@ -604,7 +613,7 @@ class TrialGUI(tk.Tk):
         for tag, col in (("pass", "#68d391"), ("fail", "#fc8181"), ("dim", "#7b8da0"), ("head", "#90cdf4")):
             self.b_out.tag_configure(tag, foreground=col)
         self.b_passed = None
-        for v in (self.plans, self.speed, self.auto):
+        for v in (self.plans, self.speed, self.auto, self.guard):
             v.trace_add("write", self._batch_changed)
         self._batch_changed()
 
@@ -620,7 +629,8 @@ class TrialGUI(tk.Tk):
     def _batch_args(self, i, l):
         return ["python3", RUNNER, "--plans", self.plans.get().strip(), "--variant", str(i), "--level", l,
                 "--temporal", self.b_temporal.get(), "--transit-speed", f"{float(self.speed.get()):g}"] + \
-               (["--auto"] if self.auto.get() else [])
+               (["--auto"] if self.auto.get() else []) + \
+               (["--guard", self.guard.get()] if self.guard.get() != "uniform" else [])
 
     def _batch_changed(self, *_):
         self.b_passed = None
@@ -647,7 +657,7 @@ class TrialGUI(tk.Tk):
         self.b_btn_pre.enable(False)
         self.b_out.delete("1.0", "end")
         self._bw(f"OFFLINE PREFLIGHT  ·  {len(uniq)} combinations, no motion\n\n", "head")
-        cfg = tuple(trials) + (self.plans.get(), self.speed.get(), self.auto.get(), self.b_temporal.get())
+        cfg = tuple(trials) + (self.plans.get(), self.speed.get(), self.auto.get(), self.b_temporal.get(), self.guard.get())
 
         def work():
             ok = True
@@ -677,7 +687,7 @@ class TrialGUI(tk.Tk):
                     self.busy = False
                     self.b_btn_pre.enable(True)
                     now = tuple(self._batch_trials()) + (self.plans.get(), self.speed.get(), self.auto.get(),
-                                                        self.b_temporal.get())
+                                                        self.b_temporal.get(), self.guard.get())
                     if m[1] and m[2] == now:
                         self.b_passed = now
                         self.b_btn_go.enable(True)
@@ -695,7 +705,7 @@ class TrialGUI(tk.Tk):
 
     def batch_launch(self):
         trials = self._batch_trials()
-        now = tuple(trials) + (self.plans.get(), self.speed.get(), self.auto.get(), self.b_temporal.get())
+        now = tuple(trials) + (self.plans.get(), self.speed.get(), self.auto.get(), self.b_temporal.get(), self.guard.get())
         if now != self.b_passed:
             messagebox.showerror("Preflight needed", "Settings changed since the batch preflight. Run it again.")
             return
