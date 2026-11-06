@@ -1,0 +1,19 @@
+{
+ "type": "PHYSICAL RUN (staged)",
+ "variant": "V4",
+ "level": "L2",
+ "started": "2026-11-06T11:51:08.188420",
+ "max_joint_speed_rad_s": 0.14,
+ "transit_speed_rad_s": 0.45,
+ "plans": "results/simulation/stage10_depthfix",
+ "stages": [],
+ "temporal": "fixed",
+ "status": "STOPPED",
+ "reason": "ROS service request timed out",
+ "ended": "2026-11-06T11:51:16.944902",
+ "wrench_recording": {
+  "messages_received_total": 879,
+  "callback_errors": 0,
+  "stages": []
+ }
+}

@@ -1,0 +1,84 @@
+{
+ "type": "PHYSICAL RUN (staged)",
+ "variant": "V1",
+ "level": "L2",
+ "started": "2026-11-06T11:16:43.560916",
+ "max_joint_speed_rad_s": 0.14,
+ "transit_speed_rad_s": 0.3,
+ "plans": "results/simulation/stage10_depthfix",
+ "stages": [
+  {
+   "name": "HOME_START",
+   "status": "PASS",
+   "wall_s": 39.6
+  }
+ ],
+ "temporal": "fixed",
+ "auto_confirmed": [
+  "OPEN"
+ ],
+ "status": "STOPPED",
+ "reason": "OPEN: RG2 width 0.04910000041127205 m vs 0.04 m; inspect the gripper",
+ "ended": "2026-11-06T11:17:40.416082",
+ "wrench_recording": {
+  "topic": "/force_torque_sensor_broadcaster/wrench",
+  "enabled": true,
+  "note": "RECORDING ONLY: no contact detection, no force control, no force-triggered stopping",
+  "subscriber_qos": "sensor_data (best effort, depth 5)",
+  "value_frame_note": "UR driver: values are rotated into the pendant TCP frame (tool0_controller); frame_id is the broadcaster's label (ur_onrobot: tool0). Raw readings, not zeroed: max |F| includes the sensor bias and gripper/part weight.",
+  "publishers_at_start": [
+   {
+    "node": "/force_torque_sensor_broadcaster",
+    "type": "geometry_msgs/msg/WrenchStamped",
+    "reliability": "ReliabilityPolicy.RELIABLE",
+    "durability": "DurabilityPolicy.TRANSIENT_LOCAL"
+   }
+  ],
+  "messages_received_total": 4458,
+  "callback_errors": 0,
+  "stages": [
+   {
+    "available": true,
+    "n_samples": 3979,
+    "n_nonfinite": 0,
+    "stage_window_s": 32.405,
+    "frame_ids": [
+     "tool0"
+    ],
+    "max_abs_force_N": 8.274,
+    "max_abs_torque_Nm": 0.5628,
+    "force_at_stage_start_N": [
+     -1.127,
+     1.214,
+     -4.976
+    ],
+    "max_abs_force_change_from_stage_start_N": 3.358,
+    "max_gap_s": 0.0145,
+    "max_header_age_s": 0.0139,
+    "stale": false,
+    "stage": "HOME_START"
+   },
+   {
+    "available": true,
+    "n_samples": 376,
+    "n_nonfinite": 0,
+    "stage_window_s": 3.051,
+    "frame_ids": [
+     "tool0"
+    ],
+    "max_abs_force_N": 8.172,
+    "max_abs_torque_Nm": 0.5615,
+    "force_at_stage_start_N": [
+     -0.841,
+     0.833,
+     -7.749
+    ],
+    "max_abs_force_change_from_stage_start_N": 0.411,
+    "max_gap_s": 0.0127,
+    "max_header_age_s": 0.0061,
+    "stale": false,
+    "stage": "OPEN"
+   }
+  ]
+ }
+}
