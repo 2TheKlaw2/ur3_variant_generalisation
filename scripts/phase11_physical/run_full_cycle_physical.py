@@ -57,8 +57,13 @@ HELD = {"LIFT", "TRANSPORT", "ALIGN_INSERT", "INSERT", "ROTATE"}
 # robot is never faster than the fake-hardware playback the operator approved on 3 Nov 2026:
 # ALIGN_INSERT 3.0 s planned -> 4.5 s (descent 3 s); INSERT x1.5 (V1-V3 13 s -> 19.5 s; V4/V5 already slower).
 MIN_SLOWDOWN = {"ALIGN_INSERT": 1.5, "INSERT": 1.5}
-# Free-air transits that may run faster with --transit-speed (operator request 5 Nov: REACH/TRANSPORT 2x).
-TRANSIT = {"REACH", "TRANSPORT"}
+# Free-air transits that may run faster with --transit-speed (operator requests 5-6 Nov). Part never near a fixture
+# surface in these: REACH (gripper open, to above the pocket), TRANSPORT (part lifted, to above the fitting),
+# HOME (part released, from the retreat pose). With --transit-speed these are retimed to that peak joint speed,
+# FASTER than planned if the plan is slower (at most TRANSIT_MAX_SPEEDUP x), never above TRANSIT_HARD_MAX.
+TRANSIT = {"REACH", "TRANSPORT", "HOME"}
+TRANSIT_HARD_MAX = 0.80          # rad/s (UR3e joint limits are 3.14 rad/s base/shoulder/elbow, 6.28 wrists)
+TRANSIT_MAX_SPEEDUP = 2.0        # never more than 2x faster than the planned (demonstration-derived) timing
 HOME_Q = [-0.675926510488, -1.34777768076, -0.527696251869, -2.8273965321, 1.55948805809, -3.87329799334]
 # Wrench RECORDING ONLY (no contact detection, no force control, no force-triggered stop). Verified against the
 # UR driver (Humble): ros2_controllers ForceTorqueSensorBroadcaster publishes geometry_msgs/WrenchStamped on
@@ -182,11 +187,13 @@ def load_insert_rotate(i, temporal="fixed", level="L2"):
     return st, G[i], objs
 
 
-def retime(t, q, vmax):
-    """Uniform time scaling so the peak joint speed is <= vmax. The joint path is unchanged."""
+def retime(t, q, vmax, allow_speedup=False):
+    """Uniform time scaling so the peak joint speed is <= vmax. The joint path is unchanged.
+    allow_speedup (free-air transits only): also compress time up to TRANSIT_MAX_SPEEDUP x so the peak reaches vmax."""
     peak = max((max(abs(b[j] - a[j]) for j in range(6)) / (t1 - t0))
                for (t0, a), (t1, b) in zip(zip(t, q), zip(t[1:], q[1:])) if t1 > t0) if len(t) > 1 else 0.0
-    f = max(1.0, peak / vmax) if peak > 0 else 1.0
+    f = (peak / vmax) if peak > 0 else 1.0
+    f = max(1.0 / TRANSIT_MAX_SPEEDUP, f) if allow_speedup else max(1.0, f)
     return [x * f for x in t], f, peak
 
 
@@ -221,8 +228,9 @@ def build(i, plans_dir, vmax, temporal="fixed", level="L2", vtransit=None):
         # wrist_3 is left out of the +-2pi check on purpose: the UR3e wrist 3 has unlimited rotation
         if any(abs(v) > 2 * math.pi + 1e-3 for row in q for v in row[:5]) or any(abs(row[2]) > math.radians(160) for row in q):
             raise RuntimeError(f"V{i} {name}: joint outside the software limits (+-2pi; elbow +-160 deg)")
-        t2, f, peak = retime(t, q, vtransit if (vtransit and name in TRANSIT) else vmax)
-        extra = MIN_SLOWDOWN.get(name, 1.0)
+        fast = bool(vtransit) and name in TRANSIT
+        t2, f, peak = retime(t, q, vtransit if fast else vmax, allow_speedup=fast)
+        extra = MIN_SLOWDOWN.get(name, 0.0)
         if extra > f:                                   # never faster than the approved fake-hardware playback
             t2 = [x * extra / f for x in t2]; f = extra
         out[name] = {"t": t2, "q": q, "slowdown": f, "plan_peak_rad_s": peak, "duration_s": t2[-1]}
@@ -240,7 +248,8 @@ def preflight(i, plans_dir, vmax, temporal="fixed", level="L2", vtransit=None):
     print(f"\n=========== V{i} {level} FULL-CYCLE PHYSICAL PREFLIGHT (no ROS, no motion) ===========")
     print(f"plans: {plans_dir}  (Stage 10 z-scale {s10.get('transport_z_scale')}, sigma_min {s10.get('transport_sigma_min')})")
     print(f"speed guard: every stage retimed to <= {vmax} rad/s per joint (path unchanged)"
-          + (f"; REACH/TRANSPORT <= {vtransit} rad/s" if vtransit else "") + "\n")
+          + (f"; REACH/TRANSPORT/HOME retimed to {vtransit} rad/s (free air, up to {TRANSIT_MAX_SPEEDUP:g}x faster "
+             f"than planned)" if vtransit else "") + "\n")
     print(f"{'stage':13s} {'points':>6s} {'planned peak':>12s} {'slowdown':>8s} {'duration':>9s}")
     total = 0.0
     for name, p in plans.items():
@@ -624,7 +633,7 @@ def execute(i, plans, G, objs, args):
                     scene.set_allowed(part, f"fitting_V{i}", True)       # judged by the CAD classifier offline
                 node.check_states(name, p["q"])
                 approve(name, f"{name}{' [' + getattr(args, 'level', 'L2') + ']' if name in ('INSERT', 'ROTATE') else ''}: {len(p['q'])} points, {p['duration_s']:.1f} s "
-                              f"(slowed {p['slowdown']:.2f}x to <= {args.transit_speed if (getattr(args, 'transit_speed', None) and name in TRANSIT) else args.max_joint_speed} rad/s).")
+                              f"(time x{p['slowdown']:.2f}, peak <= {args.transit_speed if (getattr(args, 'transit_speed', None) and name in TRANSIT) else args.max_joint_speed} rad/s).")
                 node.arm_stage(name, p)
                 if name == "LIFT":
                     scene.set_allowed(part, "pickup_plate", False)
@@ -686,8 +695,9 @@ def main():
                     help="confirm only the cycle start and INSERT (inspect the alignment there); every other stage runs "
                          "without typing. Recorded in status.json. Ctrl+C still cancels the active stage")
     ap.add_argument("--transit-speed", type=float, default=None,
-                    help=f"peak joint speed for REACH and TRANSPORT only (free air), e.g. 0.28 = 2x the 0.14 guard; "
-                         f"max {HARD_MAX_SPEED}. Every other stage keeps --max-joint-speed")
+                    help=f"peak joint speed for the free-air transits {sorted(TRANSIT)} only, max {TRANSIT_HARD_MAX}; "
+                         f"they may run up to {TRANSIT_MAX_SPEEDUP:g}x faster than planned. Every other stage keeps "
+                         f"--max-joint-speed (0.14) and its minimum slowdowns")
     ap.add_argument("--temporal", choices=("fixed", "cad"), default="fixed",
                     help="INSERT/ROTATE timing: fixed (default, demonstrated durations) or cad (stretched by the CAD "
                          "tab-path ratio to V1; path unchanged). Recorded in status.json")
@@ -702,8 +712,8 @@ def main():
         a.wrench_topic = ""
     if not 0 < a.max_joint_speed <= HARD_MAX_SPEED:
         raise SystemExit(f"--max-joint-speed must be in (0, {HARD_MAX_SPEED}]")
-    if a.transit_speed is not None and not 0 < a.transit_speed <= HARD_MAX_SPEED:
-        raise SystemExit(f"--transit-speed must be in (0, {HARD_MAX_SPEED}]")
+    if a.transit_speed is not None and not 0 < a.transit_speed <= TRANSIT_HARD_MAX:
+        raise SystemExit(f"--transit-speed must be in (0, {TRANSIT_HARD_MAX}]")
     if ORDER.index(a.from_stage) > ORDER.index(a.until):
         raise SystemExit("--from is after --until")
     try:
